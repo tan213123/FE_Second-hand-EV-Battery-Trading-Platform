@@ -1,0 +1,112 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #000033;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+.login-form {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-form h1 {
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.error-message {
+  color: #d9534f;
+  background-color: #f2dede;
+  border: 1px solid #ebccd1;
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.forgot-password {
+    margin-top: 15px;
+    font-size: 0.9em;
+}
+
+.forgot-password a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.login-logo {
+  margin-bottom: 18px;
+}
+.login-logo img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.login-subtitle {
+  color: #666;
+  font-size: 1.05em;
+  margin-bottom: 22px;
+}
+
+.input-wrapper {
+  margin-bottom: 18px;
+}
+
+.social-login {
+  margin: 18px 0 8px 0;
+  font-size: 0.98em;
+  color: #888;
+}
+.social-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+.social-btn {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s, border 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  padding: 0;
+}
+.social-btn img {
+  width: 22px;
+  height: 22px;
+}
+.social-btn.google:hover {
+  border-color: #ea4335;
+  box-shadow: 0 2px 12px rgba(234,67,53,0.12);
+}
+.social-btn.facebook:hover {
+  border-color: #1877f3;
+  box-shadow: 0 2px 12px rgba(24,119,243,0.12);
+}
+
+@media (max-width: 500px) {
+  .login-form {
+    padding: 18px 8px;
+    max-width: 98vw;
+  }
+  .login-logo img {
+    width: 48px;
+    height: 48px;
+  }
+}
