@@ -51,132 +51,162 @@ const VerifiedIcon = () => (
   </svg>
 )
 
-function SellBikePage() {
+function SellOtoPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid')
   const [selectedBrands, setSelectedBrands] = useState([])
   const [showAllPrices, setShowAllPrices] = useState(false)
+  const [showAllCarTypes, setShowAllCarTypes] = useState(false)
+  const [showAllSeats, setShowAllSeats] = useState(false)
   const [showAllCities, setShowAllCities] = useState(false)
 
   const brands = [
-    { name: 'Pega', logo: '🏍️', count: 12450 },
-    { name: 'DKBike', logo: '🏍️', count: 9320 },
+    { name: 'MG', logo: '🚙', count: 3210 },
     { name: 'VinFast', logo: '⚡', count: 8950 },
-    { name: 'Dibao', logo: '🏍️', count: 6210 },
-    { name: 'Honda', logo: '🏍️', count: 5840 },
-    { name: 'Piaggio', logo: '🏍️', count: 3560 },
-    { name: 'Yadea', logo: '⚡', count: 2980 },
-    { name: 'Dat Bike', logo: '⚡', count: 1870 }
+    { name: 'Wuling', logo: '🚗', count: 2150 },
+    { name: 'Hyundai', logo: '🚗', count: 4320 },
+    { name: 'Mercedes Benz', logo: '⭐', count: 1560 },
+    { name: 'Porsche', logo: '🚗', count: 980 },
+    { name: 'Kia', logo: '🚗', count: 2340 },
+    { name: 'Rolls-Royce', logo: '🚗', count: 1870 }
   ]
 
   const locations = [
     'Tp Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Bình Dương', 'Gần tôi'
   ]
 
-  const bikeListings = [
+  const carListings = [
     {
       id: 1,
-      title: 'Honda SH Mode 2024 - Mới 100% - Giá tốt nhất',
-      year: 2024,
-      type: 'Xăng',
+      title: 'BYD M6 2025 - DEAL RỰC RỠ - QUÀ BẤT NGỜ',
+      year: 2025,
+      type: 'Điện',
+      transmission: 'Tự động',
       condition: 'Mới',
-      price: '58,000,000 đ',
-      location: 'Tp Hồ Chí Minh',
-      seller: 'HONDA HEAD MIỀN NAM',
+      price: '756,000,000 đ',
+      location: 'Bình Dương',
+      seller: 'THÁO NGUYÊN BYD MIỀN NAM',
       verified: true,
-      images: 8,
+      images: 5,
       featured: true,
       vip: true,
-      discount: '5% thỏa thuận'
+      discount: '6% thỏa thuận'
     },
     {
       id: 2,
-      title: 'VinFast Evo 200 - Xe điện thông minh',
-      year: 2024,
+      title: 'MUA XE VF5 Ở ĐỘNG, MẪU NÂNG CAO GIÁ CƠ BẢN',
+      year: 2025,
       type: 'Điện',
+      transmission: 'Tự động',
       condition: 'Mới',
-      price: '62,900,000 đ',
-      location: 'Hà Nội',
-      seller: 'VinFast Showroom',
-      verified: true,
-      images: 10,
+      price: '507,000,000 đ',
+      location: 'Tp Hồ Chí Minh',
+      seller: 'Vinfast VFX Thủ Đức',
+      verified: false,
+      images: 7,
       featured: true,
       vip: false
     },
     {
       id: 3,
-      title: 'Yamaha Exciter 155 2023 - Xe zin chính chủ',
-      year: 2023,
-      km: '5000 km',
-      type: 'Xăng',
-      condition: 'Đã sử dụng',
-      price: '45,000,000 đ',
-      location: 'Đà Nẵng',
-      seller: 'Nguyễn Văn A',
-      verified: false,
+      title: 'VF6 trả trước 90 triệu, không cần bằng lái & cmtn',
+      year: 2025,
+      type: 'Điện',
+      transmission: 'Tự động',
+      condition: 'Mới',
+      price: '651,000,000 đ',
+      location: 'Bình Dương',
+      seller: 'ĐỔ HÙNG VINFAST NAM THÁI',
+      verified: true,
       images: 6,
+      featured: true,
+      vip: false,
+      soldTime: '5 đã bán'
+    },
+    {
+      id: 4,
+      title: 'Hyundai Elantra 2017 2.0 AT - 1chủ mua mới',
+      year: 2017,
+      km: '76000 km',
+      type: 'Xăng',
+      transmission: 'Tự động',
+      condition: '1 chủ',
+      price: '378,000,000 đ',
+      location: 'Tp Hồ Chí Minh',
+      seller: 'Trần Vũ',
+      verified: true,
+      images: 10,
+      rating: 4.7,
+      reviews: '19 đã bán',
+      featured: false,
+      vip: true,
+      discount: '6% thỏa thuận'
+    },
+    {
+      id: 5,
+      title: 'Kia Sorento 2016 GAT - 93000 km',
+      year: 2016,
+      km: '93000 km',
+      type: 'Xăng',
+      transmission: 'Tự động',
+      condition: 'Cũ',
+      price: '458,000,000 đ',
+      location: 'Gia Lai',
+      seller: 'Nhân Nguyen',
+      verified: true,
+      images: 20,
       featured: false,
       vip: true
     },
     {
-      id: 4,
-      title: 'Honda Vision 2022 - 1 chủ từ đầu, biển Hà Nội',
-      year: 2022,
-      km: '8000 km',
+      id: 6,
+      title: 'Hyundai Accent 2021 1.4 AT - 72000 km bao zin 1chu',
+      year: 2021,
+      km: '72000 km',
       type: 'Xăng',
-      condition: 'Đã sử dụng',
-      price: '28,500,000 đ',
+      transmission: 'Tự động',
+      condition: '1 chủ',
+      price: '379,000,000 đ',
       location: 'Hà Nội',
-      seller: 'Trần Minh',
-      verified: true,
-      images: 7,
-      rating: 4.8,
-      reviews: '23 đã bán',
+      seller: 'A Công',
+      verified: false,
+      images: 12,
+      rating: 10,
       featured: false,
-      vip: false
-    },
-    {
-      id: 5,
-      title: 'Yadea Xmen Neo - Pin 60V giá cực tốt',
-      year: 2024,
-      type: 'Điện',
-      condition: 'Mới',
-      price: '18,900,000 đ',
-      location: 'Bình Dương',
-      seller: 'Yadea Chính Hãng',
-      verified: true,
-      images: 5,
-      featured: true,
       vip: false,
       discount: 'Giá tốt'
-    },
-    {
-      id: 6,
-      title: 'Dat Bike Weaver 200 - Xe điện thông minh 2024',
-      year: 2024,
-      type: 'Điện',
-      condition: 'Mới',
-      price: '85,000,000 đ',
-      location: 'Tp Hồ Chí Minh',
-      seller: 'Dat Bike Official',
-      verified: true,
-      images: 12,
-      rating: 4.9,
-      featured: true,
-      vip: true,
-      discount: 'Trả góp 0%'
     }
   ]
 
   const priceRanges = [
-    'Giá dưới 10 triệu',
-    'Giá 10 triệu - 20 triệu',
-    'Giá 20 triệu - 30 triệu',
-    'Giá 30 triệu - 40 triệu',
-    'Giá 40 triệu - 50 triệu',
-    'Giá 50 triệu - 70 triệu',
-    'Giá 70 triệu - 100 triệu',
-    'Trên 100 triệu'
+    'Giá dưới 200 triệu',
+    'Giá 200 triệu - 300 triệu',
+    'Giá 300 triệu - 400 triệu',
+    'Giá 400 triệu - 500 triệu',
+    'Giá 500 triệu - 600 triệu',
+    'Giá 600 triệu - 700 triệu',
+    'Giá 700 triệu - 800 triệu',
+    'Trên 800 triệu'
+  ]
+
+  const carTypes = [
+    'Sedan',
+    'SUV/Cross over',
+    'Hatchback',
+    'Pick-up (bán tải)',
+    'Minivan',
+    'Coupe',
+    'Convertible',
+    'Van'
+  ]
+  
+  const seats = [
+    '2 chỗ',
+    '4 chỗ',
+    '5 chỗ',
+    '7 chỗ',
+    '8 chỗ',
+    '9 chỗ trở lên'
   ]
   
   const cities = [
@@ -187,20 +217,21 @@ function SellBikePage() {
     'Hải Phòng',
     'Bình Dương',
     'Đồng Nai',
-    'Vũng Tàu'
+    'Vũng Tàu',
+    'Huế',
   ]
 
   return (
-    <div className="sell-bike-page">
+    <div className="sell-oto-page">
       {/* Header Section */}
       <div className="page-header">
         <div className="container">
           <div className="breadcrumb">
             <a href="/">EcoXe</a>
             <span>/</span>
-            <span>Xe máy điện</span>
+            <span>Ô tô</span>
           </div>
-          <h1 className="page-title">28.456 xe máy điện cũ mới giá tốt cập nhật 04/10/2025</h1>
+          <h1 className="page-title">43.121 xe ô tô cũ mới giá tốt cập nhật 04/10/2025</h1>
           
           {/* Filter Bar */}
           <div className="filter-bar">
@@ -209,7 +240,7 @@ function SellBikePage() {
               <span>Lọc</span>
             </button>
             <button className="filter-btn active">
-              <span>Xe máy</span>
+              <span>Ô tô</span>
               <ChevronDownIcon />
             </button>
             <button className="filter-btn">
@@ -315,7 +346,49 @@ function SellBikePage() {
 
               <div className="filter-section">
                 <h3 className="filter-title">
-                  Mua bán xe máy
+                  Lọc theo kiểu dáng
+                  <ChevronDownIcon />
+                </h3>
+                <div className="filter-options">
+                  {(showAllCarTypes ? carTypes : carTypes.slice(0, 3)).map((type, index) => (
+                    <label key={index} className="filter-option">
+                      <input type="checkbox" />
+                      <span>{type}</span>
+                    </label>
+                  ))}
+                  <button 
+                    className="show-more-btn"
+                    onClick={() => setShowAllCarTypes(!showAllCarTypes)}
+                  >
+                    {showAllCarTypes ? 'Thu gọn ▲' : 'Xem thêm ▼'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="filter-section">
+                <h3 className="filter-title">
+                  Lọc theo số chỗ
+                  <ChevronDownIcon />
+                </h3>
+                <div className="filter-options">
+                  {(showAllSeats ? seats : seats.slice(0, 3)).map((seat, index) => (
+                    <label key={index} className="filter-option">
+                      <input type="checkbox" />
+                      <span>{seat}</span>
+                    </label>
+                  ))}
+                  <button 
+                    className="show-more-btn"
+                    onClick={() => setShowAllSeats(!showAllSeats)}
+                  >
+                    {showAllSeats ? 'Thu gọn ▲' : 'Xem thêm ▼'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="filter-section">
+                <h3 className="filter-title">
+                  Mua bán ô tô
                   <ChevronDownIcon />
                 </h3>
                 <div className="filter-options">
@@ -373,61 +446,62 @@ function SellBikePage() {
                 </div>
               </div>
 
-              {/* Bike Listings Grid */}
+              {/* Car Listings Grid */}
               <div className="listings-grid">
-                {bikeListings.map((bike) => (
-                  <div key={bike.id} className="bike-card">
-                    {bike.vip && <div className="vip-badge">Tin VIP</div>}
-                    {bike.featured && <div className="featured-badge">Tin tiêu biểu</div>}
+                {carListings.map((car) => (
+                  <div key={car.id} className="car-card">
+                    {car.vip && <div className="vip-badge">Tin VIP</div>}
+                    {car.featured && <div className="featured-badge">Tin tiêu biểu</div>}
                     
-                    <div className="bike-image">
-                      <img src="/api/placeholder/400/300" alt={bike.title} />
+                    <div className="car-image">
+                      <img src="/api/placeholder/400/300" alt={car.title} />
                       <button className="favorite-btn">
                         <HeartIcon />
                       </button>
-                      <div className="image-count">{bike.images} 📷</div>
+                      <div className="image-count">{car.images} 📷</div>
                     </div>
 
-                    <div className="bike-content">
-                      <h3 className="bike-title">{bike.title}</h3>
+                    <div className="car-content">
+                      <h3 className="car-title">{car.title}</h3>
                       
-                      <div className="bike-specs">
-                        <span>{bike.year}</span>
-                        {bike.km && <span>{bike.km}</span>}
-                        <span>{bike.type}</span>
-                        <span>{bike.condition}</span>
+                      <div className="car-specs">
+                        <span>{car.year}</span>
+                        {car.km && <span>{car.km}</span>}
+                        <span>{car.type}</span>
+                        <span>{car.transmission}</span>
+                        <span>{car.condition}</span>
                       </div>
 
-                      <div className="bike-price">
-                        {bike.price}
-                        {bike.discount && (
-                          <span className="discount">{bike.discount}</span>
+                      <div className="car-price">
+                        {car.price}
+                        {car.discount && (
+                          <span className="discount">{car.discount}</span>
                         )}
                       </div>
 
-                      <div className="bike-location">
+                      <div className="car-location">
                         <LocationIcon />
-                        <span>{bike.location}</span>
+                        <span>{car.location}</span>
                       </div>
 
-                      <div className="bike-seller">
+                      <div className="car-seller">
                         <div className="seller-info">
                           <div className="seller-avatar">👤</div>
                           <div className="seller-details">
                             <span className="seller-name">
-                              {bike.seller}
-                              {bike.verified && <VerifiedIcon />}
+                              {car.seller}
+                              {car.verified && <VerifiedIcon />}
                             </span>
-                            {bike.rating && (
+                            {car.rating && (
                               <span className="seller-rating">
-                                {bike.rating} ⭐ {bike.reviews}
+                                {car.rating} ⭐ {car.reviews}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="bike-actions">
+                      <div className="car-actions">
                         <button className="action-btn primary">
                           <PhoneIcon />
                           Bấm để hiện số
@@ -447,21 +521,21 @@ function SellBikePage() {
 
               {/* Price Range Banner */}
               <div className="price-range-banner">
-                <span className="banner-icon">🏍️</span>
-                <span className="banner-text">Bạn tìm xe máy trong khoảng giá nào?</span>
-                <span className="banner-icon">⚡</span>
+                <span className="banner-icon">🚗</span>
+                <span className="banner-text">Bạn tìm xe trong khoảng giá nào?</span>
+                <span className="banner-icon">🚙</span>
               </div>
 
               <div className="price-range-options">
-                <button className="price-option">dưới 20 triệu</button>
-                <button className="price-option">20 - 40 triệu</button>
-                <button className="price-option">40 - 70 triệu</button>
-                <button className="price-option">trên 70 triệu</button>
+                <button className="price-option">dưới 300 triệu</button>
+                <button className="price-option">300 - 500 triệu</button>
+                <button className="price-option">500 - 800 triệu</button>
+                <button className="price-option">trên 800 triệu</button>
               </div>
 
               {/* Brand Selection Section */}
               <div className="brand-selection-section">
-                <h2 className="section-title">Bạn cần tìm hãng xe máy nào ?</h2>
+                <h2 className="section-title">Bạn cần tìm hãng xe nào ?</h2>
                 <div className="brand-grid">
                   {brands.slice(0, 8).map((brand, index) => (
                     <div key={index} className="brand-card">
@@ -479,4 +553,4 @@ function SellBikePage() {
   )
 }
 
-export default SellBikePage
+export default SellOtoPage
