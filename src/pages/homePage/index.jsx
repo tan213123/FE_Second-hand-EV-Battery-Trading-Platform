@@ -56,9 +56,9 @@ function HomePage() {
 
   const getCategoryIcon = (type) => {
     const icons = {
-      'electric-car': '�',
-      'electric-motorcycle': '�',
-      'battery': '�'
+      'electric-car': '🚗',
+      'electric-motorcycle': '🏍️',
+      'battery': '⚡'
     }
     return icons[type] || '🚗'
   }
@@ -221,7 +221,7 @@ function HomePage() {
       <div className="hero-section">
         <div className="hero-overlay"></div>
         <div className="search-container">
-          <h1 className="hero-title">Chợ Tốt Xe - Mua bán xe cũ uy tín</h1>
+          <h1 className="hero-title">EcoXe - Mua bán xe cũ uy tín</h1>
           <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
           <div className="search-box">
             <div className="search-input-wrapper">
@@ -414,15 +414,15 @@ function HomePage() {
       {/* About Section */}
       <div className="about-section">
         <div className="container">
-          <h2 className="section-title">Chợ Tốt Xe - Chuyên trang mua bán xe trực tuyến hàng đầu Việt Nam</h2>
+          <h2 className="section-title">EcoXe - Chuyên trang mua bán xe trực tuyến hàng đầu Việt Nam</h2>
           <div className="about-content">
             <p>
-              Ra mắt năm 2017 với khởi điểm là chuyên trang mua bán xe cũ trực tuyến, Chợ Tốt Xe đã phát triển thành nền tảng giao dịch xe hàng đầu tại Việt Nam với thông tin minh bạch, quy trình đăng tin đơn giản và khả năng tìm xe nhanh chóng, đúng nhu cầu. Chợ Tốt Xe có hơn 14 triệu lượt truy cập mỗi tháng với đa dạng mọi loại xe ô tô, xe máy, xe điện, xe tải, xe đạp, phụ tùng và nhiều loại phương tiện khác, đáp ứng nhu cầu mua bán xe của người dùng.
+              Ra mắt năm 2017 với khởi điểm là chuyên trang mua bán xe cũ trực tuyến, EcoXe đã phát triển thành nền tảng giao dịch xe hàng đầu tại Việt Nam với thông tin minh bạch, quy trình đăng tin đơn giản và khả năng tìm xe nhanh chóng, đúng nhu cầu. EcoXe có hơn 14 triệu lượt truy cập mỗi tháng với đa dạng mọi loại xe ô tô, xe máy, xe điện, xe tải, xe đạp, phụ tùng và nhiều loại phương tiện khác, đáp ứng nhu cầu mua bán xe của người dùng.
             </p>
             
             <ul className="vehicle-types">
               <li>
-                <strong>Xe ô tô:</strong> Trên Chợ Tốt Xe, tin đăng xe ô tô rất đa dạng và ngày càng tăng trưởng về số lượng và chất lượng. Người dùng dễ dàng tìm thấy mẫu xe ứng ý từ tất cả các hãng nổi tiếng như Toyota, Kia, Ford, Hyundai, Mazda, Mitsubishi... Các mẫu xe gầm cao như SUV, CUV, xe MPV ngày càng thông trị thị trường ô tô Việt Nam. Xu hướng mua bán ô tô điện hay hybrid cũng là một hướng tiêu dùng nổi bật đáng chú ý trong những năm gần đây.
+                <strong>Xe ô tô:</strong> Trên EcoXe, tin đăng xe ô tô rất đa dạng và ngày càng tăng trưởng về số lượng và chất lượng. Người dùng dễ dàng tìm thấy mẫu xe ứng ý từ tất cả các hãng nổi tiếng như Toyota, Kia, Ford, Hyundai, Mazda, Mitsubishi... Các mẫu xe gầm cao như SUV, CUV, xe MPV ngày càng thông trị thị trường ô tô Việt Nam. Xu hướng mua bán ô tô điện hay hybrid cũng là một hướng tiêu dùng nổi bật đáng chú ý trong những năm gần đây.
               </li>
               <li>
                 <strong>Xe máy:</strong> Thị trường xe máy tại Việt Nam đang phát triển mạnh mẽ với sự đa dạng về mẫu mã, phân khúc và thương hiệu, đáp ứng nhu cầu di chuyển ngày càng cao của người tiêu dùng...
