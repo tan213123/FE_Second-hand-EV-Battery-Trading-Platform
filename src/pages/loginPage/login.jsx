@@ -1,9 +1,46 @@
 import React, { useState, useCallback } from 'react';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import SocialLogin from '../components/SocialLogin';
-import '../styles/login-new.css';
+import './login.scss';
 
+const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
+  return (
+    <div className="form-group">
+      <label>{label}</label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={error ? 'error' : ''}
+      />
+      {error && <span className="error-text">{error}</span>}
+    </div>
+  );
+};
+
+const Button = ({ children, type = 'button', onClick, variant = 'primary', fullWidth = false, disabled }) => {
+  const buttonClasses = `button ${variant} ${fullWidth ? 'full-width' : ''}`;
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      className={buttonClasses.trim()}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+};
+
+const SocialLogin = ({ onGoogleLogin }) => {
+  return (
+    <div className="social-buttons">
+      <button className="google-btn" onClick={onGoogleLogin}>
+        Continue with Google
+      </button>
+    </div>
+  );
+};
 const LoginPage = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -18,7 +55,6 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -49,9 +85,7 @@ const LoginPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        // TODO: Implement actual API call here
         console.log('Logging in with:', formData);
-        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         setErrors({
@@ -66,7 +100,6 @@ const LoginPage = () => {
   };
 
   const handleSocialLogin = useCallback((provider) => {
-    // TODO: Implement social login
     console.log(`Logging in with ${provider}`);
   }, []);
 
@@ -115,8 +148,6 @@ const LoginPage = () => {
 
         <SocialLogin 
           onGoogleLogin={() => handleSocialLogin('Google')}
-          onFacebookLogin={() => handleSocialLogin('Facebook')}
-          onAppleLogin={() => handleSocialLogin('Apple')}
         />
 
         <div className="footer-links">
