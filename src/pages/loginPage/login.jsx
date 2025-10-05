@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './login.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
@@ -42,6 +43,7 @@ const SocialLogin = ({ onGoogleLogin }) => {
   );
 };
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -87,6 +89,14 @@ const LoginPage = () => {
       try {
         console.log('Logging in with:', formData);
         await new Promise(resolve => setTimeout(resolve, 1000));
+        // Mock: treat emails containing 'admin' or 'staff' as admin users
+        const emailLower = (formData.email || '').toLowerCase();
+        if (emailLower.includes('admin') || emailLower.includes('staff')) {
+          navigate('/admin');
+          return;
+        }
+        // otherwise go to home
+        navigate('/home');
       } catch (error) {
         setErrors({
           submit: 'Login failed. Please try again.'
@@ -104,57 +114,84 @@ const LoginPage = () => {
   }, []);
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h1>Log In</h1>
-        <p className="signup-text">
-          Don't have an account? <a href="/signup">Sign Up</a>
-        </p>
+    <div className="login-page">
+      <div className="login-split">
+        <aside className="login-hero" aria-hidden="true">
+          <div className="hero-inner">
+            <h2>Chợ Tốt Xe</h2>
+            <p>Mua bán pin & xe điện - an toàn, nhanh chóng</p>
+            <div className="hero-cta">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M3 11h18M12 3v18" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </aside>
 
-        {errors.submit && <div className="error-message">{errors.submit}</div>}
+        <main className="login-card-wrapper">
+          <form className="login-card" onSubmit={handleSubmit} noValidate>
+            <div className="card-header">
+              <h1>Đăng nhập</h1>
+              <p className="small">Chào mừng quay trở lại — đăng nhập để tiếp tục</p>
+            </div>
 
-        <Input
-          label="Email"
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="xxxxxx@gmail.com"
-          error={errors.email}
-        />
+            {errors.submit && <div className="error-message" role="alert">{errors.submit}</div>}
 
-        <Input
-          label="Password"
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="xxxxxxxxx"
-          error={errors.password}
-        />
+            <Input
+              label="Email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@example.com"
+              error={errors.email}
+            />
 
-        <Button 
-          type="submit" 
-          variant="primary" 
-          fullWidth 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Logging in...' : 'Log in'}
-        </Button>
+            <Input
+              label="Mật khẩu"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Nhập mật khẩu"
+              error={errors.password}
+            />
 
-        <div className="divider">
-          <span>or</span>
-        </div>
+            <div className="actions-row">
+              <label className="remember">
+                <input type="checkbox" name="remember" /> Ghi nhớ đăng nhập
+              </label>
+              <a className="forgot" href="/forgot">Quên mật khẩu?</a>
+            </div>
 
-        <SocialLogin 
-          onGoogleLogin={() => handleSocialLogin('Google')}
-        />
+            <Button 
+              type="submit" 
+              variant="primary" 
+              fullWidth 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            </Button>
 
-        <div className="footer-links">
-          <a href="/terms">Terms of Use</a>
-          <a href="/privacy">Privacy Policy</a>
-        </div>
-      </form>
+            <div className="divider">
+              <span>hoặc</span>
+            </div>
+
+            <SocialLogin 
+              onGoogleLogin={() => handleSocialLogin('Google')}
+            />
+
+            <p className="signup-text">
+              Chưa có tài khoản? <a href="/signup">Đăng ký ngay</a>
+            </p>
+
+            <div className="card-footer">
+              <a href="/terms">Điều khoản</a>
+              <a href="/privacy">Chính sách</a>
+            </div>
+          </form>
+        </main>
+      </div>
     </div>
   );
 };

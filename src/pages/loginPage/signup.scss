@@ -14,27 +14,34 @@ $border-color: #ddd;
 .signup-container {
   @include flex-center;
   min-height: 100vh;
-  background-color: $navy-blue;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
   font-family: Arial, sans-serif;
-  padding: 20px;
+  padding: 24px;
 }
 
 .signup-form {
   background: white;
-  padding: 50px 70px;
-  border-radius: 15px;
+  padding: 48px 56px;
+  border-radius: 16px;
   width: 100%;
-  max-width: 600px;
+  max-width: 720px;
   text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
 
   h1 {
     color: $navy-blue;
-    font-size: 38px;
-    margin-bottom: 20px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
+    font-size: 34px;
+    margin-bottom: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
   }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+  margin-bottom: 8px;
 }
 
 .form-group {
@@ -47,7 +54,7 @@ $border-color: #ddd;
     color: $text-dark;
   }
 
-  input {
+  input, select {
     width: 100%;
     padding: 15px;
     border: 1px solid $border-color;
@@ -264,8 +271,13 @@ $border-color: #ddd;
   border-radius: 5px;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 720px) {
   .signup-form {
-    padding: 20px;
+    padding: 24px 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }

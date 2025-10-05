@@ -3,6 +3,7 @@ import HomePage from "./pages/homePage";
 import LoginPage from "./pages/loginPage/login";
 import SignUpPage from "./pages/loginPage/signup";
 import SellBikePage from "./pages/sellPage/sellBikePage";
+import AdminPage from "./pages/adminPage";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/sell" element={<SellBikePage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

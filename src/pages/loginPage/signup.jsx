@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import './signup.scss';
 
-const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
+const Input = ({ label, type, name, value, onChange, placeholder, error, autoComplete }) => {
   return (
     <div className="form-group">
       <label>{label}</label>
@@ -11,6 +11,7 @@ const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        autoComplete={autoComplete}
         className={error ? 'error' : ''}
       />
       {error && <span className="error-text">{error}</span>}
@@ -38,7 +39,7 @@ const SocialLogin = ({ onGoogleLogin }) => {
   return (
     <div className="social-buttons">
       <button className="google-btn" onClick={onGoogleLogin}>
-        Continue with Google
+        Tiếp tục với Google
       </button>
     </div>
   );
@@ -77,39 +78,39 @@ const SignUpPage = () => {
     const newErrors = {};
     
     if (!formData.name) {
-      newErrors.name = 'Name is required';
+      newErrors.name = 'Vui lòng nhập họ và tên';
     }
 
     if (!formData.address) {
-      newErrors.address = 'Address is required';
+      newErrors.address = 'Vui lòng nhập địa chỉ';
     }
 
     if (!formData.yearOfBirth) {
-      newErrors.yearOfBirth = 'Date of birth is required';
+      newErrors.yearOfBirth = 'Vui lòng chọn ngày sinh';
     }
 
     if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = 'Vui lòng nhập số điện thoại';
     } else if (!/^\d+$/.test(formData.phone)) {
-      newErrors.phone = 'Phone must contain only numbers';
+      newErrors.phone = 'Số điện thoại chỉ được chứa chữ số';
     }
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Vui lòng nhập email';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = 'Vui lòng nhập email hợp lệ';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'Vui lòng nhập mật khẩu';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Mật khẩu không khớp';
     }
 
     return newErrors;
@@ -122,13 +123,13 @@ const SignUpPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        console.log('Signing up with:', formData);
+        console.log('Đăng ký với:', formData);
         await new Promise(resolve => setTimeout(resolve, 1000));
         // Redirect to login after successful signup
         window.location.href = '/login';
       } catch (error) {
         setErrors({
-          submit: 'Sign up failed. Please try again.'
+          submit: 'Đăng ký thất bại. Vui lòng thử lại.'
         });
       } finally {
         setIsSubmitting(false);
@@ -139,118 +140,145 @@ const SignUpPage = () => {
   };
 
   const handleSocialLogin = useCallback((provider) => {
-    console.log(`Signing up with ${provider}`);
+    console.log(`Đăng ký với ${provider}`);
   }, []);
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h1>Sign Up</h1>
-        <p className="signup-text">
-          Already have an account? <a href="/login">Log In</a>
+    <div className="signup-container">
+      <form className="signup-form" onSubmit={handleSubmit}>
+        <h1>Tạo tài khoản</h1>
+        <p className="login-text">
+          Đã có tài khoản? <a href="/login">Đăng nhập</a>
         </p>
 
         {errors.submit && <div className="error-message">{errors.submit}</div>}
 
-        <Input
-          label="Name*"
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="Enter your name"
-          error={errors.name}
-        />
+        <div className="form-grid">
+          <Input
+            label="Họ và tên*"
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Nhập họ và tên"
+            autoComplete="name"
+            error={errors.name}
+          />
 
-        <Input
-          label="Address*"
-          type="text"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          placeholder="Enter your address"
-          error={errors.address}
-        />
+          <Input
+            label="Email*"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="ban@vidu.com"
+            autoComplete="email"
+            error={errors.email}
+          />
 
-        <Input
-          label="Date of Birth*"
-          type="date"
-          name="yearOfBirth"
-          value={formData.yearOfBirth}
-          onChange={handleChange}
-          error={errors.yearOfBirth}
-        />
+          <Input
+            label="Số điện thoại*"
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="Nhập số điện thoại"
+            autoComplete="tel"
+            error={errors.phone}
+          />
 
-        <Input
-          label="Phone Number*"
-          type="tel"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          placeholder="Enter your phone number"
-          error={errors.phone}
-        />
+          <Input
+            label="Ngày sinh*"
+            type="date"
+            name="yearOfBirth"
+            value={formData.yearOfBirth}
+            onChange={handleChange}
+            autoComplete="bday"
+            error={errors.yearOfBirth}
+          />
 
-        <Input
-          label="Email*"
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="xxxxxx@gmail.com"
-          error={errors.email}
-        />
+          <Input
+            label="Địa chỉ*"
+            type="text"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            placeholder="Nhập địa chỉ"
+            autoComplete="street-address"
+            error={errors.address}
+          />
+        </div>
 
         <div className="form-group">
-          <label>Gender</label>
+          <label>Giới tính</label>
           <select
             name="sex"
             value={formData.sex}
             onChange={handleChange}
             className={errors.sex ? 'error' : ''}
           >
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
+            <option value="">Chọn giới tính</option>
+            <option value="male">Nam</option>
+            <option value="female">Nữ</option>
+            <option value="other">Khác</option>
           </select>
           {errors.sex && <span className="error-text">{errors.sex}</span>}
         </div>
 
         <div className="form-group">
-          <label>Status</label>
+          <label>Trạng thái</label>
           <select
             name="status"
             value={formData.status}
             onChange={handleChange}
             className={errors.status ? 'error' : ''}
           >
-            <option value="">Select status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="">Chọn trạng thái</option>
+            <option value="active">Hoạt động</option>
+            <option value="inactive">Không hoạt động</option>
           </select>
           {errors.status && <span className="error-text">{errors.status}</span>}
         </div>
 
         <Input
-          label="Password*"
+          label="Mật khẩu*"
           type="password"
           name="password"
           value={formData.password}
           onChange={handleChange}
-          placeholder="Enter your password"
+          placeholder="Nhập mật khẩu"
+          autoComplete="new-password"
           error={errors.password}
         />
 
         <Input
-          label="Confirm Password*"
+          label="Xác nhận mật khẩu*"
           type="password"
           name="confirmPassword"
           value={formData.confirmPassword}
           onChange={handleChange}
-          placeholder="Confirm your password"
+          placeholder="Nhập lại mật khẩu"
+          autoComplete="new-password"
           error={errors.confirmPassword}
         />
+
+        <div className="password-requirements">
+          <ul>
+            <li className={formData.password.length >= 6 ? 'valid' : ''}>Ít nhất 6 ký tự</li>
+            <li className={/[A-Z]/.test(formData.password) ? 'valid' : ''}>Ít nhất một chữ hoa</li>
+            <li className={/\d/.test(formData.password) ? 'valid' : ''}>Ít nhất một chữ số</li>
+          </ul>
+        </div>
+
+        <div className="terms-checkbox">
+          <label>
+            <input type="checkbox" required />
+            <span>
+              Tôi đồng ý với <a href="/terms" target="_blank" rel="noreferrer">Điều khoản</a> và
+              <a href="/privacy" target="_blank" rel="noreferrer"> Chính sách quyền riêng tư</a>.
+            </span>
+          </label>
+        </div>
 
         <Button 
           type="submit" 
@@ -258,11 +286,11 @@ const SignUpPage = () => {
           fullWidth 
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+          {isSubmitting ? 'Đang tạo tài khoản...' : 'Đăng ký'}
         </Button>
 
         <div className="divider">
-          <span>or</span>
+          <span>hoặc</span>
         </div>
 
         <SocialLogin 
@@ -270,8 +298,8 @@ const SignUpPage = () => {
         />
 
         <div className="footer-links">
-          <a href="/terms">Terms of Use</a>
-          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Điều khoản sử dụng</a>
+          <a href="/privacy">Chính sách bảo mật</a>
         </div>
       </form>
     </div>
