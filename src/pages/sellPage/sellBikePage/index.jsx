@@ -58,13 +58,18 @@ const HomeIcon = () => (
   </svg>
 )
 
-function SellBikePage() {
+function SellBikePage({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid')
   const [selectedBrands, setSelectedBrands] = useState([])
   const [showAllPrices, setShowAllPrices] = useState(false)
   const [showAllCities, setShowAllCities] = useState(false)
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
+  const [showPriceDropdown, setShowPriceDropdown] = useState(false)
+  const [showYearDropdown, setShowYearDropdown] = useState(false)
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false)
+  const [showConditionDropdown, setShowConditionDropdown] = useState(false)
+  const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false)
 
   const brands = [
     { name: 'Pega', logo: '🏍️', count: 12450 },
@@ -214,14 +219,14 @@ function SellBikePage() {
         <div className="container">
           <div className="header-top">
             <div className="breadcrumb">
-              <a href="/">EcoXe</a>
+              <a onClick={() => onNavigate && onNavigate('home')} style={{cursor: 'pointer'}}>EcoXe</a>
               <span>/</span>
               <span>Xe điện</span>
             </div>
-            <a href="/" className="home-btn">
+            <button className="home-btn" onClick={() => onNavigate && onNavigate('home')}>
               <HomeIcon />
               <span>Trang chủ</span>
-            </a>
+            </button>
           </div>
           <h1 className="page-title">28.456 xe điện cũ mới giá tốt cập nhật {getCurrentDate()}</h1>
           
@@ -241,32 +246,102 @@ function SellBikePage() {
               </button>
               {showVehicleDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">Xe ô tô</a>
-                  <a href="#" className="dropdown-item">Pin</a>
+                  <a onClick={() => onNavigate && onNavigate('oto')} className="dropdown-item" style={{cursor: 'pointer'}}>Xe ô tô</a>
+                  <a onClick={() => onNavigate && onNavigate('battery')} className="dropdown-item" style={{cursor: 'pointer'}}>Pin</a>
                 </div>
               )}
             </div>
-            <button className="filter-btn">
-              <span>Giá</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn">
-              <span>Năm sản xuất</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn">
-              <span>Hãng xe</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn">
-              <span>Tình trạng</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn more">
-              <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
-                <circle cx="2" cy="2" r="2"/><circle cx="2" cy="8" r="2"/><circle cx="2" cy="14" r="2"/>
-              </svg>
-            </button>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowPriceDropdown(!showPriceDropdown)}
+              >
+                <span>Giá</span>
+                <ChevronDownIcon />
+              </button>
+              {showPriceDropdown && (
+                <div className="dropdown-menu">
+                  {priceRanges.map((range, index) => (
+                    <a key={index} href="#" className="dropdown-item">{range}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowYearDropdown(!showYearDropdown)}
+              >
+                <span>Năm sản xuất</span>
+                <ChevronDownIcon />
+              </button>
+              {showYearDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">2025</a>
+                  <a href="#" className="dropdown-item">2024</a>
+                  <a href="#" className="dropdown-item">2023</a>
+                  <a href="#" className="dropdown-item">2022</a>
+                  <a href="#" className="dropdown-item">2021</a>
+                  <a href="#" className="dropdown-item">2020</a>
+                  <a href="#" className="dropdown-item">2019</a>
+                  <a href="#" className="dropdown-item">Trước 2019</a>
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+              >
+                <span>Hãng xe</span>
+                <ChevronDownIcon />
+              </button>
+              {showBrandDropdown && (
+                <div className="dropdown-menu">
+                  {brands.map((brand, index) => (
+                    <a key={index} href="#" className="dropdown-item">
+                      {brand.logo} {brand.name} ({brand.count})
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowConditionDropdown(!showConditionDropdown)}
+              >
+                <span>Tình trạng</span>
+                <ChevronDownIcon />
+              </button>
+              {showConditionDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Mới</a>
+                  <a href="#" className="dropdown-item">Đã sử dụng</a>
+                  <a href="#" className="dropdown-item">Va chạm nhẹ</a>
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn more"
+                onClick={() => setShowMoreFiltersDropdown(!showMoreFiltersDropdown)}
+              >
+                <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
+                  <circle cx="2" cy="2" r="2"/><circle cx="2" cy="8" r="2"/><circle cx="2" cy="14" r="2"/>
+                </svg>
+              </button>
+              {showMoreFiltersDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Công suất động cơ</a>
+                  <a href="#" className="dropdown-item">Dung lượng pin</a>
+                  <a href="#" className="dropdown-item">Quãng đường</a>
+                  <a href="#" className="dropdown-item">Hộp số</a>
+                  <a href="#" className="dropdown-item">Màu sắc</a>
+                  <a href="#" className="dropdown-item">Xuất xứ</a>
+                </div>
+              )}
+            </div>
             <button className="clear-filter">Xoá lọc</button>
           </div>
 

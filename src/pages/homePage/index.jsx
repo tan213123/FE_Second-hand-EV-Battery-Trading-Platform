@@ -44,15 +44,21 @@ const VerifiedIcon = () => (
   </svg>
 )
 
-function HomePage() {
+function HomePage({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLocation] = useState('Chọn khu vực')
 
   const categories = [
-    { icon: 'electric-car', label: 'Ô tô điện', color: '#4ECDC4' },
-    { icon: 'electric-motorcycle', label: 'Xe máy điện', color: '#FF6B6B' },
-    { icon: 'battery', label: 'Pin của các dòng xe', color: '#FFD93D' }
+    { icon: 'electric-car', label: 'Ô tô', color: '#4ECDC4', page: 'oto' },
+    { icon: 'electric-motorcycle', label: 'Xe điện', color: '#FF6B6B', page: 'bike' },
+    { icon: 'battery', label: 'Pin', color: '#FFD93D', page: 'battery' }
   ]
+
+  const handleCategoryClick = (page) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
+  };
 
   const getCategoryIcon = (type) => {
     const icons = {
@@ -260,6 +266,7 @@ function HomePage() {
                 key={index} 
                 className="category-item"
                 style={{'--category-color': category.color}}
+                onClick={() => handleCategoryClick(category.page)}
               >
                 <div className="category-icon">
                   <span className="icon-emoji">{getCategoryIcon(category.icon)}</span>

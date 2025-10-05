@@ -58,7 +58,7 @@ const HomeIcon = () => (
   </svg>
 )
 
-function SellOtoPage() {
+function SellOtoPage({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid')
   const [selectedBrands, setSelectedBrands] = useState([])
@@ -71,6 +71,7 @@ function SellOtoPage() {
   const [showYearDropdown, setShowYearDropdown] = useState(false)
   const [showBrandDropdown, setShowBrandDropdown] = useState(false)
   const [showConditionDropdown, setShowConditionDropdown] = useState(false)
+  const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false)
 
   const brands = [
     { name: 'MG', logo: '🚙', count: 3210 },
@@ -249,14 +250,14 @@ function SellOtoPage() {
         <div className="container">
           <div className="header-top">
             <div className="breadcrumb">
-              <a href="/">EcoXe</a>
+              <a onClick={() => onNavigate && onNavigate('home')} style={{cursor: 'pointer'}}>EcoXe</a>
               <span>/</span>
               <span>Ô tô</span>
             </div>
-            <a href="/" className="home-btn">
+            <button className="home-btn" onClick={() => onNavigate && onNavigate('home')}>
               <HomeIcon />
               <span>Trang chủ</span>
-            </a>
+            </button>
           </div>
           <h1 className="page-title">43.121 xe ô tô cũ mới giá tốt cập nhật {getCurrentDate()}</h1>
           
@@ -276,8 +277,8 @@ function SellOtoPage() {
               </button>
               {showVehicleDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">Xe điện</a>
-                  <a href="#" className="dropdown-item">Pin</a>
+                  <a onClick={() => onNavigate && onNavigate('bike')} className="dropdown-item" style={{cursor: 'pointer'}}>Xe điện</a>
+                  <a onClick={() => onNavigate && onNavigate('battery')} className="dropdown-item" style={{cursor: 'pointer'}}>Pin</a>
                 </div>
               )}
             </div>
@@ -352,11 +353,26 @@ function SellOtoPage() {
                 </div>
               )}
             </div>
-            <button className="filter-btn more">
-              <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
-                <circle cx="2" cy="2" r="2"/><circle cx="2" cy="8" r="2"/><circle cx="2" cy="14" r="2"/>
-              </svg>
-            </button>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn more"
+                onClick={() => setShowMoreFiltersDropdown(!showMoreFiltersDropdown)}
+              >
+                <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
+                  <circle cx="2" cy="2" r="2"/><circle cx="2" cy="8" r="2"/><circle cx="2" cy="14" r="2"/>
+                </svg>
+              </button>
+              {showMoreFiltersDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Loại xe</a>
+                  <a href="#" className="dropdown-item">Số chỗ ngồi</a>
+                  <a href="#" className="dropdown-item">Hộp số</a>
+                  <a href="#" className="dropdown-item">Nhiên liệu</a>
+                  <a href="#" className="dropdown-item">Xuất xứ</a>
+                  <a href="#" className="dropdown-item">Màu sắc</a>
+                </div>
+              )}
+            </div>
             <button className="clear-filter">Xoá lọc</button>
           </div>
 

@@ -1,64 +1,7 @@
 import { useState } from 'react'
 import "./index.scss"
 
-// Icon Components
-const FilterIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-  </svg>
-)
-
-const ChevronDownIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7 10l5 5 5-5z"/>
-  </svg>
-)
-
-const LocationIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-  </svg>
-)
-
-const HeartIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-  </svg>
-)
-
-const ChatIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-  </svg>
-)
-
-const PhoneIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-  </svg>
-)
-
-const GridIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-  </svg>
-)
-
-const VerifiedIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="#4CAF50">
-    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-  </svg>
-)
-
-const HomeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-    <polyline points="9 22 9 12 15 12 15 22"/>
-  </svg>
-)
-
-function SellBatteryPage() {
+function SellBatteryPage({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid')
   const [selectedBrands, setSelectedBrands] = useState([])
@@ -66,6 +9,69 @@ function SellBatteryPage() {
   const [showAllBatteryTypes, setShowAllBatteryTypes] = useState(false)
   const [showAllCities, setShowAllCities] = useState(false)
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
+  const [showPriceDropdown, setShowPriceDropdown] = useState(false)
+  const [showCapacityDropdown, setShowCapacityDropdown] = useState(false)
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false)
+  const [showBatteryTypeDropdown, setShowBatteryTypeDropdown] = useState(false)
+  const [showConditionDropdown, setShowConditionDropdown] = useState(false)
+  const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false)
+
+  // Icon Components
+  const FilterIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+    </svg>
+  )
+
+  const ChevronDownIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7 10l5 5 5-5z"/>
+    </svg>
+  )
+
+  const LocationIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  )
+
+  const HeartIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+
+  const ChatIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  )
+
+  const PhoneIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  )
+
+  const GridIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  )
+
+  const VerifiedIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="#4CAF50">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </svg>
+  )
+
+  const HomeIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  )
 
   const brands = [
     { name: 'VinFast', logo: '🔋', count: 8950 },
@@ -228,14 +234,14 @@ function SellBatteryPage() {
         <div className="container">
           <div className="header-top">
             <div className="breadcrumb">
-              <a href="/">EcoXe</a>
+              <a onClick={() => onNavigate && onNavigate('home')} style={{cursor: 'pointer'}}>EcoXe</a>
               <span>/</span>
               <span>Pin xe điện</span>
             </div>
-            <a href="/" className="home-btn">
+            <button className="home-btn" onClick={() => onNavigate && onNavigate('home')}>
               <HomeIcon />
               <span>Trang chủ</span>
-            </a>
+            </button>
           </div>
           <h1 className="page-title">15.678 pin xe điện cũ mới giá tốt cập nhật {getCurrentDate()}</h1>
           
@@ -255,32 +261,116 @@ function SellBatteryPage() {
               </button>
               {showVehicleDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">Xe ô tô</a>
-                  <a href="#" className="dropdown-item">Xe điện</a>
+                  <a onClick={() => onNavigate && onNavigate('oto')} className="dropdown-item" style={{cursor: 'pointer'}}>Xe ô tô</a>
+                  <a onClick={() => onNavigate && onNavigate('bike')} className="dropdown-item" style={{cursor: 'pointer'}}>Xe điện</a>
                 </div>
               )}
             </div>
-            <button className="filter-btn">
-              <span>Giá</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn">
-              <span>Dung lượng</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn">
-              <span>Thương hiệu</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn">
-              <span>Tình trạng</span>
-              <ChevronDownIcon />
-            </button>
-            <button className="filter-btn more">
-              <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
-                <circle cx="2" cy="2" r="2"/><circle cx="2" cy="8" r="2"/><circle cx="2" cy="14" r="2"/>
-              </svg>
-            </button>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowPriceDropdown(!showPriceDropdown)}
+              >
+                <span>Giá</span>
+                <ChevronDownIcon />
+              </button>
+              {showPriceDropdown && (
+                <div className="dropdown-menu">
+                  {priceRanges.map((range, index) => (
+                    <a key={index} href="#" className="dropdown-item">{range}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowCapacityDropdown(!showCapacityDropdown)}
+              >
+                <span>Dung lượng</span>
+                <ChevronDownIcon />
+              </button>
+              {showCapacityDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Dưới 20 kWh</a>
+                  <a href="#" className="dropdown-item">20 - 40 kWh</a>
+                  <a href="#" className="dropdown-item">40 - 60 kWh</a>
+                  <a href="#" className="dropdown-item">60 - 80 kWh</a>
+                  <a href="#" className="dropdown-item">80 - 100 kWh</a>
+                  <a href="#" className="dropdown-item">Trên 100 kWh</a>
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+              >
+                <span>Thương hiệu</span>
+                <ChevronDownIcon />
+              </button>
+              {showBrandDropdown && (
+                <div className="dropdown-menu">
+                  {brands.map((brand, index) => (
+                    <a key={index} href="#" className="dropdown-item">
+                      {brand.logo} {brand.name} ({brand.count})
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowBatteryTypeDropdown(!showBatteryTypeDropdown)}
+              >
+                <span>Loại pin</span>
+                <ChevronDownIcon />
+              </button>
+              {showBatteryTypeDropdown && (
+                <div className="dropdown-menu">
+                  {batteryTypes.map((type, index) => (
+                    <a key={index} href="#" className="dropdown-item">{type}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn"
+                onClick={() => setShowConditionDropdown(!showConditionDropdown)}
+              >
+                <span>Tình trạng</span>
+                <ChevronDownIcon />
+              </button>
+              {showConditionDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Mới</a>
+                  <a href="#" className="dropdown-item">Đã sử dụng</a>
+                  <a href="#" className="dropdown-item">Va chạm nhẹ</a>
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn more"
+                onClick={() => setShowMoreFiltersDropdown(!showMoreFiltersDropdown)}
+              >
+                <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
+                  <circle cx="2" cy="2" r="2"/><circle cx="2" cy="8" r="2"/><circle cx="2" cy="14" r="2"/>
+                </svg>
+              </button>
+              {showMoreFiltersDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Độ sức khỏe pin (%)</a>
+                  <a href="#" className="dropdown-item">Số chu kỳ sạc</a>
+                  <a href="#" className="dropdown-item">Bảo hành</a>
+                  <a href="#" className="dropdown-item">Điện áp (V)</a>
+                  <a href="#" className="dropdown-item">Công suất (kW)</a>
+                  <a href="#" className="dropdown-item">Xuất xứ</a>
+                </div>
+              )}
+            </div>
             <button className="clear-filter">Xoá lọc</button>
           </div>
 
