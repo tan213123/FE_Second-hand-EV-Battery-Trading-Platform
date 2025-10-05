@@ -51,12 +51,20 @@ const VerifiedIcon = () => (
   </svg>
 )
 
+const HomeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+)
+
 function SellBikePage() {
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid')
   const [selectedBrands, setSelectedBrands] = useState([])
   const [showAllPrices, setShowAllPrices] = useState(false)
   const [showAllCities, setShowAllCities] = useState(false)
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
 
   const brands = [
     { name: 'Pega', logo: '🏍️', count: 12450 },
@@ -204,12 +212,18 @@ function SellBikePage() {
       {/* Header Section */}
       <div className="page-header">
         <div className="container">
-          <div className="breadcrumb">
-            <a href="/">EcoXe</a>
-            <span>/</span>
-            <span>Xe máy điện</span>
+          <div className="header-top">
+            <div className="breadcrumb">
+              <a href="/">EcoXe</a>
+              <span>/</span>
+              <span>Xe điện</span>
+            </div>
+            <a href="/" className="home-btn">
+              <HomeIcon />
+              <span>Trang chủ</span>
+            </a>
           </div>
-          <h1 className="page-title">28.456 xe máy điện cũ mới giá tốt cập nhật {getCurrentDate()}</h1>
+          <h1 className="page-title">28.456 xe điện cũ mới giá tốt cập nhật {getCurrentDate()}</h1>
           
           {/* Filter Bar */}
           <div className="filter-bar">
@@ -217,10 +231,21 @@ function SellBikePage() {
               <FilterIcon />
               <span>Lọc</span>
             </button>
-            <button className="filter-btn active">
-              <span>Xe máy</span>
-              <ChevronDownIcon />
-            </button>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn active"
+                onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
+              >
+                <span>Xe điện</span>
+                <ChevronDownIcon />
+              </button>
+              {showVehicleDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Xe ô tô</a>
+                  <a href="#" className="dropdown-item">Pin</a>
+                </div>
+              )}
+            </div>
             <button className="filter-btn">
               <span>Giá</span>
               <ChevronDownIcon />
@@ -324,7 +349,7 @@ function SellBikePage() {
 
               <div className="filter-section">
                 <h3 className="filter-title">
-                  Mua bán xe máy
+                  Mua bán xe điện
                   <ChevronDownIcon />
                 </h3>
                 <div className="filter-options">
@@ -457,7 +482,7 @@ function SellBikePage() {
               {/* Price Range Banner */}
               <div className="price-range-banner">
                 <span className="banner-icon">🏍️</span>
-                <span className="banner-text">Bạn tìm xe máy trong khoảng giá nào?</span>
+                <span className="banner-text">Bạn tìm xe điện trong khoảng giá nào?</span>
                 <span className="banner-icon">⚡</span>
               </div>
 
@@ -470,7 +495,7 @@ function SellBikePage() {
 
               {/* Brand Selection Section */}
               <div className="brand-selection-section">
-                <h2 className="section-title">Bạn cần tìm hãng xe máy nào ?</h2>
+                <h2 className="section-title">Bạn cần tìm hãng xe điện nào ?</h2>
                 <div className="brand-grid">
                   {brands.slice(0, 8).map((brand, index) => (
                     <div key={index} className="brand-card">

@@ -51,6 +51,13 @@ const VerifiedIcon = () => (
   </svg>
 )
 
+const HomeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+)
+
 function SellBatteryPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('grid')
@@ -58,6 +65,7 @@ function SellBatteryPage() {
   const [showAllPrices, setShowAllPrices] = useState(false)
   const [showAllBatteryTypes, setShowAllBatteryTypes] = useState(false)
   const [showAllCities, setShowAllCities] = useState(false)
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
 
   const brands = [
     { name: 'VinFast', logo: '🔋', count: 8950 },
@@ -218,10 +226,16 @@ function SellBatteryPage() {
       {/* Header Section */}
       <div className="page-header">
         <div className="container">
-          <div className="breadcrumb">
-            <a href="/">EcoXe</a>
-            <span>/</span>
-            <span>Pin xe điện</span>
+          <div className="header-top">
+            <div className="breadcrumb">
+              <a href="/">EcoXe</a>
+              <span>/</span>
+              <span>Pin xe điện</span>
+            </div>
+            <a href="/" className="home-btn">
+              <HomeIcon />
+              <span>Trang chủ</span>
+            </a>
           </div>
           <h1 className="page-title">15.678 pin xe điện cũ mới giá tốt cập nhật {getCurrentDate()}</h1>
           
@@ -231,10 +245,21 @@ function SellBatteryPage() {
               <FilterIcon />
               <span>Lọc</span>
             </button>
-            <button className="filter-btn active">
-              <span>Loại pin</span>
-              <ChevronDownIcon />
-            </button>
+            <div className="filter-dropdown-wrapper">
+              <button 
+                className="filter-btn active"
+                onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
+              >
+                <span>Pin</span>
+                <ChevronDownIcon />
+              </button>
+              {showVehicleDropdown && (
+                <div className="dropdown-menu">
+                  <a href="#" className="dropdown-item">Xe ô tô</a>
+                  <a href="#" className="dropdown-item">Xe điện</a>
+                </div>
+              )}
+            </div>
             <button className="filter-btn">
               <span>Giá</span>
               <ChevronDownIcon />

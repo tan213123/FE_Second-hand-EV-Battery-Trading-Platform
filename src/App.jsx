@@ -5,7 +5,7 @@ import SellOtoPage from "./pages/sellPage/sellOToPage";
 
 function App() {
 
-  return <SellOtoPage />;
+  return <SellBatteryPage />;
 }
 
 export default App;
