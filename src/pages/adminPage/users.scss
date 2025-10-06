@@ -1,11 +1,14 @@
 @use "sass:color";
 
 .users-management {
+  max-width: 1200px; /* Constrain overall width to prevent overflow */
+  margin: 0 auto;
   .card {
     background: var(--card-background);
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     margin-bottom: 24px;
+    overflow: hidden; /* Clip inner overflow to respect rounded corners */
   }
 
   .card-header {
@@ -72,7 +75,7 @@
 
   .table-responsive {
     overflow-x: auto;
-    margin: 0 -1px;
+    margin: 0; /* Avoid negative margins that can visually overflow card borders */
 
     table {
       width: 100%;

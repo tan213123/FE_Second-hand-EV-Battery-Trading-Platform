@@ -2,9 +2,33 @@ import React, { useState, useMemo, useEffect } from 'react';
 import './posts.scss';
 
 const samplePosts = [
-  { id: 'POST001', title: 'Xe điện cũ - Like new', author: 'Nguyen A', status: 'published', createdAt: '2025-09-20' },
-  { id: 'POST002', title: 'Bán pin EV 48V', author: 'Le B', status: 'pending', createdAt: '2025-09-22' },
-  { id: 'POST003', title: 'Trao đổi 60Ah', author: 'Tran C', status: 'removed', createdAt: '2025-09-25' }
+  {
+    id: 'POST001',
+    title: 'Xe điện cũ - Like new',
+    provinceCity: 'Hà Nội',
+    postType: 'Bán',
+    createdAt: '2025-09-20',
+    memberId: 'MBR1001',
+    price: 12500000
+  },
+  {
+    id: 'POST002',
+    title: 'Bán pin EV 48V',
+    provinceCity: 'TP. Hồ Chí Minh',
+    postType: 'Bán',
+    createdAt: '2025-09-22',
+    memberId: 'MBR1002',
+    price: 3200000
+  },
+  {
+    id: 'POST003',
+    title: 'Trao đổi 60Ah',
+    provinceCity: 'Đà Nẵng',
+    postType: 'Trao đổi',
+    createdAt: '2025-09-25',
+    memberId: 'MBR1003',
+    price: 0
+  }
 ];
 
 const Posts = () => {
@@ -62,6 +86,8 @@ const Posts = () => {
   };
 
   const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
+  const formatPrice = (v) =>
+    Number(v || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
   return (
     <div className="users-management">
@@ -72,7 +98,7 @@ const Posts = () => {
             <div className="search-box">
               <input
                 type="text"
-                placeholder="Tìm kiếm Mã bài, Tên bài, Người đăng..."
+                placeholder="Tìm kiếm Mã bài, Tiêu đề, Tỉnh/Thành phố, Loại bài, Mã thành viên, Giá..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -95,10 +121,12 @@ const Posts = () => {
                   <input type="checkbox" checked={selectedPosts.length === paginated.length && paginated.length > 0} onChange={handleSelectAll} />
                 </th>
                 <th onClick={() => handleSort('id')} className="sortable">Mã bài đăng {sortConfig.key === 'id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('title')} className="sortable">Tên bài đăng {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('author')} className="sortable">Người đăng {sortConfig.key === 'author' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('createdAt')} className="sortable">Ngày đăng {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th>Trạng thái</th>
+                <th onClick={() => handleSort('title')} className="sortable">Tiêu đề {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('provinceCity')} className="sortable">Tỉnh/Thành phố {sortConfig.key === 'provinceCity' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('postType')} className="sortable">Loại bài {sortConfig.key === 'postType' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('createdAt')} className="sortable">Ngày {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('memberId')} className="sortable">Mã thành viên {sortConfig.key === 'memberId' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('price')} className="sortable">Giá {sortConfig.key === 'price' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
                 <th>Hoạt động</th>
               </tr>
             </thead>
@@ -110,9 +138,11 @@ const Posts = () => {
                   </td>
                   <td>{p.id}</td>
                   <td>{p.title}</td>
-                  <td>{p.author}</td>
+                  <td>{p.provinceCity}</td>
+                  <td>{p.postType}</td>
                   <td>{formatDate(p.createdAt)}</td>
-                  <td>{p.status === 'published' ? 'Đã đăng' : p.status === 'pending' ? 'Chờ duyệt' : 'Đã gỡ'}</td>
+                  <td>{p.memberId}</td>
+                  <td>{formatPrice(p.price)}</td>
                   <td>
                     <div className="action-buttons">
                       <button className="btn-icon" title="Chi tiết">🔍</button>
