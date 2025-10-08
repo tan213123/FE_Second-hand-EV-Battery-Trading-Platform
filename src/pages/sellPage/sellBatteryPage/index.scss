@@ -201,29 +201,10 @@
     }
 
     .brand-filter {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 16px;
       margin-top: 20px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      
-      &::-webkit-scrollbar {
-        height: 6px;
-      }
-      
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-      }
-      
-      &::-webkit-scrollbar-thumb {
-        background: #ddd;
-        border-radius: 10px;
-        
-        &:hover {
-          background: #bbb;
-        }
-      }
 
       .brand-item {
         display: flex;
@@ -234,8 +215,6 @@
         cursor: pointer;
         transition: all 0.3s ease;
         border-radius: 12px;
-        min-width: 100px;
-        flex-shrink: 0;
 
         &:hover {
           background: #f8f8f8;
@@ -258,7 +237,6 @@
         .brand-name {
           font-size: 13px;
           color: #333;
-          white-space: nowrap;
         }
       }
     }

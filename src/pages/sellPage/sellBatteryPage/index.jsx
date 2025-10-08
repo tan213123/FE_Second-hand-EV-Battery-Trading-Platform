@@ -408,10 +408,9 @@ function SellBatteryPage({ onNavigate }) {
 
       {/* Main Content */}
       <div className="main-content">
-        <div className="container">
-          <div className="content-wrapper">
-            {/* Sidebar Filters */}
-            <aside className="sidebar">
+        <div className="content-wrapper">
+          {/* Sidebar Filters */}
+          <aside className="sidebar">
               <div className="filter-section">
                 <h3 className="filter-title">Lọc theo tình trạng</h3>
                 <div className="filter-options">
@@ -624,7 +623,6 @@ function SellBatteryPage({ onNavigate }) {
                       <div className="brand-name">{brand.name}</div>
                     </div>
                   ))}
-                </div>
               </div>
             </div>
           </div>
@@ -632,6 +630,4 @@ function SellBatteryPage({ onNavigate }) {
       </div>
     </div>
   )
-}
-
-export default SellBatteryPage
+}export default SellBatteryPage
