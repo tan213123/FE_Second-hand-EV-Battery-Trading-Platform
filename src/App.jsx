@@ -1,48 +1,7 @@
-import { useState } from "react";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import HomePage from "./pages/homePage";
-import SellBatteryPage from "./pages/sellPage/sellBatteryPage";
-import SellBikePage from "./pages/sellPage/sellBikePage";
-import SellOtoPage from "./pages/sellPage/sellOToPage";
-import SavedPage from "./pages/savedPage";
-import ChatPage from "./pages/chatPage";
-
-function App() {
-  const [currentPage, setCurrentPage] = useState('home');
-
-  const renderPage = () => {
-    switch(currentPage) {
-      case 'oto':
-        return <SellOtoPage onNavigate={setCurrentPage} />;
-      case 'bike':
-        return <SellBikePage onNavigate={setCurrentPage} />;
-      case 'battery':
-        return <SellBatteryPage onNavigate={setCurrentPage} />;
-      case 'saved':
-        return <SavedPage onNavigate={setCurrentPage} />;
-      case 'chat':
-        return <ChatPage onNavigate={setCurrentPage} />;
-      case 'home':
-      default:
-        return <HomePage onNavigate={setCurrentPage} />;
-    }
-  };
-
-  return (
-    <>
-      <Header onNavigate={setCurrentPage} />
-      {renderPage()}
-      <Footer />
-    </>
-  );
-}
-
-export default App;
-
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import HomePage from "./pages/homePage";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import LoginPage from "./pages/loginPage/login";
 import SignUpPage from "./pages/loginPage/signup";
 import AdminPage from "./pages/adminPage";
@@ -50,9 +9,21 @@ import SavedPage from "./pages/savedPage";
 import AccountPage from "./pages/accountPage";
 import MyPostsPage from "./pages/myPostsPage";
 import SettingsPage from "./pages/settingsPage";
+import ChatPage from "./pages/chatPage";
 import SellBikePage from "./pages/sellPage/sellBikePage";
 import SellBatteryPage from "./pages/sellPage/sellBatteryPage";
 import SellOtoPage from "./pages/sellPage/sellOToPage";
+
+// Layout wrapper for pages that need Header and Footer
+function LayoutWrapper({ children, onNavigate }) {
+  return (
+    <>
+      <Header onNavigate={onNavigate} />
+      {children}
+      <Footer />
+    </>
+  );
+}
 
 function HomeRoute() {
   const navigate = useNavigate();
@@ -69,6 +40,9 @@ function HomeRoute() {
         break;
       case "saved":
         navigate("/saved");
+        break;
+      case "chat":
+        navigate("/chat");
         break;
       case "account":
         navigate("/account");
@@ -92,50 +66,152 @@ function HomeRoute() {
         navigate("/home");
     }
   };
-  return <HomePage onNavigate={onNavigate} />;
+  return (
+    <LayoutWrapper onNavigate={onNavigate}>
+      <HomePage onNavigate={onNavigate} />
+    </LayoutWrapper>
+  );
 }
 
 function SavedRoute() {
   const navigate = useNavigate();
-  return <SavedPage onNavigate={(page) => navigate(page === "home" ? "/home" : "/home")} />;
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+  };
+  return (
+    <LayoutWrapper onNavigate={onNavigate}>
+      <SavedPage onNavigate={onNavigate} />
+    </LayoutWrapper>
+  );
+}
+
+function ChatRoute() {
+  const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+  };
+  return (
+    <LayoutWrapper onNavigate={onNavigate}>
+      <ChatPage onNavigate={onNavigate} />
+    </LayoutWrapper>
+  );
 }
 
 function SellBikeRoute() {
   const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "oto") navigate("/sell/oto");
+    if (page === "battery") navigate("/sell/battery");
+    if (page === "bike") navigate("/sell/bike");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+  };
   return (
-    <SellBikePage
-      onNavigate={(page) => {
-        if (page === "home") navigate("/home");
-        if (page === "oto") navigate("/sell/oto");
-        if (page === "battery") navigate("/sell/battery");
-      }}
-    />
+    <LayoutWrapper onNavigate={onNavigate}>
+      <SellBikePage onNavigate={onNavigate} />
+    </LayoutWrapper>
   );
 }
 
 function SellBatteryRoute() {
   const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "oto") navigate("/sell/oto");
+    if (page === "bike") navigate("/sell/bike");
+    if (page === "battery") navigate("/sell/battery");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+  };
   return (
-    <SellBatteryPage
-      onNavigate={(page) => {
-        if (page === "home") navigate("/home");
-        if (page === "oto") navigate("/sell/oto");
-        if (page === "bike") navigate("/sell/bike");
-      }}
-    />
+    <LayoutWrapper onNavigate={onNavigate}>
+      <SellBatteryPage onNavigate={onNavigate} />
+    </LayoutWrapper>
   );
 }
 
 function SellOtoRoute() {
   const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "bike") navigate("/sell/bike");
+    if (page === "battery") navigate("/sell/battery");
+    if (page === "oto") navigate("/sell/oto");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+  };
   return (
-    <SellOtoPage
-      onNavigate={(page) => {
-        if (page === "home") navigate("/home");
-        if (page === "bike") navigate("/sell/bike");
-        if (page === "battery") navigate("/sell/battery");
-      }}
-    />
+    <LayoutWrapper onNavigate={onNavigate}>
+      <SellOtoPage onNavigate={onNavigate} />
+    </LayoutWrapper>
+  );
+}
+
+function AccountRoute() {
+  const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "oto") navigate("/sell/oto");
+    if (page === "bike") navigate("/sell/bike");
+    if (page === "battery") navigate("/sell/battery");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+    if (page === "my-posts") navigate("/my-posts");
+    if (page === "settings") navigate("/settings");
+    if (page === "login") navigate("/login");
+    if (page === "logout") navigate("/login");
+  };
+  return (
+    <LayoutWrapper onNavigate={onNavigate}>
+      <AccountPage onNavigate={onNavigate} />
+    </LayoutWrapper>
+  );
+}
+
+function MyPostsRoute() {
+  const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "oto") navigate("/sell/oto");
+    if (page === "bike") navigate("/sell/bike");
+    if (page === "battery") navigate("/sell/battery");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+    if (page === "account") navigate("/account");
+    if (page === "settings") navigate("/settings");
+    if (page === "login") navigate("/login");
+    if (page === "logout") navigate("/login");
+  };
+  return (
+    <LayoutWrapper onNavigate={onNavigate}>
+      <MyPostsPage onNavigate={onNavigate} />
+    </LayoutWrapper>
+  );
+}
+
+function SettingsRoute() {
+  const navigate = useNavigate();
+  const onNavigate = (page) => {
+    if (page === "home") navigate("/home");
+    if (page === "oto") navigate("/sell/oto");
+    if (page === "bike") navigate("/sell/bike");
+    if (page === "battery") navigate("/sell/battery");
+    if (page === "saved") navigate("/saved");
+    if (page === "chat") navigate("/chat");
+    if (page === "account") navigate("/account");
+    if (page === "my-posts") navigate("/my-posts");
+    if (page === "login") navigate("/login");
+    if (page === "logout") navigate("/login");
+  };
+  return (
+    <LayoutWrapper onNavigate={onNavigate}>
+      <SettingsPage onNavigate={onNavigate} />
+    </LayoutWrapper>
   );
 }
 
@@ -150,8 +226,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/home" element={<HomeRoute />} />
-        <Route path="/header" element={<Header />} />
         <Route path="/saved" element={<SavedRoute />} />
+        <Route path="/chat" element={<ChatRoute />} />
         <Route path="/account" element={<AccountRoute />} />
         <Route path="/my-posts" element={<MyPostsRoute />} />
         <Route path="/settings" element={<SettingsRoute />} />
@@ -168,47 +244,7 @@ function App() {
     </Router>
   );
 }
-function AccountRoute() {
-  const navigate = useNavigate();
-  const onNavigate = (page) => {
-    if (page === "home") navigate("/home");
-    if (page === "oto") navigate("/header");
-    if (page === "saved") navigate("/saved");
-    if (page === "my-posts") navigate("/my-posts");
-    if (page === "settings") navigate("/settings");
-    if (page === "login") navigate("/login");
-    if (page === "logout") navigate("/login");
-  };
-  return <AccountPage onNavigate={onNavigate} />;
-}
 
-function MyPostsRoute() {
-  const navigate = useNavigate();
-  const onNavigate = (page) => {
-    if (page === "home") navigate("/home");
-    if (page === "oto") navigate("/header");
-    if (page === "saved") navigate("/saved");
-    if (page === "account") navigate("/account");
-    if (page === "settings") navigate("/settings");
-    if (page === "login") navigate("/login");
-    if (page === "logout") navigate("/login");
-  };
-  return <MyPostsPage onNavigate={onNavigate} />;
-}
-
-function SettingsRoute() {
-  const navigate = useNavigate();
-  const onNavigate = (page) => {
-    if (page === "home") navigate("/home");
-    if (page === "oto") navigate("/header");
-    if (page === "saved") navigate("/saved");
-    if (page === "account") navigate("/account");
-    if (page === "my-posts") navigate("/my-posts");
-    if (page === "login") navigate("/login");
-    if (page === "logout") navigate("/login");
-  };
-  return <SettingsPage onNavigate={onNavigate} />;
-}
 export default App;
 
 
