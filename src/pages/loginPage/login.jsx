@@ -118,7 +118,7 @@ const LoginPage = () => {
       <div className="login-split">
         <aside className="login-hero" aria-hidden="true">
           <div className="hero-inner">
-            <h2>Chợ Tốt Xe</h2>
+            <h2>EcoXe</h2>
             <p>Mua bán pin & xe điện - an toàn, nhanh chóng</p>
             <div className="hero-cta">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
