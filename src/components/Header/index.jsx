@@ -113,7 +113,10 @@ function Header({ onNavigate }) {
           >
             <HeartIcon />
           </button>
-          <button className="icon-btn">
+          <button 
+            className="icon-btn"
+            onClick={() => onNavigate && onNavigate('chat')}
+          >
             <ChatIcon />
           </button>
           <button className="icon-btn">

@@ -6,6 +6,7 @@ import SellBatteryPage from "./pages/sellPage/sellBatteryPage";
 import SellBikePage from "./pages/sellPage/sellBikePage";
 import SellOtoPage from "./pages/sellPage/sellOToPage";
 import SavedPage from "./pages/savedPage";
+import ChatPage from "./pages/chatPage";
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -20,6 +21,8 @@ function App() {
         return <SellBatteryPage onNavigate={setCurrentPage} />;
       case 'saved':
         return <SavedPage onNavigate={setCurrentPage} />;
+      case 'chat':
+        return <ChatPage onNavigate={setCurrentPage} />;
       case 'home':
       default:
         return <HomePage onNavigate={setCurrentPage} />;
