@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Header from '../../components/Header'
 import './index.scss'
 
 // Icon components
@@ -267,8 +266,6 @@ function SettingsPage({ onNavigate }) {
 
   return (
     <div className="settings-page">
-      <Header onNavigate={onNavigate} />
-      
       <div className="settings-container">
         <div className="settings-header">
           <h1>Cài đặt</h1>

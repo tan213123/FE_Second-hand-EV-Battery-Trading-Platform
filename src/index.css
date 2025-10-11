@@ -6,12 +6,12 @@
 }
 
 :root {
-  --primary-color: #FFD700;
-  --secondary-color: #FFA500;
-  --accent-color: #FF6B00;
+  --primary-color: #8B5CF6;
+  --secondary-color: #A855F7;
+  --accent-color: #7C3AED;
   --text-dark: #1a1a1a;
   --text-light: #666;
-  --bg-light: #f8f9fa;
+  --bg-light: #faf5ff;
   --border-color: #e0e0e0;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);

@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { authAPI, authUtils } from '../../services/auth';
 import './signup.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error, autoComplete }) => {
@@ -123,13 +124,61 @@ const SignUpPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        console.log('Đăng ký với:', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('🚀 Bắt đầu đăng ký với:', formData);
+        
+        // Gọi API đăng ký
+        console.log('📡 Gọi API register...');
+        const response = await authAPI.register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          address: formData.address,
+          yearOfBirth: formData.yearOfBirth,
+          gender: formData.gender
+        });
+        
+        console.log('✅ Đăng ký thành công:', response);
+        console.log('📊 Response data:', response.data);
+        console.log('📊 Response status:', response.status);
+        
+        // Lưu token và thông tin user
+        if (response.data.token) {
+          authUtils.setToken(response.data.token);
+          authUtils.setUser(response.data.user);
+        }
+        
+        alert('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+        
         // Redirect to login after successful signup
         window.location.href = '/login';
       } catch (error) {
+        console.error('❌ Lỗi đăng ký:', error);
+        console.error('❌ Error response:', error.response);
+        console.error('❌ Error status:', error.response?.status);
+        console.error('❌ Error data:', error.response?.data);
+        console.error('❌ Error message:', error.message);
+        
+        let errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.status === 400) {
+          errorMessage = 'Thông tin không hợp lệ. Vui lòng kiểm tra lại.';
+        } else if (error.response?.status === 409) {
+          errorMessage = 'Email đã được sử dụng. Vui lòng chọn email khác.';
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+        } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Kết nối quá lâu. Vui lòng thử lại.';
+        }
+        
+        console.log('💬 Error message hiển thị:', errorMessage);
+        
         setErrors({
-          submit: 'Đăng ký thất bại. Vui lòng thử lại.'
+          submit: errorMessage
         });
       } finally {
         setIsSubmitting(false);

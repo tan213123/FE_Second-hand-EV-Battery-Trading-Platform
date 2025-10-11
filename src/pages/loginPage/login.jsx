@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { authAPI, authUtils } from '../../services/auth';
 import './login.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
@@ -44,6 +46,7 @@ const SocialLogin = ({ onGoogleLogin }) => {
 };
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -87,19 +90,69 @@ const LoginPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        console.log('Logging in with:', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Mock: treat emails containing 'admin' or 'staff' as admin users
-        const emailLower = (formData.email || '').toLowerCase();
-        if (emailLower.includes('admin') || emailLower.includes('staff')) {
-          navigate('/admin');
-          return;
+        console.log('🚀 Bắt đầu đăng nhập với:', formData);
+        
+        // Gọi API đăng nhập
+        console.log('📡 Gọi API login...');
+        const response = await authAPI.login({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        console.log('✅ Đăng nhập thành công:', response);
+        console.log('📊 Response data:', response.data);
+        console.log('📊 Response status:', response.status);
+        
+        // Lưu token và thông tin user
+        if (response.data.token) {
+          authUtils.setToken(response.data.token);
+          authUtils.setUser(response.data.user);
         }
-        // otherwise go to home
-        navigate('/home');
+        
+        // Login with user data
+        login({
+          name: response.data.user?.name || 'Người dùng',
+          email: response.data.user?.email || formData.email,
+          avatar: response.data.user?.avatar || null
+        });
+        
+        // Navigate based on user type
+        const emailLower = (formData.email || '').toLowerCase();
+        console.log('🧭 Email for navigation:', emailLower);
+        if (emailLower.includes('admin') || emailLower.includes('staff')) {
+          console.log('🧭 Navigating to admin page');
+          navigate('/admin');
+        } else {
+          console.log('🧭 Navigating to home page');
+          navigate('/home');
+        }
       } catch (error) {
+        console.error('❌ Lỗi đăng nhập:', error);
+        console.error('❌ Error response:', error.response);
+        console.error('❌ Error status:', error.response?.status);
+        console.error('❌ Error data:', error.response?.data);
+        console.error('❌ Error message:', error.message);
+        
+        let errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.';
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Email hoặc mật khẩu không đúng.';
+        } else if (error.response?.status === 400) {
+          errorMessage = 'Thông tin không hợp lệ. Vui lòng kiểm tra lại.';
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+        } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Kết nối quá lâu. Vui lòng thử lại.';
+        }
+        
+        console.log('💬 Error message hiển thị:', errorMessage);
+        
         setErrors({
-          submit: 'Login failed. Please try again.'
+          submit: errorMessage
         });
       } finally {
         setIsSubmitting(false);
@@ -118,7 +171,7 @@ const LoginPage = () => {
       <div className="login-split">
         <aside className="login-hero" aria-hidden="true">
           <div className="hero-inner">
-            <h2>Chợ Tốt Xe</h2>
+            <h2>EcoXe</h2>
             <p>Mua bán pin & xe điện - an toàn, nhanh chóng</p>
             <div className="hero-cta">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
