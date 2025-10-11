@@ -23,6 +23,7 @@ function App() {
         { path: '/chat', element: <ChatPage /> },
         { path: '/login', element: <LoginPage /> },
         { path: '/signup', element: <RegisterPage /> },
+        
 
     ]},
   ]);
