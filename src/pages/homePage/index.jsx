@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './index.scss'
 
 // Icon SVG components
@@ -44,7 +45,7 @@ const VerifiedIcon = () => (
   </svg>
 )
 
-function HomePage({ onNavigate }) {
+function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLocation] = useState('Chọn khu vực')
 
@@ -54,11 +55,14 @@ function HomePage({ onNavigate }) {
     { icon: 'battery', label: 'Pin', color: '#FFD93D', page: 'battery' }
   ]
 
-  const handleCategoryClick = (page) => {
-    if (onNavigate) {
-      onNavigate(page);
-    }
-  };
+  const navigate = useNavigate();
+
+const handleCategoryClick = (page) => {
+  if (page === 'oto') navigate('/oto');
+  else if (page === 'bike') navigate('/bike');
+  else if (page === 'battery') navigate('/battery');
+};
+
 
   const getCategoryIcon = (type) => {
     const icons = {

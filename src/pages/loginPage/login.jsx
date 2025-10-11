@@ -96,7 +96,7 @@ const LoginPage = () => {
           return;
         }
         // otherwise go to home
-        navigate('/home');
+        navigate('/');
       } catch (error) {
         setErrors({
           submit: 'Login failed. Please try again.'
