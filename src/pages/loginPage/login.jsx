@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { authAPI, authUtils } from '../../services/auth';
 import './login.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
@@ -90,19 +91,26 @@ const LoginPage = () => {
       setIsSubmitting(true);
       try {
         console.log('Logging in with:', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock user data based on email
-        const emailLower = (formData.email || '').toLowerCase();
-        const userName = emailLower.includes('admin') ? 'Admin User' : 
-                        emailLower.includes('staff') ? 'Staff User' : 
-                        'Người dùng';
+        // Gọi API đăng nhập
+        const response = await authAPI.login({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        console.log('Đăng nhập thành công:', response.data);
+        
+        // Lưu token và thông tin user
+        if (response.data.token) {
+          authUtils.setToken(response.data.token);
+          authUtils.setUser(response.data.user);
+        }
         
         // Login with user data
         login({
-          name: userName,
-          email: formData.email,
-          avatar: null
+          name: response.data.user?.name || 'Người dùng',
+          email: response.data.user?.email || formData.email,
+          avatar: response.data.user?.avatar || null
         });
         
         // Navigate based on user type
@@ -112,8 +120,22 @@ const LoginPage = () => {
           navigate('/home');
         }
       } catch (error) {
+        console.error('Lỗi đăng nhập:', error);
+        
+        let errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.';
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Email hoặc mật khẩu không đúng.';
+        } else if (error.response?.status === 400) {
+          errorMessage = 'Thông tin không hợp lệ. Vui lòng kiểm tra lại.';
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+        }
+        
         setErrors({
-          submit: 'Login failed. Please try again.'
+          submit: errorMessage
         });
       } finally {
         setIsSubmitting(false);
