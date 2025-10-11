@@ -8,6 +8,10 @@ import ChatPage from './pages/chatPage';
 import SellBikePage from './pages/sellPage/sellBikePage';
 import LoginPage from './pages/loginPage/login';
 import RegisterPage from './pages/loginPage/signup';
+import PostListing from './pages/postListing';
+import PostAuction from './pages/postAuction';
+import AuctionPage from './pages/auction';
+import FloatingActionButton from './components/FloatingActionButton';
 
 function App() {
   const router = createBrowserRouter([
@@ -23,13 +27,16 @@ function App() {
         { path: '/chat', element: <ChatPage /> },
         { path: '/login', element: <LoginPage /> },
         { path: '/signup', element: <RegisterPage /> },
-        
-
-    ]},
+        { path: '/post-listing', element: <PostListing /> },
+        { path: '/post-auction', element: <PostAuction /> },
+        { path: '/auction', element: <AuctionPage /> },
+        { path: '/auction/:id/bid', element: <AuctionPage /> },
+      ],
+    },
   ]);
-  return <RouterProvider router={router} />;
-
-
+  return (
+    <RouterProvider router={router} />
+  );
 }
 
 export default App

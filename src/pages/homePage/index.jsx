@@ -233,6 +233,32 @@ const handleCategoryClick = (page) => {
         <div className="search-container">
           <h1 className="hero-title">EcoXe - Mua bán xe cũ uy tín</h1>
           <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
+          
+          {/* Thêm quick actions */}
+          <div className="quick-actions">
+            <button 
+              className="quick-action-btn primary"
+              onClick={() => navigate('/post-listing')}
+            >
+              <span className="icon">📝</span>
+              <span>Đăng tin bán xe</span>
+            </button>
+            <button 
+              className="quick-action-btn auction"
+              onClick={() => navigate('/post-auction')}
+            >
+              <span className="icon">🔨</span>
+              <span>Đăng đấu giá</span>
+            </button>
+            <button 
+              className="quick-action-btn secondary"
+              onClick={() => navigate('/auction')}
+            >
+              <span className="icon">👁️</span>
+              <span>Xem đấu giá</span>
+            </button>
+          </div>
+
           <div className="search-box">
             <div className="search-input-wrapper">
               <SearchIcon />

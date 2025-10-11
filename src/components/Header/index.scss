@@ -696,3 +696,49 @@
     }
   }
 }
+
+.header {
+  .container {
+    // ...existing code...
+    
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+
+      .btn-auction {
+        padding: 0.5rem 1rem;
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+          background: #667eea;
+          color: white;
+        }
+      }
+
+      .btn-post-listing {
+        padding: 0.5rem 1.5rem;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+          background: #45a049;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+      }
+    }
+  }
+}

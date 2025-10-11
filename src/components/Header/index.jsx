@@ -145,6 +145,22 @@ function Header() {
             )}
           </div>
         </div>
+
+        {/* Thêm nút Đăng tin và Đấu giá */}
+        <div className="header-actions">
+          <button 
+            className="btn-auction"
+            onClick={() => navigate('/auction')}
+          >
+            🔨 Đấu giá
+          </button>
+          <button 
+            className="btn-post-listing"
+            onClick={() => navigate('/post-listing')}
+          >
+            + Đăng tin
+          </button>
+        </div>
       </div>
     </header>
   )
