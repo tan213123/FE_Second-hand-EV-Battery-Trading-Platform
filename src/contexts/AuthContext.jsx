@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = (userData) => {
+    console.log('🔐 AuthContext login called with:', userData);
     const userInfo = {
       id: userData.id || Date.now(),
       name: userData.name || 'Người dùng',
@@ -32,8 +33,10 @@ export const AuthProvider = ({ children }) => {
       loginTime: new Date().toISOString()
     }
     
+    console.log('🔐 Setting user info:', userInfo);
     setUser(userInfo)
     localStorage.setItem('user', JSON.stringify(userInfo))
+    console.log('🔐 User saved to localStorage');
   }
 
   const logout = () => {
