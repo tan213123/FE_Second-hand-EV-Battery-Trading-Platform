@@ -47,6 +47,7 @@ const VerifiedIcon = () => (
 function HomePage({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLocation] = useState('Chọn khu vực')
+  const [showAllReviews, setShowAllReviews] = useState(false)
 
   const categories = [
     { icon: 'electric-car', label: 'Ô tô', color: '#4ECDC4', page: 'oto' },
@@ -151,7 +152,20 @@ function HomePage({ onNavigate }) {
     }
   ]
 
-  const customerReviews = [
+  // Rating statistics data
+  const ratingStats = {
+    total: 1247,
+    average: 4.6,
+    breakdown: {
+      5: 892,  // 5 sao
+      4: 234,  // 4 sao
+      3: 89,   // 3 sao
+      2: 23,   // 2 sao
+      1: 9     // 1 sao
+    }
+  }
+
+  const allCustomerReviews = [
     {
       id: 1,
       userName: 'Nguyễn Văn An',
@@ -203,8 +217,63 @@ function HomePage({ onNavigate }) {
       images: [],
       likes: 12,
       comments: 2
+    },
+    {
+      id: 5,
+      userName: 'Hoàng Văn Đức',
+      userType: 'Người mua',
+      verified: true,
+      timePosted: '2 tuần trước',
+      rating: 5,
+      product: 'Tesla Model 3 2022',
+      content: 'Xe Tesla Model 3 mua từ sàn này rất uy tín. Người bán chuyên nghiệp, xe còn bảo hành chính hãng. Chạy êm, tiết kiệm điện. Rất recommend!',
+      images: ['/placeholder7.jpg'],
+      likes: 45,
+      comments: 12
+    },
+    {
+      id: 6,
+      userName: 'Nguyễn Thị Lan',
+      userType: 'Người bán',
+      verified: true,
+      timePosted: '2 tuần trước',
+      rating: 4,
+      product: 'Honda SH Mode 2023',
+      content: 'Bán xe SH Mode trên sàn này rất nhanh. Nhiều người quan tâm, giá cả cạnh tranh. Hỗ trợ đăng tin miễn phí, rất tiện lợi.',
+      images: ['/placeholder8.jpg', '/placeholder9.jpg'],
+      likes: 28,
+      comments: 6
+    },
+    {
+      id: 7,
+      userName: 'Trần Minh Tuấn',
+      userType: 'Người mua',
+      verified: false,
+      timePosted: '3 tuần trước',
+      rating: 5,
+      product: 'BMW i3 2021',
+      content: 'Xe BMW i3 mua từ sàn này chất lượng tốt. Pin còn 90%, chạy ổn định. Người bán nhiệt tình, giao xe đúng hẹn. Sẽ mua tiếp ở đây.',
+      images: ['/placeholder10.jpg'],
+      likes: 33,
+      comments: 9
+    },
+    {
+      id: 8,
+      userName: 'Lê Thị Mai',
+      userType: 'Người bán',
+      verified: true,
+      timePosted: '3 tuần trước',
+      rating: 5,
+      product: 'Pin Lithium 72V 30Ah',
+      content: 'Bán pin xe điện trên sàn này rất hiệu quả. Nhiều khách hàng tin tưởng, giao dịch nhanh chóng. Sẽ tiếp tục sử dụng dịch vụ.',
+      images: [],
+      likes: 19,
+      comments: 4
     }
   ]
+
+  // Show only first 4 reviews initially, or all if showAllReviews is true
+  const customerReviews = showAllReviews ? allCustomerReviews : allCustomerReviews.slice(0, 4)
 
   const popularKeywords = [
     ['Giá xe Vios', 'Giá xe Innova', 'Giá xe Fortuner', 'Giá xe Yaris Cross'],
@@ -223,35 +292,78 @@ function HomePage({ onNavigate }) {
 
   return (
     <div className="home-page">
-      {/* Hero Section with Search */}
+      {/* Hero Section - Redesigned */}
       <div className="hero-section">
-        <div className="hero-overlay"></div>
-        <div className="search-container">
-          <h1 className="hero-title">EcoXe - Mua bán xe cũ uy tín</h1>
-          <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
-          <div className="search-box">
-            <div className="search-input-wrapper">
-              <SearchIcon />
-              <input 
-                type="text" 
-                placeholder="Tìm xe cũ theo mẫu xe, hãng xe..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
+        <div className="hero-background">
+          <div className="hero-shapes">
+            <div className="shape shape-1"></div>
+            <div className="shape shape-2"></div>
+            <div className="shape shape-3"></div>
+          </div>
+        </div>
+        <div className="hero-content">
+          <div className="hero-text">
+            <h1 className="hero-title">
+              <span className="title-main">EcoXe</span>
+              <span className="title-sub">Mua bán xe cũ uy tín</span>
+            </h1>
+            <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
+            <div className="hero-stats">
+              <div className="stat-item">
+                <div className="stat-number">75K+</div>
+                <div className="stat-label">Tin đăng</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-number">50+</div>
+                <div className="stat-label">Tỉnh thành</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-number">99%</div>
+                <div className="stat-label">Hài lòng</div>
+              </div>
             </div>
-            <button className="location-btn">
-              <LocationIcon />
-              <span>{selectedLocation}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 10l5 5 5-5z"/>
-              </svg>
-            </button>
-            <button className="filter-btn">
-              <CarIcon />
-              <span>Tất cả Xe cũ</span>
-            </button>
-            <button className="search-btn">Tìm xe</button>
+            <div className="hero-actions">
+              <button className="btn-primary" onClick={() => onNavigate && onNavigate('oto')}>
+                <CarIcon />
+                <span>Mua xe ngay</span>
+              </button>
+              <button className="btn-secondary" onClick={() => onNavigate && onNavigate('bike')}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span>Bán xe</span>
+              </button>
+            </div>
+          </div>
+          <div className="hero-visual">
+            <div className="hero-image-container">
+              <div className="main-image">
+                <div className="image-placeholder">
+                  <div className="placeholder-content">
+                    <div className="placeholder-icon">🚗</div>
+                    <div className="placeholder-text">Xe chất lượng cao</div>
+                  </div>
+                </div>
+              </div>
+              <div className="feature-highlights">
+                <div className="highlight-item">
+                  <div className="highlight-icon">✓</div>
+                  <div className="highlight-text">Kiểm tra kỹ thuật</div>
+                </div>
+                <div className="highlight-item">
+                  <div className="highlight-icon">✓</div>
+                  <div className="highlight-text">Bảo hành uy tín</div>
+                </div>
+                <div className="highlight-item">
+                  <div className="highlight-icon">✓</div>
+                  <div className="highlight-text">Giá tốt nhất</div>
+                </div>
+                <div className="highlight-item">
+                  <div className="highlight-icon">✓</div>
+                  <div className="highlight-text">Hỗ trợ 24/7</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -349,6 +461,45 @@ function HomePage({ onNavigate }) {
             <h2 className="section-title">Đánh giá và phản hồi từ người bán/mua</h2>
             <a href="#" className="view-all-link">Xem tất cả →</a>
           </div>
+          
+          {/* Rating Statistics */}
+          <div className="rating-stats">
+            <div className="rating-overview">
+              <div className="rating-score">
+                <div className="score-number">{ratingStats.average}</div>
+                <div className="score-stars">
+                  {[...Array(5)].map((_, idx) => (
+                    <span key={idx} className={idx < Math.floor(ratingStats.average) ? 'star filled' : 'star'}>
+                      ⭐
+                    </span>
+                  ))}
+                </div>
+                <div className="score-total">({ratingStats.total} đánh giá)</div>
+              </div>
+            </div>
+            
+            <div className="rating-breakdown">
+              {[5, 4, 3, 2, 1].map((stars) => {
+                const count = ratingStats.breakdown[stars];
+                const percentage = (count / ratingStats.total) * 100;
+                return (
+                  <div key={stars} className="rating-bar">
+                    <div className="rating-label">
+                      <span className="stars">{stars} sao</span>
+                    </div>
+                    <div className="rating-progress">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                    <div className="rating-count">{count}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="activities-grid">
             {customerReviews.map((review) => (
               <div key={review.id} className="activity-card">
@@ -369,7 +520,7 @@ function HomePage({ onNavigate }) {
                         )}
                       </div>
                       <div className="activity-meta">
-                        {review.timePosted} • {review.type}
+                        {review.timePosted} • {review.userType}
                       </div>
                     </div>
                   </div>
@@ -382,13 +533,13 @@ function HomePage({ onNavigate }) {
                       </span>
                     ))}
                   </div>
-                  <p>{review.comment}</p>
-                  {review.productName && (
+                  <p>{review.content}</p>
+                  {review.product && (
                     <div className="product-tag">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
                       </svg>
-                      {review.productName}
+                      {review.product}
                     </div>
                   )}
                 </div>
@@ -397,21 +548,35 @@ function HomePage({ onNavigate }) {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
                     </svg>
-                    Hữu ích ({review.helpful})
+                    Hữu ích ({review.likes})
                   </button>
                   <button className="action-btn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    Trả lời
+                    Trả lời ({review.comments})
                   </button>
                 </div>
               </div>
             ))}
           </div>
-          <button className="view-more-btn">
-            Xem thêm đánh giá
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button 
+            className="view-more-btn"
+            onClick={() => setShowAllReviews(!showAllReviews)}
+          >
+            {showAllReviews ? 'Ẩn bớt đánh giá' : 'Xem thêm đánh giá'}
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              style={{ 
+                transform: showAllReviews ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }}
+            >
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </button>

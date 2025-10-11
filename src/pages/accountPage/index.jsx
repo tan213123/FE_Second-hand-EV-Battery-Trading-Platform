@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Header from '../../components/Header'
 import './index.scss'
 
 function AccountPage({ onNavigate }) {
@@ -20,8 +19,6 @@ function AccountPage({ onNavigate }) {
 
   return (
     <div className="account-page">
-      <Header onNavigate={onNavigate} />
-
       <div className="profile">
         <div className="profile-cover">
           <div className="cover-overlay" />

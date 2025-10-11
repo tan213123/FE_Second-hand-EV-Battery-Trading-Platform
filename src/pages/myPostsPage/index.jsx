@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Header from '../../components/Header'
 import './index.scss'
 
 // Icons
@@ -124,8 +123,6 @@ function MyPostsPage({ onNavigate }) {
 
   return (
     <div className="my-posts-page">
-      <Header onNavigate={onNavigate} />
-      
       <div className="container">
         <div className="page-header">
           <div className="header-content">

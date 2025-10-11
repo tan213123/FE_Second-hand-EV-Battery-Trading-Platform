@@ -410,9 +410,10 @@ function SellOtoPage({ onNavigate }) {
 
       {/* Main Content */}
       <div className="main-content">
-        <div className="content-wrapper">
-          {/* Sidebar Filters */}
-          <aside className="sidebar">
+        <div className="container">
+          <div className="content-wrapper">
+            {/* Sidebar Filters */}
+            <aside className="sidebar">
               <div className="filter-section">
                 <h3 className="filter-title">Lọc theo tình trạng</h3>
                 <div className="filter-options">
@@ -651,6 +652,7 @@ function SellOtoPage({ onNavigate }) {
                       <div className="brand-name">{brand.name}</div>
                     </div>
                   ))}
+                </div>
               </div>
             </div>
           </div>
@@ -658,4 +660,6 @@ function SellOtoPage({ onNavigate }) {
       </div>
     </div>
   )
-}export default SellOtoPage
+}
+
+export default SellOtoPage

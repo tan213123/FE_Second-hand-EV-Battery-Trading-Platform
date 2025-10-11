@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './login.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
@@ -44,6 +45,7 @@ const SocialLogin = ({ onGoogleLogin }) => {
 };
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -89,14 +91,26 @@ const LoginPage = () => {
       try {
         console.log('Logging in with:', formData);
         await new Promise(resolve => setTimeout(resolve, 1000));
-        // Mock: treat emails containing 'admin' or 'staff' as admin users
+        
+        // Mock user data based on email
         const emailLower = (formData.email || '').toLowerCase();
+        const userName = emailLower.includes('admin') ? 'Admin User' : 
+                        emailLower.includes('staff') ? 'Staff User' : 
+                        'Người dùng';
+        
+        // Login with user data
+        login({
+          name: userName,
+          email: formData.email,
+          avatar: null
+        });
+        
+        // Navigate based on user type
         if (emailLower.includes('admin') || emailLower.includes('staff')) {
           navigate('/admin');
-          return;
+        } else {
+          navigate('/home');
         }
-        // otherwise go to home
-        navigate('/home');
       } catch (error) {
         setErrors({
           submit: 'Login failed. Please try again.'
