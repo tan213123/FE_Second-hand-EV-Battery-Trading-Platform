@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './index.scss'
+import api from '../../config/api'
 
 // Icon SVG components
 const SearchIcon = () => (
@@ -48,6 +49,9 @@ const VerifiedIcon = () => (
 function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLocation] = useState('Chọn khu vực')
+    const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const categories = [
     { icon: 'electric-car', label: 'Ô tô', color: '#4ECDC4', page: 'oto' },
@@ -63,6 +67,26 @@ const handleCategoryClick = (page) => {
   else if (page === 'battery') navigate('/battery');
 };
 
+// Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        // Sửa endpoint - bỏ 'api/' ở đầu vì baseURL đã có
+        const response = await api.get('/members')
+        setUsers(response.data)
+        console.log('Users data:', response.data)
+      } catch (err) {
+        setError(err.response?.data?.message || err.message)
+        console.error('Error fetching users:', err.response || err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   const getCategoryIcon = (type) => {
     const icons = {
