@@ -21,13 +21,6 @@ const ChatIcon = () => (
   </svg>
 )
 
-const BellIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-  </svg>
-)
-
 const UserIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -41,6 +34,15 @@ const ChevronDownIcon = () => (
   </svg>
 )
 
+const AuctionIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m9.11 6 5.67 5.67-4.21 4.21-5.67-5.67a3 3 0 0 1 0-4.24 3 3 0 0 1 4.24 0z"/>
+    <path d="M18.5 10.5 17 9l-5.67 5.67"/>
+    <path d="M5.5 20.5 9 17"/>
+    <circle cx="15" cy="15" r="1.5"/>
+  </svg>
+)
+
 function Header() {
   const navigate = useNavigate()
   const [showMenuDropdown, setShowMenuDropdown] = useState(false)
@@ -49,7 +51,6 @@ function Header() {
   return (
     <header className="main-header">
       <div className="header-container">
-        {/* Left Section */}
         <div className="header-left">
           <div className="menu-wrapper">
             <button 
@@ -95,12 +96,12 @@ function Header() {
                     <span>So sánh sản phẩm</span>
                   </Link>
                   <Link 
-                    to="/chat" 
+                    to="/auction-register" 
                     className="dropdown-item"
                     onClick={() => setShowMenuDropdown(false)}
                   >
-                    <ChatIcon />
-                    <span>Tin nhắn</span>
+                    <div className="item-icon">🎯</div>
+                    <span>Đăng ký đấu giá</span>
                   </Link>
                 </div>
                 <hr className="dropdown-divider" />
@@ -115,7 +116,7 @@ function Header() {
                     <span>Đăng tin</span>
                   </Link>
                   <Link 
-                    to="/my-posts" 
+                    to="/packages" 
                     className="dropdown-item"
                     onClick={() => setShowMenuDropdown(false)}
                   >
@@ -123,7 +124,7 @@ function Header() {
                     <span>Gói Đăng tin</span>
                   </Link>
                   <Link 
-                    to="/pro" 
+                    to="/packages" 
                     className="dropdown-item"
                     onClick={() => setShowMenuDropdown(false)}
                   >
@@ -131,7 +132,7 @@ function Header() {
                     <span>Gói Đăng tin Pro</span>
                   </Link>
                   <Link 
-                    to="/partner" 
+                    to="/packages" 
                     className="dropdown-item"
                     onClick={() => setShowMenuDropdown(false)}
                   >
@@ -175,15 +176,15 @@ function Header() {
             </button>
             {showSellerDropdown && (
               <div className="dropdown-menu seller-dropdown">
-                <Link to="/my-posts" className="dropdown-item">
+                <Link to="/packages" className="dropdown-item">
                   <div className="item-icon">📋</div>
                   <span>Gói đăng tin</span>
                 </Link>
-                <Link to="/pro" className="dropdown-item">
+                <Link to="/packages" className="dropdown-item">
                   <div className="item-icon pro-badge">PRO</div>
                   <span>Gói đăng tin Pro</span>
                 </Link>
-                <Link to="/partner" className="dropdown-item">
+                <Link to="/packages" className="dropdown-item">
                   <div className="item-icon partner-badge">👥</div>
                   <span>Gói đấu giá</span>
                 </Link>
@@ -192,26 +193,12 @@ function Header() {
           </div>
         </div>
 
-        {/* Center Section - Navigation */}
         <nav className="header-nav">
-          <Link 
-            to="/" 
-            className="nav-link active">
-            EcoXe
-          </Link>
-          <Link 
-            to="/oto" 
-            className="nav-link">
-            Xe cộ
-          </Link>
-          <Link 
-            to="/battery" 
-            className="nav-link">
-            Pin
-          </Link>
+          <Link to="/" className="nav-link active">EcoXe</Link>
+          <Link to="/oto" className="nav-link">Xe cộ</Link>
+          <Link to="/battery" className="nav-link">Pin</Link>
         </nav>
 
-        {/* Right Section */}
         <div className="header-right">
           <button 
             className="icon-btn"
@@ -230,9 +217,10 @@ function Header() {
           </button>
           <button 
             className="icon-btn"
-            onClick={() => navigate('/chat')}
+            onClick={() => navigate('/auction-register')}
+            title="Đăng ký đấu giá"
           >
-            <ChatIcon />
+            <AuctionIcon />
           </button>
           
           <button className="btn-primary" onClick={() => navigate('/login')}>Đăng nhập</button>

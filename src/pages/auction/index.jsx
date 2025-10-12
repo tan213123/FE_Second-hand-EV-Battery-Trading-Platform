@@ -276,8 +276,8 @@ const AuctionPage = () => {
               </div>
               <div className="step">
                 <div className="step-number">2</div>
-                <h3>Đặt cọc</h3>
-                <p>Đặt cọc 10% giá trị khởi điểm</p>
+                <h3>Đóng phí</h3>
+                <p>Người tham gia cần đóng phí tham gia đấu giá (500,000đ)</p>
               </div>
               <div className="step">
                 <div className="step-number">3</div>

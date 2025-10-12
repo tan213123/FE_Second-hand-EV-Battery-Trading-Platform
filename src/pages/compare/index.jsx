@@ -1,126 +1,102 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import './index.scss'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useCompare } from "../../contexts/AppContext";
+import "./index.scss";
 
 const Compare = () => {
-  const navigate = useNavigate()
-  const [compareItems, setCompareItems] = useState([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState([])
+  const navigate = useNavigate();
+  const { compareItems, removeFromCompare, clearAll, addToCompare } = useCompare();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
 
   // Mock data - thay bằng API call thực tế
   const mockProducts = [
     {
       id: 1,
-      title: 'VinFast VF 8 2023',
+      title: "VinFast VF 8 2023",
       price: 850000000,
-      category: 'car',
-      image: 'https://via.placeholder.com/300x200',
+      category: "car",
+      image: "https://via.placeholder.com/300x200",
       specs: {
         year: 2023,
-        brand: 'VinFast',
-        condition: 'Mới',
-        bodyType: 'SUV',
-        seats: '5 chỗ',
-        color: 'Đỏ',
-        origin: 'Sản xuất trong nước',
-        mileage: '0 km'
-      }
+        brand: "VinFast",
+        condition: "Mới",
+        bodyType: "SUV",
+        seats: "5 chỗ",
+        color: "Đỏ",
+        origin: "Sản xuất trong nước",
+        mileage: "0 km",
+      },
     },
     {
       id: 2,
-      title: 'Toyota Camry 2022',
+      title: "Toyota Camry 2022",
       price: 1200000000,
-      category: 'car',
-      image: 'https://via.placeholder.com/300x200',
+      category: "car",
+      image: "https://via.placeholder.com/300x200",
       specs: {
         year: 2022,
-        brand: 'Toyota',
-        condition: 'Đã sử dụng (Tốt)',
-        bodyType: 'Sedan',
-        seats: '5 chỗ',
-        color: 'Đen',
-        origin: 'Nhập khẩu',
-        mileage: '15000 km'
-      }
+        brand: "Toyota",
+        condition: "Đã sử dụng (Tốt)",
+        bodyType: "Sedan",
+        seats: "5 chỗ",
+        color: "Đen",
+        origin: "Nhập khẩu",
+        mileage: "15000 km",
+      },
     },
     {
       id: 3,
-      title: 'Yadea S3 Pro 2023',
+      title: "Yadea S3 Pro 2023",
       price: 25000000,
-      category: 'electric',
-      image: 'https://via.placeholder.com/300x200',
+      category: "electric",
+      image: "https://via.placeholder.com/300x200",
       specs: {
         year: 2023,
-        brand: 'Yadea',
-        condition: 'Mới',
-        color: 'Xanh',
-        origin: 'Nhập khẩu',
-        battery: '60V 20Ah',
-        range: '70 km'
-      }
-    }
-  ]
-
-  useEffect(() => {
-    // Load saved compare items from localStorage
-    const saved = localStorage.getItem('compareItems')
-    if (saved) {
-      setCompareItems(JSON.parse(saved))
-    }
-  }, [])
+        brand: "Yadea",
+        condition: "Mới",
+        color: "Xanh",
+        origin: "Nhập khẩu",
+        battery: "60V 20Ah",
+        range: "70 km",
+      },
+    },
+  ];
 
   const handleSearch = (query) => {
-    setSearchQuery(query)
+    setSearchQuery(query);
     if (query.length > 2) {
-      const results = mockProducts.filter(p => 
+      const results = mockProducts.filter((p) =>
         p.title.toLowerCase().includes(query.toLowerCase())
-      )
-      setSearchResults(results)
+      );
+      setSearchResults(results);
     } else {
-      setSearchResults([])
+      setSearchResults([]);
     }
-  }
+  };
 
-  const addToCompare = (product) => {
-    if (compareItems.length >= 4) {
-      alert('Chỉ có thể so sánh tối đa 4 sản phẩm')
-      return
+  const handleAddToCompare = (product) => {
+    const result = addToCompare(product);
+    if (result.success) {
+      setSearchQuery("");
+      setSearchResults([]);
+    } else {
+      alert(result.message);
     }
-    if (compareItems.find(item => item.id === product.id)) {
-      alert('Sản phẩm đã có trong danh sách so sánh')
-      return
-    }
-    const newItems = [...compareItems, product]
-    setCompareItems(newItems)
-    localStorage.setItem('compareItems', JSON.stringify(newItems))
-    setSearchQuery('')
-    setSearchResults([])
-  }
-
-  const removeFromCompare = (productId) => {
-    const newItems = compareItems.filter(item => item.id !== productId)
-    setCompareItems(newItems)
-    localStorage.setItem('compareItems', JSON.stringify(newItems))
-  }
-
-  const clearAll = () => {
-    setCompareItems([])
-    localStorage.removeItem('compareItems')
-  }
+  };
 
   const specLabels = {
-    year: 'Năm sản xuất',
-    brand: 'Hãng',
-    condition: 'Tình trạng',
-    bodyType: 'Kiểu dáng',
-    seats: 'Số chỗ',
-    color: 'Màu sắc',
-    origin: 'Xuất xứ',
-    mileage: 'Số km',
-    battery: 'Pin',
-    range: 'Quãng đường'
-  }
+    year: "Năm sản xuất",
+    brand: "Hãng",
+    condition: "Tình trạng",
+    bodyType: "Kiểu dáng",
+    seats: "Số chỗ",
+    color: "Màu sắc",
+    origin: "Xuất xứ",
+    mileage: "Số km",
+    battery: "Pin",
+    range: "Quãng đường",
+  };
 
   return (
     <div className="compare-page">
@@ -140,17 +116,17 @@ const Compare = () => {
           />
           {searchResults.length > 0 && (
             <div className="search-results">
-              {searchResults.map(product => (
-                <div 
-                  key={product.id} 
+              {searchResults.map((product) => (
+                <div
+                  key={product.id}
                   className="search-result-item"
-                  onClick={() => addToCompare(product)}
+                  onClick={() => handleAddToCompare(product)}
                 >
                   <img src={product.image} alt={product.title} />
                   <div className="result-info">
                     <h4>{product.title}</h4>
                     <div className="result-price">
-                      {product.price.toLocaleString('vi-VN')} đ
+                      {product.price.toLocaleString("vi-VN")} đ
                     </div>
                   </div>
                   <button className="btn-add">+</button>
@@ -167,16 +143,18 @@ const Compare = () => {
               <button className="btn-clear" onClick={clearAll}>
                 Xóa tất cả
               </button>
-              <span className="item-count">{compareItems.length}/4 sản phẩm</span>
+              <span className="item-count">
+                {compareItems.length}/4 sản phẩm
+              </span>
             </div>
 
             <div className="compare-table">
               {/* Product Cards */}
               <div className="compare-row products-row">
                 <div className="compare-label"></div>
-                {compareItems.map(item => (
+                {compareItems.map((item) => (
                   <div key={item.id} className="compare-cell product-card">
-                    <button 
+                    <button
                       className="remove-btn"
                       onClick={() => removeFromCompare(item.id)}
                     >
@@ -185,9 +163,9 @@ const Compare = () => {
                     <img src={item.image} alt={item.title} />
                     <h3>{item.title}</h3>
                     <div className="product-price">
-                      {item.price.toLocaleString('vi-VN')} đ
+                      {item.price.toLocaleString("vi-VN")} đ
                     </div>
-                    <button 
+                    <button
                       className="btn-view"
                       onClick={() => navigate(`/product/${item.id}`)}
                     >
@@ -198,20 +176,20 @@ const Compare = () => {
               </div>
 
               {/* Specifications Rows */}
-              {Object.keys(specLabels).map(specKey => {
-                const hasSpec = compareItems.some(item => item.specs[specKey])
-                if (!hasSpec) return null
+              {Object.keys(specLabels).map((specKey) => {
+                const hasSpec = compareItems.some((item) => item.specs[specKey]);
+                if (!hasSpec) return null;
 
                 return (
                   <div key={specKey} className="compare-row">
                     <div className="compare-label">{specLabels[specKey]}</div>
-                    {compareItems.map(item => (
+                    {compareItems.map((item) => (
                       <div key={item.id} className="compare-cell">
-                        {item.specs[specKey] || '-'}
+                        {item.specs[specKey] || "-"}
                       </div>
                     ))}
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -220,9 +198,9 @@ const Compare = () => {
             <div className="empty-icon">⚖️</div>
             <h2>Chưa có sản phẩm để so sánh</h2>
             <p>Tìm kiếm và thêm sản phẩm vào danh sách để bắt đầu so sánh</p>
-            <button 
+            <button
               className="btn-browse"
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
             >
               Khám phá sản phẩm
             </button>
@@ -230,7 +208,7 @@ const Compare = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Compare
+export default Compare;

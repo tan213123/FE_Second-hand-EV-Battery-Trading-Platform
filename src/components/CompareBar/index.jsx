@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useCompare } from '../../contexts/CompareContext'
+import { useCompare } from '../../contexts/AppContext'
 import './index.scss'
 
 const CompareBar = () => {

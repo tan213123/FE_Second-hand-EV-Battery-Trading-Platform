@@ -1,11 +1,10 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { CompareProvider } from './contexts/CompareContext';
+import { AppProvider } from './contexts/AppContext';
 import Layout from './components/Layout';
 import HomePage from './pages/homePage';
 import SellOtoPage from './pages/sellPage/sellOToPage';
 import SellBatteryPage from './pages/sellPage/sellBatteryPage';
 import SavedPage from './pages/savedPage';
-import ChatPage from './pages/chatPage';
 import SellBikePage from './pages/sellPage/sellBikePage';
 import LoginPage from './pages/loginPage/login';
 import RegisterPage from './pages/loginPage/signup';
@@ -13,6 +12,10 @@ import PostListing from './pages/postListing';
 import AuctionPage from './pages/auction';
 import AuctionDetailPage from './pages/auction/AuctionDetail';
 import Compare from './pages/compare';
+import SettingsPage from './pages/settingsPage';
+import MyPostsPage from './pages/myPostsPage';
+import PackagePage from './pages/packagePage';
+import AuctionRegisterPage from './pages/auctionRegisterPage';
 
 function App() {
   const router = createBrowserRouter([
@@ -25,21 +28,24 @@ function App() {
         { path: '/bike', element: <SellBikePage /> },
         { path: '/battery', element: <SellBatteryPage /> },
         { path: '/saved', element: <SavedPage /> },
-        { path: '/chat', element: <ChatPage /> },
         { path: '/login', element: <LoginPage /> },
         { path: '/signup', element: <RegisterPage /> },
         { path: '/post', element: <PostListing /> },
         { path: '/auction', element: <AuctionPage /> },
         { path: '/auction/:id', element: <AuctionDetailPage /> },
         { path: '/compare', element: <Compare /> },
+        { path: '/settings', element: <SettingsPage /> },
+        { path: '/my-posts', element: <MyPostsPage /> },
+        { path: '/packages', element: <PackagePage /> },
+        { path: '/auction-register', element: <AuctionRegisterPage /> },
       ],
     },
   ]);
   
   return (
-    <CompareProvider>
+    <AppProvider>
       <RouterProvider router={router} />
-    </CompareProvider>
+    </AppProvider>
   );
 }
 
