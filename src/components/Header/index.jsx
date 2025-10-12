@@ -43,7 +43,7 @@ const ChevronDownIcon = () => (
 
 function Header() {
   const navigate = useNavigate()
-  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [showMenuDropdown, setShowMenuDropdown] = useState(false)
   const [showSellerDropdown, setShowSellerDropdown] = useState(false)
 
   return (
@@ -51,9 +51,116 @@ function Header() {
       <div className="header-container">
         {/* Left Section */}
         <div className="header-left">
-          <button className="menu-btn">
-            <MenuIcon />
-          </button>
+          <div className="menu-wrapper">
+            <button 
+              className={`menu-btn ${showMenuDropdown ? 'active' : ''}`}
+              onClick={() => setShowMenuDropdown(!showMenuDropdown)}
+            >
+              <MenuIcon />
+            </button>
+            {showMenuDropdown && (
+              <div className="dropdown-menu menu-dropdown">
+                <div className="menu-section">
+                  <div className="menu-section-title">Tài khoản</div>
+                  <Link 
+                    to="/account" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <UserIcon />
+                    <span>Tài khoản của tôi</span>
+                  </Link>
+                  <Link 
+                    to="/my-posts" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon">📋</div>
+                    <span>Tin đăng của tôi</span>
+                  </Link>
+                  <Link 
+                    to="/saved" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <HeartIcon />
+                    <span>Tin đã lưu</span>
+                  </Link>
+                  <Link 
+                    to="/compare" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon">⚖️</div>
+                    <span>So sánh sản phẩm</span>
+                  </Link>
+                  <Link 
+                    to="/chat" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <ChatIcon />
+                    <span>Tin nhắn</span>
+                  </Link>
+                </div>
+                <hr className="dropdown-divider" />
+                <div className="menu-section">
+                  <div className="menu-section-title">Dành cho người bán</div>
+                  <Link 
+                    to="/post" 
+                    className="dropdown-item highlight"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon">➕</div>
+                    <span>Đăng tin</span>
+                  </Link>
+                  <Link 
+                    to="/my-posts" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon">📋</div>
+                    <span>Gói Đăng tin</span>
+                  </Link>
+                  <Link 
+                    to="/pro" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon pro-badge">PRO</div>
+                    <span>Gói Đăng tin Pro</span>
+                  </Link>
+                  <Link 
+                    to="/partner" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon partner-badge">👥</div>
+                    <span>Gói đấu giá</span>
+                  </Link>
+                </div>
+                <hr className="dropdown-divider" />
+                <div className="menu-section">
+                  <Link 
+                    to="/settings" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon">⚙️</div>
+                    <span>Cài đặt</span>
+                  </Link>
+                  <Link 
+                    to="/login" 
+                    className="dropdown-item"
+                    onClick={() => setShowMenuDropdown(false)}
+                  >
+                    <div className="item-icon">🚪</div>
+                    <span>Đăng xuất</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
           <Link to="/" className="logo">
             <span className="logo-text">Eco</span>
             <span className="logo-highlight">Xe</span>
@@ -70,15 +177,15 @@ function Header() {
               <div className="dropdown-menu seller-dropdown">
                 <Link to="/my-posts" className="dropdown-item">
                   <div className="item-icon">📋</div>
-                  <span>Quản lý tin</span>
+                  <span>Gói đăng tin</span>
                 </Link>
                 <Link to="/pro" className="dropdown-item">
                   <div className="item-icon pro-badge">PRO</div>
-                  <span>Gói Pro</span>
+                  <span>Gói đăng tin Pro</span>
                 </Link>
                 <Link to="/partner" className="dropdown-item">
                   <div className="item-icon partner-badge">👥</div>
-                  <span>Dành cho Đối tác</span>
+                  <span>Gói đấu giá</span>
                 </Link>
               </div>
             )}
@@ -108,6 +215,15 @@ function Header() {
         <div className="header-right">
           <button 
             className="icon-btn"
+            onClick={() => navigate('/compare')}
+            title="So sánh sản phẩm"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+            </svg>
+          </button>
+          <button 
+            className="icon-btn"
             onClick={() => navigate('/saved')}
           >
             <HeartIcon />
@@ -118,32 +234,10 @@ function Header() {
           >
             <ChatIcon />
           </button>
-          <button className="icon-btn">
-            <BellIcon />
-          </button>
           
           <button className="btn-primary" onClick={() => navigate('/login')}>Đăng nhập</button>
-          <button className="btn-secondary">Đăng tin</button>
-          
-          <div className="user-menu">
-            <button 
-              className="user-btn"
-              onClick={() => setShowUserDropdown(!showUserDropdown)}
-            >
-              <UserIcon />
-              <ChevronDownIcon />
-            </button>
-            {showUserDropdown && (
-              <div className="dropdown-menu">
-                <Link to="/account" className="dropdown-item">Tài khoản của tôi</Link>
-                <Link to="/my-posts" className="dropdown-item">Tin đăng của tôi</Link>
-                <Link to="/saved" className="dropdown-item">Tin đã lưu</Link>
-                <Link to="/settings" className="dropdown-item">Cài đặt</Link>
-                <hr className="dropdown-divider" />
-                <Link to="/login" className="dropdown-item">Đăng xuất</Link>
-              </div>
-            )}
-          </div>
+          <button className="btn-secondary" onClick={() => navigate('/post')}>Đăng tin</button>
+          <button className="btn-secondary" onClick={() => navigate('/auction')}>Đấu giá</button>
         </div>
       </div>
     </header>

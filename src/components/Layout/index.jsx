@@ -1,15 +1,26 @@
 import Header from "../Header";
 import Footer from "../Footer";
 import { Outlet } from "react-router-dom";
+import CompareBar from '../CompareBar'
 
 function Layout() {
   return (
-    <div>
-      <Header />
-      <div className="layout-content">
+    <div className="app-layout">
+      {/* Header/Navigation */}
+      <header>
+        <Header />
+      </header>
+
+      {/* Main Content */}
+      <main className="main-content">
         <Outlet />
-      </div>
-      <Footer />
+      </main>
+
+      {/* Footer */}
+      <footer>
+        <Footer />
+      </footer>
+      <CompareBar />
     </div>
   );
 }
