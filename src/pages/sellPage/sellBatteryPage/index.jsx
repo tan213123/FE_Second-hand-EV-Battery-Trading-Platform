@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useSaved } from "../../../contexts/AppContext";
 import "./index.scss";
 
 function SellBatteryPage() {
@@ -16,6 +17,19 @@ function SellBatteryPage() {
   const [showBatteryTypeDropdown, setShowBatteryTypeDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
+  const { toggleSaved, isSaved } = useSaved();
+
+  const handleToggleSaved = (e, battery) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const savedBattery = {
+      ...battery,
+      id: `battery-${battery.id}`, // Thêm prefix để tránh conflict với trang khác
+      category: 'Pin xe điện',
+      image: '/api/placeholder/400/300'
+    };
+    toggleSaved(savedBattery);
+  };
 
   // Icon Components
   const FilterIcon = () => (
@@ -660,7 +674,11 @@ function SellBatteryPage() {
 
                   <div className="battery-image">
                     <img src="/api/placeholder/400/300" alt={battery.title} />
-                    <button className="favorite-btn">
+                    <button 
+                      className={`favorite-btn ${isSaved(`battery-${battery.id}`) ? 'saved' : ''}`}
+                      onClick={(e) => handleToggleSaved(e, battery)}
+                      title={isSaved(`battery-${battery.id}`) ? 'Bỏ lưu' : 'Lưu tin'}
+                    >
                       <HeartIcon />
                     </button>
                     <div className="image-count">{battery.images} 📷</div>

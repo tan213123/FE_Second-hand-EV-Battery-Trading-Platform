@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSaved } from '../../contexts/AppContext'
 import './index.scss'
 import api from '../../config/api'
 
@@ -49,9 +50,11 @@ const VerifiedIcon = () => (
 function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLocation] = useState('Chọn khu vực')
-    const [users, setUsers] = useState([])
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const { toggleSaved, isSaved } = useSaved()
+  const navigate = useNavigate()
 
   const categories = [
     { icon: 'electric-car', label: 'Ô tô', color: '#4ECDC4', page: 'oto' },
@@ -59,9 +62,7 @@ function HomePage() {
     { icon: 'battery', label: 'Pin', color: '#FFD93D', page: 'battery' }
   ]
 
-  const navigate = useNavigate();
-
-const handleCategoryClick = (page) => {
+  const handleCategoryClick = (page) => {
   if (page === 'oto') navigate('/oto');
   else if (page === 'bike') navigate('/bike');
   else if (page === 'battery') navigate('/battery');
@@ -99,85 +100,115 @@ const handleCategoryClick = (page) => {
 
   const latestListings = [
     {
-      id: 1,
+      id: 'home-1',
       title: 'VinFast VF 8 Plus 2023 - Pin thuê bao',
       year: 2023,
       km: '8,500 km',
       transmission: 'Điện',
       condition: 'Tự động',
-      price: '250,000,000 đ',
+      price: 250000000,
       location: 'Quận Cầu Giấy, Hà Nội',
       images: 12,
       timePosted: '1 phút trước',
-      badge: 'Mới đăng'
+      badge: 'Mới đăng',
+      category: 'Ô tô điện',
+      image: '/api/placeholder/300/200'
     },
     {
-      id: 2,
+      id: 'home-2',
       title: 'Pin Lithium 48V 20Ah cho xe máy điện',
       year: 2024,
       status: 'Pin',
       transmission: 'Mới 100%',
       condition: 'Chính hãng',
-      price: '12,500,000 đ',
+      price: 12500000,
       location: 'Quận 7, TP.HCM',
       images: 6,
       videoCount: 1,
       timePosted: 'Tin tiêu biểu',
-      badge: 'Tin tiêu biểu'
+      badge: 'Tin tiêu biểu',
+      category: 'Pin xe điện',
+      image: '/api/placeholder/300/200'
     },
     {
-      id: 3,
+      id: 'home-3',
       title: 'Yadea S3 Pro 2023 - Xe máy điện',
       year: 2023,
       km: '2,300 km',
       transmission: 'Điện',
       condition: 'Như mới',
-      price: '18,900,000 đ',
+      price: 18900000,
       location: 'Quận Tân Bình, TP.HCM',
       images: 10,
       timePosted: '15 phút trước',
-      badge: null
+      badge: null,
+      category: 'Xe máy điện',
+      image: '/api/placeholder/300/200'
     },
     {
-      id: 4,
+      id: 'home-4',
       title: 'VinFast VF e34 2022 - Đã qua sử dụng',
       year: 2022,
       km: '15,000 km',
       transmission: 'Điện',
       condition: 'Tự động',
-      price: '520,000,000 đ',
+      price: 520000000,
       location: 'Quận Đống Đa, Hà Nội',
       images: 15,
       timePosted: '30 phút trước',
-      badge: null
+      badge: null,
+      category: 'Ô tô điện',
+      image: '/api/placeholder/300/200'
     },
     {
-      id: 5,
+      id: 'home-5',
       title: 'Pin Ắc quy Lithium Tesla 72V 32Ah',
       year: 2024,
       km: 'Mới 100%',
       transmission: 'Pin cao cấp',
       condition: 'Bảo hành 3 năm',
-      price: '28,000,000 đ',
+      price: 28000000,
       location: 'Quận Hoàng Mai, Hà Nội',
       images: 8,
       timePosted: '45 phút trước',
-      badge: null
+      badge: null,
+      category: 'Pin xe điện',
+      image: '/api/placeholder/300/200'
     },
     {
-      id: 6,
+      id: 'home-6',
       title: 'Pega Newtech 2023 - Xe điện thông minh',
       year: 2023,
       km: '3,800 km',
       transmission: 'Điện',
       condition: 'Pin rời',
-      price: '22,500,000 đ',
+      price: 22500000,
       location: 'Quận Hai Bà Trưng, Hà Nội',
       images: 11,
       timePosted: '1 giờ trước',
-      badge: null
+      badge: null,
+      category: 'Xe máy điện',
+      image: '/api/placeholder/300/200'
     }
   ]
+
+  const handleToggleSaved = (e, listing) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('=== FAVORITE CLICKED ===')
+    console.log('Listing:', listing)
+    console.log('isSaved before:', isSaved(listing.id))
+    toggleSaved(listing)
+    // Đợi một chút để state cập nhật
+    setTimeout(() => {
+      console.log('isSaved after:', isSaved(listing.id))
+      console.log('localStorage:', localStorage.getItem('savedItems'))
+    }, 100)
+  }
+
+  const formatPrice = (price) => {
+    return price.toLocaleString('vi-VN') + ' đ'
+  }
 
   const customerReviews = [
     {
@@ -257,6 +288,7 @@ const handleCategoryClick = (page) => {
         <div className="search-container">
           <h1 className="hero-title">EcoXe - Mua bán xe cũ uy tín</h1>
           <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
+
           <div className="search-box">
             <div className="search-input-wrapper">
               <SearchIcon />
@@ -320,7 +352,12 @@ const handleCategoryClick = (page) => {
                   <div className="image-placeholder">
                     <img src="/api/placeholder/300/200" alt={listing.title} />
                   </div>
-                  <button className="favorite-btn">
+                  <button 
+                    className={`favorite-btn ${isSaved(listing.id) ? 'saved' : ''}`}
+                    onClick={(e) => handleToggleSaved(e, listing)}
+                    title={isSaved(listing.id) ? 'Bỏ lưu' : 'Lưu tin'}
+                    type="button"
+                  >
                     <HeartIcon />
                   </button>
                   {listing.badge && (
@@ -351,7 +388,7 @@ const handleCategoryClick = (page) => {
                     <span className="spec-item">{listing.condition}</span>
                   </div>
                   <div className="listing-footer">
-                    <div className="listing-price">{listing.price}</div>
+                    <div className="listing-price">{formatPrice(listing.price)}</div>
                     <div className="listing-location">
                       <LocationIcon />
                       {listing.location}

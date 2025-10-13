@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useSaved } from "../../../contexts/AppContext";
 import "./index.scss";
 
 // Icon Components
@@ -123,6 +124,19 @@ function SellBikePage() {
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
+  const { toggleSaved, isSaved } = useSaved();
+
+  const handleToggleSaved = (e, bike) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const savedBike = {
+      ...bike,
+      id: `bike-${bike.id}`, // Thêm prefix để tránh conflict với trang khác
+      category: 'Xe máy điện',
+      image: '/api/placeholder/400/300'
+    };
+    toggleSaved(savedBike);
+  };
 
   const brands = [
     { name: "Pega", logo: "🏍️", count: 12450 },
@@ -611,7 +625,11 @@ function SellBikePage() {
 
                   <div className="bike-image">
                     <img src="/api/placeholder/400/300" alt={bike.title} />
-                    <button className="favorite-btn">
+                    <button 
+                      className={`favorite-btn ${isSaved(`bike-${bike.id}`) ? 'saved' : ''}`}
+                      onClick={(e) => handleToggleSaved(e, bike)}
+                      title={isSaved(`bike-${bike.id}`) ? 'Bỏ lưu' : 'Lưu tin'}
+                    >
                       <HeartIcon />
                     </button>
                     <div className="image-count">{bike.images} 📷</div>

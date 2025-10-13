@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useSaved } from "../../../contexts/AppContext";
 import "./index.scss";
 
 // Icon Components
@@ -125,6 +126,19 @@ function SellOtoPage() {
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
+  const { toggleSaved, isSaved } = useSaved();
+
+  const handleToggleSaved = (e, car) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const savedCar = {
+      ...car,
+      id: `oto-${car.id}`, // Thêm prefix để tránh conflict với trang khác
+      category: 'Ô tô điện',
+      image: '/api/placeholder/400/300'
+    };
+    toggleSaved(savedCar);
+  };
 
   const brands = [
     { name: "MG", logo: "🚙", count: 3210 },
@@ -681,7 +695,11 @@ function SellOtoPage() {
 
                   <div className="car-image">
                     <img src="/api/placeholder/400/300" alt={car.title} />
-                    <button className="favorite-btn">
+                    <button 
+                      className={`favorite-btn ${isSaved(`oto-${car.id}`) ? 'saved' : ''}`}
+                      onClick={(e) => handleToggleSaved(e, car)}
+                      title={isSaved(car.id) ? 'Bỏ lưu' : 'Lưu tin'}
+                    >
                       <HeartIcon />
                     </button>
                     <div className="image-count">{car.images} 📷</div>

@@ -531,6 +531,15 @@
               stroke: white;
             }
           }
+
+          &.saved {
+            background: #FF6B6B;
+            
+            svg {
+              fill: white;
+              stroke: white;
+            }
+          }
         }
 
         .image-count {

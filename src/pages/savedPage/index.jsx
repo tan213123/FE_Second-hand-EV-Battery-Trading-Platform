@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSaved } from '../../contexts/AppContext'
+import DebugClearButton from '../../components/DebugClearButton'
 import './index.scss'
 
 // Icons
@@ -85,6 +86,9 @@ function SavedPage() {
 
   return (
     <div className="saved-page">
+      {/* DEBUG: Nút xóa localStorage - chỉ xuất hiện ở trang Saved */}
+      <DebugClearButton />
+      
       <div className="saved-container">
         <div className="page-header">
           <div className="header-content">
