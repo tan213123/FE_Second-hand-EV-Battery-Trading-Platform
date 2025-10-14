@@ -1,12 +1,18 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useCompare } from '../../contexts/AppContext'
 import './index.scss'
 
 const CompareBar = () => {
   const navigate = useNavigate()
-  const { compareItems, removeFromCompare, clearAll } = useCompare()
+  const location = useLocation()
+  const { compareItems, removeFromCompare, clearCompare } = useCompare()
 
-  if (compareItems.length === 0) return null
+  // Chỉ hiển thị CompareBar trên các trang SellPage
+  const isSellPage = location.pathname === '/oto' || 
+                     location.pathname === '/bike' || 
+                     location.pathname === '/battery'
+
+  if (compareItems.length === 0 || !isSellPage) return null
 
   return (
     <div className="compare-bar">
@@ -35,7 +41,7 @@ const CompareBar = () => {
         </div>
 
         <div className="compare-actions">
-          <button className="btn-clear" onClick={clearAll}>
+          <button className="btn-clear" onClick={clearCompare}>
             Xóa tất cả
           </button>
           <button className="btn-compare" onClick={() => navigate('/compare')}>

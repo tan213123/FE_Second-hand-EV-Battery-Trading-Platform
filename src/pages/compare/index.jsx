@@ -5,7 +5,7 @@ import "./index.scss";
 
 const Compare = () => {
   const navigate = useNavigate();
-  const { compareItems, removeFromCompare, clearAll, addToCompare } = useCompare();
+  const { compareItems, removeFromCompare, clearCompare, addToCompare } = useCompare();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
 
@@ -87,15 +87,18 @@ const Compare = () => {
 
   const specLabels = {
     year: "Năm sản xuất",
-    brand: "Hãng",
+    brand: "Hãng/Thương hiệu",
     condition: "Tình trạng",
     bodyType: "Kiểu dáng",
     seats: "Số chỗ",
     color: "Màu sắc",
     origin: "Xuất xứ",
-    mileage: "Số km",
+    mileage: "Số km đã đi",
     battery: "Pin",
     range: "Quãng đường",
+    capacity: "Dung lượng",
+    type: "Loại pin",
+    health: "Sức khỏe pin"
   };
 
   return (
@@ -140,7 +143,7 @@ const Compare = () => {
         {compareItems.length > 0 ? (
           <div className="compare-container">
             <div className="compare-actions">
-              <button className="btn-clear" onClick={clearAll}>
+              <button className="btn-clear" onClick={clearCompare}>
                 Xóa tất cả
               </button>
               <span className="item-count">
@@ -177,7 +180,7 @@ const Compare = () => {
 
               {/* Specifications Rows */}
               {Object.keys(specLabels).map((specKey) => {
-                const hasSpec = compareItems.some((item) => item.specs[specKey]);
+                const hasSpec = compareItems.some((item) => item.specs?.[specKey]);
                 if (!hasSpec) return null;
 
                 return (
@@ -185,7 +188,7 @@ const Compare = () => {
                     <div className="compare-label">{specLabels[specKey]}</div>
                     {compareItems.map((item) => (
                       <div key={item.id} className="compare-cell">
-                        {item.specs[specKey] || "-"}
+                        {item.specs?.[specKey] || "-"}
                       </div>
                     ))}
                   </div>

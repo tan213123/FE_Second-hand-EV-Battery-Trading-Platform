@@ -511,20 +511,6 @@
         z-index: 1;
       }
 
-      // Badge for notifications
-      &:first-child::after {
-        content: '';
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        width: 10px;
-        height: 10px;
-        background: linear-gradient(135deg, #FF4444, #CC0000);
-        border-radius: 50%;
-        border: 2px solid #667eea;
-        animation: pulse 2s infinite;
-      }
-
       @keyframes pulse {
         0%, 100% {
           transform: scale(1);

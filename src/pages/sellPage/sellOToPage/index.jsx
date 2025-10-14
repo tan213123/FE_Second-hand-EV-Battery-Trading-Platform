@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useSaved } from "../../../contexts/AppContext";
+import { useSaved, useCompare } from "../../../contexts/AppContext";
 import "./index.scss";
 
 // Icon Components
@@ -50,7 +50,7 @@ const HeartIcon = () => (
   </svg>
 );
 
-const ChatIcon = () => (
+const CompareIcon = () => (
   <svg
     width="18"
     height="18"
@@ -59,7 +59,7 @@ const ChatIcon = () => (
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
   </svg>
 );
 
@@ -127,6 +127,7 @@ function SellOtoPage() {
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
   const { toggleSaved, isSaved } = useSaved();
+  const { addToCompare } = useCompare();
 
   const handleToggleSaved = (e, car) => {
     e.preventDefault();
@@ -138,6 +139,29 @@ function SellOtoPage() {
       image: '/api/placeholder/400/300'
     };
     toggleSaved(savedCar);
+  };
+
+  const handleAddToCompare = (e, car) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const compareCar = {
+      ...car,
+      id: `oto-${car.id}`,
+      category: 'Ô tô điện',
+      image: '/api/placeholder/400/300',
+      specs: {
+        year: car.year || '-',
+        brand: car.brand || '-',
+        condition: car.condition || '-',
+        bodyType: car.bodyType || '-',
+        seats: car.seats || '-',
+        color: car.color || '-',
+        origin: car.origin || '-',
+        mileage: car.mileage || '-'
+      }
+    };
+    addToCompare(compareCar);
+    // Không tự động chuyển trang, để người dùng quyết định
   };
 
   const brands = [
@@ -750,12 +774,12 @@ function SellOtoPage() {
                         <PhoneIcon />
                         Bấm để hiện số
                       </button>
-                      <button className="action-btn">
-                        <ChatIcon />
-                        Chat
-                      </button>
-                      <button className="action-btn icon-only">
-                        <HeartIcon />
+                      <button 
+                        className="action-btn"
+                        onClick={(e) => handleAddToCompare(e, car)}
+                      >
+                        <CompareIcon />
+                        So sánh
                       </button>
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useSaved } from "../../../contexts/AppContext";
+import { useSaved, useCompare } from "../../../contexts/AppContext";
 import "./index.scss";
 
 function SellBatteryPage() {
@@ -18,6 +18,7 @@ function SellBatteryPage() {
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
   const { toggleSaved, isSaved } = useSaved();
+  const { addToCompare } = useCompare();
 
   const handleToggleSaved = (e, battery) => {
     e.preventDefault();
@@ -29,6 +30,28 @@ function SellBatteryPage() {
       image: '/api/placeholder/400/300'
     };
     toggleSaved(savedBattery);
+  };
+
+  const handleAddToCompare = (e, battery) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const compareBattery = {
+      ...battery,
+      id: `battery-${battery.id}`,
+      category: 'Pin xe điện',
+      image: '/api/placeholder/400/300',
+      specs: {
+        brand: battery.seller || '-',
+        capacity: battery.capacity || '-',
+        type: battery.type || '-',
+        condition: battery.condition || '-',
+        health: battery.health || '-',
+        color: '-',
+        origin: '-'
+      }
+    };
+    addToCompare(compareBattery);
+    // Không tự động chuyển trang, để người dùng quyết định
   };
 
   // Icon Components
@@ -78,7 +101,7 @@ function SellBatteryPage() {
     </svg>
   );
 
-  const ChatIcon = () => (
+  const CompareIcon = () => (
     <svg
       width="18"
       height="18"
@@ -87,7 +110,7 @@ function SellBatteryPage() {
       stroke="currentColor"
       strokeWidth="2"
     >
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
     </svg>
   );
 
@@ -730,12 +753,12 @@ function SellBatteryPage() {
                         <PhoneIcon />
                         Bấm để hiện số
                       </button>
-                      <button className="action-btn">
-                        <ChatIcon />
-                        Chat
-                      </button>
-                      <button className="action-btn icon-only">
-                        <HeartIcon />
+                      <button 
+                        className="action-btn"
+                        onClick={(e) => handleAddToCompare(e, battery)}
+                      >
+                        <CompareIcon />
+                        So sánh
                       </button>
                     </div>
                   </div>
