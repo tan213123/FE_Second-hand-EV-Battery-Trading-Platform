@@ -165,7 +165,7 @@ function HomePage() {
       timePosted: '45 phút trước',
       badge: null,
       category: 'Pin xe điện',
-      //image: 'https://via.placeholder.com/300x200/FFD93D/000000?text=Pin+Tesla'
+     // image: 'https://via.placeholder.com/300x200/FFD93D/000000?text=Pin+Tesla'
       // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     },
     {
