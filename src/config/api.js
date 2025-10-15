@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://14.225.206.98:8080/api',
+  baseURL: '/api', // Sử dụng proxy của Vite thay vì gọi trực tiếp
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -26,8 +26,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Chỉ redirect khi gặp 401 và không phải đang ở trang login
+    if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+      console.warn('Token expired or invalid, redirecting to login...')
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
       window.location.href = '/login'
     }
     return Promise.reject(error)

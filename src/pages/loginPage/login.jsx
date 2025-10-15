@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../config/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './login.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
@@ -44,6 +46,7 @@ const SocialLogin = ({ onGoogleLogin }) => {
 };
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -87,19 +90,39 @@ const LoginPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        console.log('Logging in with:', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Mock: treat emails containing 'admin' or 'staff' as admin users
-        const emailLower = (formData.email || '').toLowerCase();
-        if (emailLower.includes('admin') || emailLower.includes('staff')) {
-          navigate('/admin');
-          return;
-        }
-        // otherwise go to home
-        navigate('/');
+        // Call API login với endpoint /members/login
+        const response = await api.post('/members/login', {
+          email: formData.email,
+          password: formData.password
+        });
+
+        console.log('Login successful:', response.data);
+
+        // Sử dụng AuthContext để lưu user data
+        const userData = {
+          memberId: response.data.memberId,
+          name: response.data.name,
+          email: response.data.email,
+          address: response.data.address,
+          phone: response.data.phone,
+          yearOfBirth: response.data.yearOfBirth,
+          sex: response.data.sex,
+          status: response.data.status
+        };
+
+        // Gọi hàm login từ AuthContext
+        login(userData, response.data.token);
+
+        // Thông báo thành công
+        console.log('User logged in successfully:', userData.name);
+
+        // Redirect về trang chủ
+        navigate('/', { replace: true });
+        
       } catch (error) {
+        console.error('Login error:', error);
         setErrors({
-          submit: 'Login failed. Please try again.'
+          submit: error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.'
         });
       } finally {
         setIsSubmitting(false);

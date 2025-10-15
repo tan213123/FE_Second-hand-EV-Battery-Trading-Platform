@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaved } from '../../contexts/AppContext'
 import './index.scss'
-import api from '../../config/api'
+// import api from '../../config/api' // Tạm comment để tránh unused warning
 
 // Icon SVG components
 const SearchIcon = () => (
@@ -68,25 +68,13 @@ function HomePage() {
   else if (page === 'battery') navigate('/battery');
 };
 
-// Fetch users from API
+// Tạm thời disable API calls để tránh lỗi
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        // Sửa endpoint - bỏ 'api/' ở đầu vì baseURL đã có
-        const response = await api.get('/members')
-        setUsers(response.data)
-        console.log('Users data:', response.data)
-      } catch (err) {
-        setError(err.response?.data?.message || err.message)
-        console.error('Error fetching users:', err.response || err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUsers()
+    // Không gọi API để tránh lỗi 401/500
+    setUsers([])
+    setLoading(false)
+    setError(null)
+    console.log('HomePage loaded - API calls disabled')
   }, [])
 
   const getCategoryIcon = (type) => {
@@ -112,7 +100,8 @@ function HomePage() {
       timePosted: '1 phút trước',
       badge: 'Mới đăng',
       category: 'Ô tô điện',
-      image: '/api/placeholder/300/200'
+      //image: 'https://via.placeholder.com/300x200/4ECDC4/FFFFFF?text=VinFast+VF8'
+      // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     },
     {
       id: 'home-2',
@@ -128,7 +117,8 @@ function HomePage() {
       timePosted: 'Tin tiêu biểu',
       badge: 'Tin tiêu biểu',
       category: 'Pin xe điện',
-      image: '/api/placeholder/300/200'
+      //image: 'https://via.placeholder.com/300x200/FFD93D/000000?text=Pin+Lithium'
+      // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     },
     {
       id: 'home-3',
@@ -143,7 +133,8 @@ function HomePage() {
       timePosted: '15 phút trước',
       badge: null,
       category: 'Xe máy điện',
-      image: '/api/placeholder/300/200'
+      //image: 'https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=Yadea+S3'
+      // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     },
     {
       id: 'home-4',
@@ -158,7 +149,8 @@ function HomePage() {
       timePosted: '30 phút trước',
       badge: null,
       category: 'Ô tô điện',
-      image: '/api/placeholder/300/200'
+      //image: 'https://via.placeholder.com/300x200/4ECDC4/FFFFFF?text=VF+e34'
+      // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     },
     {
       id: 'home-5',
@@ -173,7 +165,8 @@ function HomePage() {
       timePosted: '45 phút trước',
       badge: null,
       category: 'Pin xe điện',
-      image: '/api/placeholder/300/200'
+      //image: 'https://via.placeholder.com/300x200/FFD93D/000000?text=Pin+Tesla'
+      // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     },
     {
       id: 'home-6',
@@ -188,7 +181,8 @@ function HomePage() {
       timePosted: '1 giờ trước',
       badge: null,
       category: 'Xe máy điện',
-      image: '/api/placeholder/300/200'
+     // image: 'https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=Pega'
+      // image: '/api/placeholder/300/200' // COMMENTED to avoid API calls
     }
   ]
 
@@ -220,7 +214,7 @@ function HomePage() {
       rating: 5,
       product: 'VinFast VF 8 Plus 2023',
       content: 'Mình vừa mua chiếc VF 8 từ người bán trên sàn. Xe còn rất mới, pin hoạt động tốt. Người bán tư vấn nhiệt tình, giao xe đúng hẹn. Rất hài lòng với giao dịch này!',
-      images: ['/placeholder1.jpg', '/placeholder2.jpg'],
+      //images: ['/placeholder1.jpg', '/placeholder2.jpg'],
       likes: 24,
       comments: 5
     },
@@ -233,7 +227,7 @@ function HomePage() {
       rating: 5,
       product: 'Pin Lithium 48V 20Ah',
       content: 'Cảm ơn nền tảng đã giúp mình bán được pin xe điện nhanh chóng. Quy trình đăng tin đơn giản, nhiều người quan tâm. Đã giao dịch thành công!',
-      images: ['/placeholder3.jpg'],
+     // images: ['/placeholder3.jpg'],
       likes: 18,
       comments: 3
     },
@@ -246,7 +240,7 @@ function HomePage() {
       rating: 5,
       product: 'Yadea S3 Pro 2023',
       content: 'Xe máy điện chất lượng, giá cả hợp lý. Người bán rất uy tín, cho xem xe kỹ trước khi mua. Pin còn mới 95%, chạy êm. Recommend cho mọi người!',
-      images: ['/placeholder4.jpg', '/placeholder5.jpg', '/placeholder6.jpg'],
+      //images: ['/placeholder4.jpg', '/placeholder5.jpg', '/placeholder6.jpg'],
       likes: 31,
       comments: 8
     },
@@ -259,7 +253,7 @@ function HomePage() {
       rating: 4,
       product: 'VinFast VF e34 2022',
       content: 'Nền tảng dễ sử dụng, hỗ trợ đăng tin miễn phí. Đã có nhiều người liên hệ hỏi về xe. Hy vọng sớm bán được xe điện của mình.',
-      images: [],
+      //images: [],
       likes: 12,
       comments: 2
     }
@@ -350,7 +344,9 @@ function HomePage() {
               <div key={listing.id} className="listing-card">
                 <div className="listing-image">
                   <div className="image-placeholder">
-                    <img src="/api/placeholder/300/200" alt={listing.title} />
+                    <img src={listing.image} alt={listing.title} />
+                    {/* <img src="/api/placeholder/300/200" alt={listing.title} /> */}
+                    {/* COMMENTED: Changed to use listing.image to avoid API calls */}
                   </div>
                   <button 
                     className={`favorite-btn ${isSaved(listing.id) ? 'saved' : ''}`}

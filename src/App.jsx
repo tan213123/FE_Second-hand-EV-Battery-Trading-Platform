@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppProvider } from './contexts/AppContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import HomePage from './pages/homePage';
 import SellOtoPage from './pages/sellPage/sellOToPage';
@@ -43,9 +44,11 @@ function App() {
   ]);
   
   return (
-    <AppProvider>
-      <RouterProvider router={router} />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <RouterProvider router={router} />
+      </AppProvider>
+    </AuthProvider>
   );
 }
 
