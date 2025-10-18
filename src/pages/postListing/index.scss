@@ -3,6 +3,27 @@
   background: #f5f5f5;
   padding-bottom: 4rem;
 
+  .loading-auth {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 12px;
+    margin: 2rem auto;
+    max-width: 500px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+
+    h2 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    p {
+      color: #666;
+      font-size: 1rem;
+    }
+  }
+
   .progress-bar {
     background: white;
     border-bottom: 1px solid #e0e0e0;
@@ -310,9 +331,15 @@
           transition: all 0.3s;
           background: #fafafa;
 
-          &:hover {
+          &:hover:not(.uploading) {
             border-color: #4CAF50;
             background: #f1f8f4;
+          }
+
+          &.uploading {
+            border-color: #FF6B00;
+            background: #fff7f0;
+            cursor: not-allowed;
           }
 
           .upload-icon {
@@ -325,6 +352,21 @@
             color: #666;
             font-size: 0.875rem;
           }
+
+          .upload-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #FF6B00;
+            border-radius: 50%;
+            animation: uploadSpin 1s linear infinite;
+            margin-bottom: 0.5rem;
+          }
+        }
+
+        @keyframes uploadSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       }
     }

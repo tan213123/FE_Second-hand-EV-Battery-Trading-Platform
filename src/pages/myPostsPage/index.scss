@@ -48,6 +48,19 @@
       }
     }
 
+    &.btn-danger {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
+
+      &:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+      }
+    }
+
     &.btn-sm {
       padding: 8px 12px;
       font-size: 13px;

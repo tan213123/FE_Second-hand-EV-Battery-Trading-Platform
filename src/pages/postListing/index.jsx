@@ -1,10 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { uploadMultipleImages, deleteImage, testSupabaseConnection } from '../../config/supabase'
 import './index.scss'
 
 const PostListing = () => {
   const navigate = useNavigate()
+  const { token, user, isAuthenticated } = useAuth()
   const [step, setStep] = useState(1)
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [uploadedImageUrls, setUploadedImageUrls] = useState([])
   const [formData, setFormData] = useState({
     category: '',
     title: '',
@@ -31,6 +36,7 @@ const PostListing = () => {
     },
     contactName: '',
     contactPhone: '',
+    memberId: '', // Thêm memberId để biết ai đăng tin
     images: []
   })
 
@@ -51,6 +57,38 @@ const PostListing = () => {
   const regions = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
   const colors = ['Trắng', 'Đen', 'Xám', 'Bạc', 'Đỏ', 'Xanh dương', 'Xanh lá', 'Vàng', 'Nâu', 'Khác']
 
+  // Kiểm tra authentication khi component mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      alert('Vui lòng đăng nhập để đăng tin!')
+      navigate('/login')
+      return
+    }
+  }, [isAuthenticated, navigate])
+
+  // Auto-fill thông tin user khi có user data
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        contactName: user.name || user.fullName || '',
+        contactPhone: user.phone || user.phoneNumber || '',
+        memberId: user.id || user.memberId || user.userId || '' // Lưu memberId
+      }))
+    }
+  }, [user])
+
+  // Test Supabase connection on component mount
+  useEffect(() => {
+    const testConnection = async () => {
+      const result = await testSupabaseConnection()
+      if (!result.success) {
+        console.error('⚠️ Supabase connection issue:', result.error)
+      }
+    }
+    testConnection()
+  }, [])
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ 
       ...prev,
@@ -68,24 +106,96 @@ const PostListing = () => {
     }))
   }
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files)
+    
     if (formData.images.length + files.length > 12) {
       alert('Tối đa 12 ảnh!')
       return
     }
-    const newImages = files.map(file => URL.createObjectURL(file))
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...newImages]
-    }))
+
+    console.log('🔵 Starting upload process...', files.length, 'files')
+    setUploadingImages(true)
+
+    try {
+      // Test connection trước
+      const connectionTest = await testSupabaseConnection()
+      console.log('🔗 Connection test:', connectionTest)
+      
+      if (!connectionTest.success) {
+        alert(`Lỗi kết nối Supabase: ${connectionTest.error}`)
+        return
+      }
+
+      // Upload từng file một để dễ debug
+      const uploadedImages = []
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        console.log(`📤 Uploading file ${i + 1}/${files.length}:`, file.name)
+        
+        try {
+          const uploadResult = await uploadMultipleImages([file], 'product-listings')
+          console.log(`✅ Upload result for ${file.name}:`, uploadResult)
+          
+          if (uploadResult.success && uploadResult.successfulUploads.length > 0) {
+            const imageData = {
+              url: uploadResult.successfulUploads[0].publicUrl,
+              path: uploadResult.successfulUploads[0].path,
+              fileName: uploadResult.successfulUploads[0].fileName
+            }
+            uploadedImages.push(imageData)
+            console.log(`✅ Added image:`, imageData.url)
+          } else {
+            console.error(`❌ Failed to upload ${file.name}:`, uploadResult.error)
+            alert(`Lỗi upload ${file.name}: ${uploadResult.error}`)
+          }
+        } catch (fileError) {
+          console.error(`❌ Exception uploading ${file.name}:`, fileError)
+          alert(`Lỗi upload ${file.name}: ${fileError.message}`)
+        }
+      }
+
+      if (uploadedImages.length > 0) {
+        // Cập nhật state với ảnh đã upload thành công
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedImages]
+        }))
+
+        setUploadedImageUrls(prev => [...prev, ...uploadedImages])
+        alert(`Đã upload thành công ${uploadedImages.length}/${files.length} ảnh!`)
+      } else {
+        alert('Không có ảnh nào được upload thành công!')
+      }
+
+    } catch (error) {
+      console.error('❌ Upload exception:', error)
+      alert(`Lỗi upload: ${error.message || 'Có lỗi xảy ra khi upload ảnh'}`)
+    } finally {
+      setUploadingImages(false)
+    }
   }
 
-  const removeImage = (index) => {
+  const removeImage = async (index) => {
+    const imageToRemove = formData.images[index]
+    
+    // Nếu ảnh đã được upload lên Supabase, xóa nó
+    if (imageToRemove.path) {
+      try {
+        await deleteImage(imageToRemove.path)
+      } catch (error) {
+        console.error('Error deleting image from Supabase:', error)
+      }
+    }
+
+    // Xóa ảnh khỏi state
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }))
+
+    setUploadedImageUrls(prev => prev.filter((_, i) => i !== index))
   }
 
   const validateStep2 = () => {
@@ -192,10 +302,75 @@ const PostListing = () => {
   const handleSubmit = async () => {
     if (!validateStep4()) return
     
-    // Call API to submit listing
-    console.log('Submitting:', formData)
-    alert('Đăng tin thành công!')
-    navigate('/my-listings')
+    try {
+      // Tạo payload với memberId và thông tin người đăng
+      const listingData = {
+        ...formData,
+        id: Date.now(), // Tạo ID tạm thời
+        memberId: user?.id || user?.memberId || formData.memberId,
+        postedBy: {
+          id: user?.id,
+          name: user?.name || user?.fullName,
+          phone: user?.phone || user?.phoneNumber,
+          email: user?.email
+        },
+        postedAt: new Date().toISOString(),
+        status: 'active'
+      }
+
+      console.log('Submitting listing with memberId:', listingData.memberId)
+      console.log('Full payload:', listingData)
+
+      // Lưu vào localStorage thay vì gọi API (vì chưa có backend)
+      const existingListings = JSON.parse(localStorage.getItem('userListings') || '[]')
+      existingListings.push(listingData)
+      localStorage.setItem('userListings', JSON.stringify(existingListings))
+
+      // Lưu vào localStorage với key theo memberId để dễ quản lý
+      const userKey = `listings_${listingData.memberId}`
+      const userListings = JSON.parse(localStorage.getItem(userKey) || '[]')
+      userListings.push(listingData)
+      localStorage.setItem(userKey, JSON.stringify(userListings))
+
+      console.log('Listing saved successfully to localStorage')
+      alert('Đăng tin thành công!')
+      
+      // Reset form
+      setFormData({
+        category: '',
+        title: '',
+        description: '',
+        price: '',
+        negotiable: false,
+        condition: '',
+        brand: '',
+        year: '',
+        color: '',
+        origin: '',
+        region: '',
+        bodyType: '',
+        seats: '',
+        batteryType: '',
+        capacity: '',
+        location: {
+          city: '',
+          district: '',
+          ward: '',
+          address: ''
+        },
+        contactName: user?.name || user?.fullName || '',
+        contactPhone: user?.phone || user?.phoneNumber || '',
+        memberId: user?.id || user?.memberId || '',
+        images: []
+      })
+      
+      setStep(1) // Reset về step 1
+      navigate('/my-posts') // Quay về trang tin đăng của tôi
+
+    } catch (error) {
+      console.error('Error saving listing:', error)
+      alert('Có lỗi xảy ra. Vui lòng thử lại!')
+    }
   }
 
   const getBrandOptions = () => {
@@ -205,6 +380,20 @@ const PostListing = () => {
       case 'battery': return batteryBrands
       default: return []
     }
+  }
+
+  // Loading state nếu chưa có authentication
+  if (!isAuthenticated) {
+    return (
+      <div className="post-listing-page">
+        <div className="container">
+          <div className="loading-auth">
+            <h2>Đang kiểm tra đăng nhập...</h2>
+            <p>Vui lòng đợi trong giây lát.</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -483,10 +672,14 @@ const PostListing = () => {
                 <div className="image-upload-grid">
                   {formData.images.map((img, index) => (
                     <div key={index} className="image-preview">
-                      <img src={img} alt={`Preview ${index + 1}`} />
+                      <img 
+                        src={typeof img === 'string' ? img : img.url} 
+                        alt={`Preview ${index + 1}`} 
+                      />
                       <button
                         className="remove-btn"
                         onClick={() => removeImage(index)}
+                        disabled={uploadingImages}
                       >
                         ×
                       </button>
@@ -494,17 +687,27 @@ const PostListing = () => {
                     </div>
                   ))}
                   {formData.images.length < 12 && (
-                    <label className="upload-box">
+                    <label className={`upload-box ${uploadingImages ? 'uploading' : ''}`}>
                       <input
                         type="file"
                         multiple
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/gif"
                         onChange={handleImageUpload}
+                        disabled={uploadingImages}
                         style={{ display: 'none' }}
                       />
-                      <div className="upload-icon">+</div>
-                      <div className="upload-text">Thêm ảnh</div>
-                      <small>{formData.images.length}/12</small>
+                      {uploadingImages ? (
+                        <>
+                          <div className="upload-spinner"></div>
+                          <div className="upload-text">Đang upload...</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="upload-icon">+</div>
+                          <div className="upload-text">Thêm ảnh</div>
+                          <small>{formData.images.length}/12</small>
+                        </>
+                      )}
                     </label>
                   )}
                 </div>

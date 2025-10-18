@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import './index.scss'
 
 // Icons
@@ -39,83 +40,80 @@ const MoreIcon = () => (
 )
 
 function MyPostsPage({ onNavigate }) {
+  const { user, isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
+  const [userPosts, setUserPosts] = useState([])
 
-  const mockPosts = [
-    {
-      id: 1,
-      title: 'VinFast VF 8 Plus 2023 - Pin thuê bao',
-      price: '250,000,000 đ',
-      location: 'Quận Cầu Giấy, Hà Nội',
-      status: 'active',
-      views: 124,
-      likes: 8,
-      postedDate: '2024-01-15',
-      images: 12,
-      category: 'Ô tô điện'
-    },
-    {
-      id: 2,
-      title: 'Pin Lithium 48V 20Ah cho xe máy điện',
-      price: '12,500,000 đ',
-      location: 'Quận 7, TP.HCM',
-      status: 'sold',
-      views: 89,
-      likes: 5,
-      postedDate: '2024-01-10',
-      images: 6,
-      category: 'Pin xe điện'
-    },
-    {
-      id: 3,
-      title: 'Yadea S3 Pro 2023 - Xe máy điện',
-      price: '18,900,000 đ',
-      location: 'Quận Tân Bình, TP.HCM',
-      status: 'pending',
-      views: 67,
-      likes: 3,
-      postedDate: '2024-01-08',
-      images: 10,
-      category: 'Xe máy điện'
-    },
-    {
-      id: 4,
-      title: 'VinFast VF e34 2022 - Đã qua sử dụng',
-      price: '520,000,000 đ',
-      location: 'Quận Đống Đa, Hà Nội',
-      status: 'active',
-      views: 203,
-      likes: 12,
-      postedDate: '2024-01-05',
-      images: 15,
-      category: 'Ô tô điện'
-    },
-    {
-      id: 5,
-      title: 'Pin Ắc quy Lithium Tesla 72V 32Ah',
-      price: '28,000,000 đ',
-      location: 'Quận Hoàng Mai, Hà Nội',
-      status: 'expired',
-      views: 45,
-      likes: 2,
-      postedDate: '2023-12-28',
-      images: 8,
-      category: 'Pin xe điện'
+  // Lấy tin đăng của user từ localStorage
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userKey = `listings_${user.id || user.memberId}`
+      const listings = JSON.parse(localStorage.getItem(userKey) || '[]')
+      
+      // Chuyển đổi format để phù hợp với UI hiện tại
+      const formattedListings = listings.map(listing => ({
+        id: listing.id,
+        title: listing.title,
+        price: new Intl.NumberFormat('vi-VN').format(listing.price) + ' đ',
+        location: `${listing.location?.city || 'Không xác định'}`,
+        status: listing.status || 'active',
+        views: Math.floor(Math.random() * 200) + 50, // Random views
+        likes: Math.floor(Math.random() * 20) + 1, // Random likes
+        postedDate: listing.postedAt ? listing.postedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        images: listing.images?.length || 0,
+        category: getCategoryName(listing.category),
+        description: listing.description,
+        brand: listing.brand,
+        condition: listing.condition,
+        contactPhone: listing.contactPhone,
+        memberId: listing.memberId
+      }))
+      
+      setUserPosts(formattedListings)
+    } else {
+      setUserPosts([])
     }
-  ]
+  }, [user, isAuthenticated])
+
+  const getCategoryName = (category) => {
+    const categoryMap = {
+      'car': 'Ô tô điện',
+      'electric': 'Xe máy điện', 
+      'battery': 'Pin xe điện'
+    }
+    return categoryMap[category] || category
+  }
+
+  const handleDeletePost = (postId) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa tin đăng này?')) {
+      const userKey = `listings_${user.id || user.memberId}`
+      const updatedListings = userPosts.filter(post => post.id !== postId)
+      
+      // Cập nhật localStorage
+      const originalListings = JSON.parse(localStorage.getItem(userKey) || '[]')
+      const updatedOriginalListings = originalListings.filter(listing => listing.id !== postId)
+      localStorage.setItem(userKey, JSON.stringify(updatedOriginalListings))
+      
+      // Cập nhật state
+      setUserPosts(updatedListings)
+      
+      alert('Đã xóa tin đăng thành công!')
+    }
+  }
 
   const getStatusBadge = (status) => {
     const badges = {
       active: { text: 'Đang bán', class: 'status-active' },
       sold: { text: 'Đã bán', class: 'status-sold' },
+      pending: { text: 'Chờ duyệt', class: 'status-pending' },
       expired: { text: 'Hết hạn', class: 'status-expired' }
     }
     return badges[status] || badges.active
   }
 
-  const filteredPosts = mockPosts.filter(post => {
+  const filteredPosts = userPosts.filter(post => {
     if (activeTab === 'all') return true
     return post.status === activeTab
   })
@@ -168,31 +166,31 @@ function MyPostsPage({ onNavigate }) {
             className={`tab ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            Tất cả ({mockPosts.length})
+            Tất cả ({userPosts.length})
           </button>
           <button 
             className={`tab ${activeTab === 'active' ? 'active' : ''}`}
             onClick={() => setActiveTab('active')}
           >
-            Đang bán ({mockPosts.filter(p => p.status === 'active').length})
+            Đang bán ({userPosts.filter(p => p.status === 'active').length})
           </button>
           <button 
             className={`tab ${activeTab === 'sold' ? 'active' : ''}`}
             onClick={() => setActiveTab('sold')}
           >
-            Đã bán ({mockPosts.filter(p => p.status === 'sold').length})
+            Đã bán ({userPosts.filter(p => p.status === 'sold').length})
           </button>
           <button 
             className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
             onClick={() => setActiveTab('pending')}
           >
-            Chờ duyệt ({mockPosts.filter(p => p.status === 'pending').length})
+            Chờ duyệt ({userPosts.filter(p => p.status === 'pending').length})
           </button>
           <button 
             className={`tab ${activeTab === 'expired' ? 'active' : ''}`}
             onClick={() => setActiveTab('expired')}
           >
-            Hết hạn ({mockPosts.filter(p => p.status === 'expired').length})
+            Hết hạn ({userPosts.filter(p => p.status === 'expired').length})
           </button>
         </div>
 
@@ -241,6 +239,12 @@ function MyPostsPage({ onNavigate }) {
                       <EditIcon />
                       Sửa
                     </button>
+                    <button 
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeletePost(post.id)}
+                    >
+                      Xóa
+                    </button>
                     <button className="btn btn-sm btn-primary">
                       Xem chi tiết
                     </button>
@@ -251,7 +255,7 @@ function MyPostsPage({ onNavigate }) {
           ))}
         </div>
 
-        {filteredPosts.length === 0 && (
+        {filteredPosts.length === 0 && isAuthenticated && (
           <div className="empty-state">
             <div className="empty-icon">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -264,9 +268,20 @@ function MyPostsPage({ onNavigate }) {
             </div>
             <h3>Chưa có tin đăng nào</h3>
             <p>Bắt đầu đăng tin đầu tiên của bạn để bán sản phẩm</p>
-            <button className="btn btn-primary" onClick={() => onNavigate && onNavigate('oto')}>
+            <a href="/post" className="btn btn-primary">
               Đăng tin ngay
-            </button>
+            </a>
+          </div>
+        )}
+
+        {!isAuthenticated && (
+          <div className="empty-state">
+            <div className="empty-icon">🔐</div>
+            <h3>Vui lòng đăng nhập</h3>
+            <p>Bạn cần đăng nhập để xem và quản lý tin đăng của mình</p>
+            <a href="/login" className="btn btn-primary">
+              Đăng nhập ngay
+            </a>
           </div>
         )}
       </div>
