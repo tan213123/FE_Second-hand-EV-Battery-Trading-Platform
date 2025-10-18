@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaved } from '../../contexts/AppContext'
+import { useAuth } from '../../contexts/AuthContext'
 import './index.scss'
 // import api from '../../config/api' // Tạm comment để tránh unused warning
 
@@ -50,10 +51,8 @@ const VerifiedIcon = () => (
 function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLocation] = useState('Chọn khu vực')
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
   const { toggleSaved, isSaved } = useSaved()
+  const { user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   const categories = [
@@ -63,19 +62,37 @@ function HomePage() {
   ]
 
   const handleCategoryClick = (page) => {
-  if (page === 'oto') navigate('/oto');
-  else if (page === 'bike') navigate('/bike');
-  else if (page === 'battery') navigate('/battery');
-};
+    if (!isAuthenticated) {
+      // Nếu chưa đăng nhập, chuyển đến trang login
+      navigate('/login')
+      return
+    }
+    
+    if (page === 'oto') navigate('/oto');
+    else if (page === 'bike') navigate('/bike');
+    else if (page === 'battery') navigate('/battery');
+  };
 
-// Tạm thời disable API calls để tránh lỗi
+  const handleProductClick = (listing) => {
+    if (!isAuthenticated) {
+      // Nếu chưa đăng nhập, chuyển đến trang login
+      navigate('/login')
+      return
+    }
+    // Logic xem chi tiết sản phẩm sẽ thêm sau
+    console.log('Xem chi tiết:', listing.title)
+    // TODO: Navigate to product detail page
+    // navigate(`/product/${listing.id}`)
+  }
+
+  // Tạm thời disable API calls để tránh lỗi
   useEffect(() => {
-    // Không gọi API để tránh lỗi 401/500
-    setUsers([])
-    setLoading(false)
-    setError(null)
     console.log('HomePage loaded - API calls disabled')
-  }, [])
+    console.log('User authenticated:', isAuthenticated)
+    if (user) {
+      console.log('User info:', user.name)
+    }
+  }, [isAuthenticated, user])
 
   const getCategoryIcon = (type) => {
     const icons = {
@@ -189,6 +206,13 @@ function HomePage() {
   const handleToggleSaved = (e, listing) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    if (!isAuthenticated) {
+      // Nếu chưa đăng nhập, chuyển đến trang login
+      navigate('/login')
+      return
+    }
+    
     console.log('=== FAVORITE CLICKED ===')
     console.log('Listing:', listing)
     console.log('isSaved before:', isSaved(listing.id))
@@ -283,29 +307,44 @@ function HomePage() {
           <h1 className="hero-title">EcoXe - Mua bán xe cũ uy tín</h1>
           <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
 
-          <div className="search-box">
+          <div className={`search-box ${!isAuthenticated ? 'disabled' : ''}`}>
             <div className="search-input-wrapper">
               <SearchIcon />
               <input 
                 type="text" 
-                placeholder="Tìm xe cũ theo mẫu xe, hãng xe..."
+                placeholder={isAuthenticated ? "Tìm xe cũ theo mẫu xe, hãng xe..." : "Vui lòng đăng nhập để tìm kiếm"}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => isAuthenticated && setSearchQuery(e.target.value)}
                 className="search-input"
+                disabled={!isAuthenticated}
               />
             </div>
-            <button className="location-btn">
+            <button 
+              className="location-btn" 
+              disabled={!isAuthenticated}
+              onClick={() => !isAuthenticated && navigate('/login')}
+            >
               <LocationIcon />
               <span>{selectedLocation}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M7 10l5 5 5-5z"/>
               </svg>
             </button>
-            <button className="filter-btn">
+            <button 
+              className="filter-btn" 
+              disabled={!isAuthenticated}
+              onClick={() => !isAuthenticated && navigate('/login')}
+            >
               <CarIcon />
               <span>Tất cả Xe cũ</span>
             </button>
-            <button className="search-btn">Tìm xe</button>
+            <button 
+              className="search-btn"
+              disabled={!isAuthenticated}
+              onClick={() => !isAuthenticated && navigate('/login')}
+            >
+              {isAuthenticated ? 'Tìm xe' : '🔒 Đăng nhập để tìm kiếm'}
+            </button>
           </div>
         </div>
       </div>
@@ -314,18 +353,30 @@ function HomePage() {
       <div className="categories-section">
         <div className="container">
           <h2 className="section-title">Danh mục phổ biến</h2>
+          {!isAuthenticated && (
+            <div className="auth-notice">
+              <p>🔒 Vui lòng <span onClick={() => navigate('/login')} style={{color: '#007bff', cursor: 'pointer', textDecoration: 'underline'}}>đăng nhập</span> để sử dụng các chức năng</p>
+            </div>
+          )}
+          {isAuthenticated && user && (
+            <div className="user-welcome">
+              <p>👋 Chào mừng <strong>{user.name}</strong>! Khám phá các danh mục dưới đây:</p>
+            </div>
+          )}
           <div className="categories-grid">
             {categories.map((category, index) => (
               <div 
                 key={index} 
-                className="category-item"
+                className={`category-item ${!isAuthenticated ? 'disabled' : ''}`}
                 style={{'--category-color': category.color}}
                 onClick={() => handleCategoryClick(category.page)}
+                title={!isAuthenticated ? 'Vui lòng đăng nhập để sử dụng' : ''}
               >
                 <div className="category-icon">
                   <span className="icon-emoji">{getCategoryIcon(category.icon)}</span>
                 </div>
                 <div className="category-label">{category.label}</div>
+                {!isAuthenticated && <div className="lock-overlay">🔒</div>}
               </div>
             ))}
           </div>
@@ -341,7 +392,12 @@ function HomePage() {
           </div>
           <div className="listings-grid">
             {latestListings.map((listing) => (
-              <div key={listing.id} className="listing-card">
+              <div 
+                key={listing.id} 
+                className={`listing-card ${!isAuthenticated ? 'disabled' : ''}`}
+                onClick={() => handleProductClick(listing)}
+                style={{cursor: isAuthenticated ? 'pointer' : 'default'}}
+              >
                 <div className="listing-image">
                   <div className="image-placeholder">
                     <img src={listing.image} alt={listing.title} />
@@ -349,13 +405,15 @@ function HomePage() {
                     {/* COMMENTED: Changed to use listing.image to avoid API calls */}
                   </div>
                   <button 
-                    className={`favorite-btn ${isSaved(listing.id) ? 'saved' : ''}`}
+                    className={`favorite-btn ${isSaved(listing.id) ? 'saved' : ''} ${!isAuthenticated ? 'disabled' : ''}`}
                     onClick={(e) => handleToggleSaved(e, listing)}
-                    title={isSaved(listing.id) ? 'Bỏ lưu' : 'Lưu tin'}
+                    title={!isAuthenticated ? 'Vui lòng đăng nhập để lưu tin' : (isSaved(listing.id) ? 'Bỏ lưu' : 'Lưu tin')}
                     type="button"
+                    disabled={!isAuthenticated}
                   >
                     <HeartIcon />
                   </button>
+                  {!isAuthenticated && <div className="lock-overlay-card">🔒</div>}
                   {listing.badge && (
                     <div className="badge">{listing.badge}</div>
                   )}

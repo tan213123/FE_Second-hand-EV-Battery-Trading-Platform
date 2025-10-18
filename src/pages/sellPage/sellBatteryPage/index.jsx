@@ -7,16 +7,39 @@ function SellBatteryPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedBrands, setSelectedBrands] = useState([]);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
+  const [selectedBatteryTypes, setSelectedBatteryTypes] = useState([]);
+  const [selectedCapacities, setSelectedCapacities] = useState([]);
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedCities, setSelectedCities] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState([]);
   const [showAllPrices, setShowAllPrices] = useState(false);
   const [showAllBatteryTypes, setShowAllBatteryTypes] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
+  const [showAllCapacities, setShowAllCapacities] = useState(false);
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
   const [showCapacityDropdown, setShowCapacityDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showBatteryTypeDropdown, setShowBatteryTypeDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
-  const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
+  const [selectedBatteryHealth, setSelectedBatteryHealth] = useState([]);
+  const [selectedCycleCount, setSelectedCycleCount] = useState([]);
+  const [selectedWarranty, setSelectedWarranty] = useState([]);
+  const [selectedVoltage, setSelectedVoltage] = useState([]);
+  const [selectedPower, setSelectedPower] = useState([]);
+  const [selectedOrigins, setSelectedOrigins] = useState([]);
+  const [showHealthDropdown, setShowHealthDropdown] = useState(false);
+  const [showCycleDropdown, setShowCycleDropdown] = useState(false);
+  const [showWarrantyDropdown, setShowWarrantyDropdown] = useState(false);
+  const [showVoltageDropdown, setShowVoltageDropdown] = useState(false);
+  const [showPowerDropdown, setShowPowerDropdown] = useState(false);
+  const [showOriginDropdown, setShowOriginDropdown] = useState(false);
+  const [revealedPhones, setRevealedPhones] = useState(new Set());
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductDetail, setShowProductDetail] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [comparedItems, setComparedItems] = useState(new Set());
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
 
@@ -51,7 +74,61 @@ function SellBatteryPage() {
       }
     };
     addToCompare(compareBattery);
-    // Không tự động chuyển trang, để người dùng quyết định
+    
+    // Add visual feedback animation
+    setComparedItems(prev => new Set(prev).add(battery.id));
+    
+    // Remove the animation class after a short delay
+    setTimeout(() => {
+      setComparedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(battery.id);
+        return newSet;
+      });
+    }, 2000);
+  };
+
+  const handleRevealPhone = (e, batteryId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRevealedPhones(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(batteryId)) {
+        newSet.delete(batteryId);
+      } else {
+        newSet.add(batteryId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleProductClick = (battery) => {
+    setSelectedProduct(battery);
+    setCurrentImageIndex(0);
+    setShowProductDetail(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleCloseProductDetail = () => {
+    setShowProductDetail(false);
+    setSelectedProduct(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  const handlePrevImage = () => {
+    if (selectedProduct && selectedProduct.images > 1) {
+      setCurrentImageIndex(prev => 
+        prev === 0 ? selectedProduct.images - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleNextImage = () => {
+    if (selectedProduct && selectedProduct.images > 1) {
+      setCurrentImageIndex(prev => 
+        prev === selectedProduct.images - 1 ? 0 : prev + 1
+      );
+    }
   };
 
   // Icon Components
@@ -163,6 +240,46 @@ function SellBatteryPage() {
     </svg>
   );
 
+  const CloseIcon = () => (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+
+  const ChevronLeftIcon = () => (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+
+  const ChevronRightIcon = () => (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+
   const brands = [
     { name: "VinFast", logo: "🔋", count: 8950 },
     { name: "BYD", logo: "🔋", count: 4320 },
@@ -176,11 +293,227 @@ function SellBatteryPage() {
   const locations = [
     "Tp Hồ Chí Minh",
     "Hà Nội",
-    "Đà Nẵng",
-    "Cần Thơ",
-    "Bình Dương",
+    "Đà Nẵng", 
+    "Huế",
     "Gần tôi",
   ];
+
+  // Filter data
+  const priceRanges = [
+    "Giá dưới 50 triệu",
+    "Giá 50 triệu - 100 triệu",
+    "Giá 100 triệu - 200 triệu",
+    "Giá 200 triệu - 300 triệu",
+    "Trên 300 triệu",
+  ];
+
+  const batteryTypes = [
+    "Lithium-ion",
+    "LiFePO4",
+    "Lead-acid",
+    "NiMH",
+  ];
+
+  const capacities = [
+    "Dưới 20 kWh",
+    "20-40 kWh",
+    "40-60 kWh",
+    "60-80 kWh",
+    "Trên 80 kWh",
+  ];
+
+  const conditions = [
+    "Mới",
+    "Đã sử dụng",
+    "Cũ nhưng tốt",
+  ];
+
+  // Additional filter data for battery-specific features
+  const batteryHealthRanges = [
+    "90-100%",
+    "80-90%",
+    "70-80%",
+    "60-70%",
+    "Dưới 60%",
+  ];
+
+  const cycleCountRanges = [
+    "Dưới 500 chu kỳ",
+    "500-1000 chu kỳ", 
+    "1000-2000 chu kỳ",
+    "2000-5000 chu kỳ",
+    "Trên 5000 chu kỳ",
+  ];
+
+  const warrantyPeriods = [
+    "Còn bảo hành",
+    "1-2 năm",
+    "3-5 năm",
+    "Trên 5 năm",
+    "Hết bảo hành",
+  ];
+
+  const voltageRanges = [
+    "12V",
+    "24V", 
+    "48V",
+    "400V",
+    "800V",
+  ];
+
+  const powerRanges = [
+    "Dưới 50kW",
+    "50-100kW",
+    "100-200kW", 
+    "200-300kW",
+    "Trên 300kW",
+  ];
+
+  const origins = [
+    "Việt Nam",
+    "Trung Quốc", 
+    "Hàn Quốc",
+    "Nhật Bản",
+    "Đức",
+    "Mỹ",
+  ];
+
+  // Hàm lọc pin theo filter
+  const getFilteredBatteries = () => {
+    let filteredBatteries = [...batteryListings];
+
+    // Lọc theo brands
+    if (selectedBrands.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => {
+        const batteryBrand = battery.title.split(' ')[0].toLowerCase();
+        return selectedBrands.some(brand => 
+          brand.toLowerCase().includes(batteryBrand) || 
+          batteryBrand.includes(brand.toLowerCase()) ||
+          battery.title.toLowerCase().includes(brand.toLowerCase())
+        );
+      });
+    }
+
+    // Lọc theo price ranges
+    if (selectedPriceRanges.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => {
+        const priceValue = parseInt(battery.price.replace(/[^\d]/g, ''));
+        return selectedPriceRanges.some(range => {
+          if (range.includes('dưới 50')) return priceValue < 50000000;
+          if (range.includes('50 triệu - 100')) return priceValue >= 50000000 && priceValue <= 100000000;
+          if (range.includes('100 triệu - 200')) return priceValue >= 100000000 && priceValue <= 200000000;
+          if (range.includes('200 triệu - 300')) return priceValue >= 200000000 && priceValue <= 300000000;
+          if (range.includes('Trên 300')) return priceValue > 300000000;
+          return false;
+        });
+      });
+    }
+
+    // Lọc theo battery types
+    if (selectedBatteryTypes.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedBatteryTypes.includes(battery.type)
+      );
+    }
+
+    // Lọc theo capacities
+    if (selectedCapacities.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => {
+        const capacityValue = parseFloat(battery.capacity.replace(/[^\d.]/g, ''));
+        return selectedCapacities.some(cap => {
+          if (cap.includes('Dưới 20')) return capacityValue < 20;
+          if (cap.includes('20-40')) return capacityValue >= 20 && capacityValue <= 40;
+          if (cap.includes('40-60')) return capacityValue >= 40 && capacityValue <= 60;
+          if (cap.includes('60-80')) return capacityValue >= 60 && capacityValue <= 80;
+          if (cap.includes('Trên 80')) return capacityValue > 80;
+          return false;
+        });
+      });
+    }
+
+    // Lọc theo conditions
+    if (selectedConditions.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedConditions.includes(battery.condition)
+      );
+    }
+
+    // Lọc theo cities
+    if (selectedCities.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedCities.includes(battery.location)
+      );
+    }
+
+    // Lọc theo battery health
+    if (selectedBatteryHealth.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedBatteryHealth.some(health => 
+          battery.title.toLowerCase().includes(health.toLowerCase()) ||
+          (battery.health && battery.health.includes(health))
+        )
+      );
+    }
+
+    // Lọc theo cycle count
+    if (selectedCycleCount.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedCycleCount.some(cycle => 
+          battery.title.toLowerCase().includes(cycle.toLowerCase()) ||
+          (battery.cycleCount && battery.cycleCount.includes(cycle))
+        )
+      );
+    }
+
+    // Lọc theo warranty
+    if (selectedWarranty.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedWarranty.some(warranty => 
+          battery.title.toLowerCase().includes(warranty.toLowerCase()) ||
+          (battery.warranty && battery.warranty.includes(warranty))
+        )
+      );
+    }
+
+    // Lọc theo voltage
+    if (selectedVoltage.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedVoltage.some(voltage => 
+          battery.title.toLowerCase().includes(voltage.toLowerCase()) ||
+          (battery.voltage && battery.voltage.includes(voltage))
+        )
+      );
+    }
+
+    // Lọc theo power
+    if (selectedPower.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedPower.some(power => 
+          battery.title.toLowerCase().includes(power.toLowerCase()) ||
+          (battery.power && battery.power.includes(power))
+        )
+      );
+    }
+
+    // Lọc theo origins
+    if (selectedOrigins.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedOrigins.some(origin => 
+          battery.title.toLowerCase().includes(origin.toLowerCase()) ||
+          (battery.origin && battery.origin === origin)
+        )
+      );
+    }
+
+    // Lọc theo locations (khu vực)
+    if (selectedLocations.length > 0) {
+      filteredBatteries = filteredBatteries.filter(battery => 
+        selectedLocations.includes(battery.location)
+      );
+    }
+
+    return filteredBatteries;
+  };
 
   const batteryListings = [
     {
@@ -193,11 +526,27 @@ function SellBatteryPage() {
       price: "280,000,000 đ",
       location: "Tp Hồ Chí Minh",
       seller: "VinFast Official Store",
+      phone: "1900636648",
       verified: true,
       images: 8,
       featured: true,
       vip: true,
       discount: "Trả góp 0%",
+      voltage: "400V",
+      cycleLife: "3000+ chu kỳ",
+      warranty: "8 năm",
+      description: "Pin VinFast VF8 chính hãng với công nghệ Lithium-ion tiên tiến. Dung lượng lớn 87.7 kWh đảm bảo quãng đường di chuyển xa. Bảo hành chính hãng 8 năm hoặc 160,000km. Hỗ trợ sạc nhanh DC.",
+      specs: {
+        "Dung lượng": "87.7 kWh",
+        "Loại pin": "Lithium-ion NCM",
+        "Điện áp": "400V",
+        "Chu kỳ sống": "3000+ chu kỳ",
+        "Sức khỏe pin": "100%",
+        "Thời gian bảo hành": "8 năm hoặc 160,000km",
+        "Tốc độ sạc": "DC Fast Charging 150kW",
+        "Khối lượng": "~500kg",
+        "Chứng nhận": "UN38.3, IEC62133"
+      }
     },
     {
       id: 2,
@@ -209,6 +558,7 @@ function SellBatteryPage() {
       price: "195,000,000 đ",
       location: "Hà Nội",
       seller: "Tesla Battery Center",
+      phone: "0971111111",
       verified: true,
       images: 10,
       featured: true,
@@ -224,6 +574,7 @@ function SellBatteryPage() {
       price: "165,000,000 đ",
       location: "Đà Nẵng",
       seller: "BYD Authorized Dealer",
+      phone: "0972222222",
       verified: true,
       images: 6,
       featured: false,
@@ -239,6 +590,7 @@ function SellBatteryPage() {
       price: "85,000,000 đ",
       location: "Hà Nội",
       seller: "Nguyễn Minh Tuấn",
+      phone: "0973333333",
       verified: true,
       images: 7,
       rating: 4.8,
@@ -256,6 +608,7 @@ function SellBatteryPage() {
       price: "12,500,000 đ",
       location: "Bình Dương",
       seller: "Pin Xe Điện Chính Hãng",
+      phone: "0974444444",
       verified: true,
       images: 5,
       featured: true,
@@ -272,6 +625,7 @@ function SellBatteryPage() {
       price: "220,000,000 đ",
       location: "Tp Hồ Chí Minh",
       seller: "CATL Battery Vietnam",
+      phone: "0975555555",
       verified: true,
       images: 12,
       rating: 4.9,
@@ -279,27 +633,6 @@ function SellBatteryPage() {
       vip: true,
       discount: "Bảo hành 10 năm",
     },
-  ];
-
-  const priceRanges = [
-    "Dưới 20 triệu",
-    "20 - 50 triệu",
-    "50 - 100 triệu",
-    "100 - 150 triệu",
-    "150 - 200 triệu",
-    "200 - 250 triệu",
-    "250 - 300 triệu",
-    "Trên 300 triệu",
-  ];
-
-  const batteryTypes = [
-    "Lithium-ion (Li-ion)",
-    "LFP (Lithium Iron Phosphate)",
-    "NMC (Nickel Manganese Cobalt)",
-    "LTO (Lithium Titanate)",
-    "Pin 18650",
-    "Pin 21700",
-    "Pin khác",
   ];
 
   const cities = [
@@ -378,9 +711,24 @@ function SellBatteryPage() {
               {showPriceDropdown && (
                 <div className="dropdown-menu">
                   {priceRanges.map((range, index) => (
-                    <a key={index} href="#" className="dropdown-item">
-                      {range}
-                    </a>
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedPriceRanges.includes(range) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedPriceRanges.includes(range)) {
+                          setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                        } else {
+                          setSelectedPriceRanges([...selectedPriceRanges, range]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPriceRanges.includes(range)}
+                        readOnly
+                      />
+                      <span>{range}</span>
+                    </div>
                   ))}
                 </div>
               )}
@@ -395,24 +743,26 @@ function SellBatteryPage() {
               </button>
               {showCapacityDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Dưới 20 kWh
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    20 - 40 kWh
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    40 - 60 kWh
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    60 - 80 kWh
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    80 - 100 kWh
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Trên 100 kWh
-                  </a>
+                  {capacities.map((capacity, index) => (
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedCapacities.includes(capacity) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedCapacities.includes(capacity)) {
+                          setSelectedCapacities(selectedCapacities.filter(c => c !== capacity));
+                        } else {
+                          setSelectedCapacities([...selectedCapacities, capacity]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCapacities.includes(capacity)}
+                        readOnly
+                      />
+                      <span>{capacity}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -427,9 +777,24 @@ function SellBatteryPage() {
               {showBrandDropdown && (
                 <div className="dropdown-menu">
                   {brands.map((brand, index) => (
-                    <a key={index} href="#" className="dropdown-item">
-                      {brand.logo} {brand.name} ({brand.count})
-                    </a>
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedBrands.includes(brand.name) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedBrands.includes(brand.name)) {
+                          setSelectedBrands(selectedBrands.filter(b => b !== brand.name));
+                        } else {
+                          setSelectedBrands([...selectedBrands, brand.name]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedBrands.includes(brand.name)}
+                        readOnly
+                      />
+                      <span>{brand.logo} {brand.name} ({brand.count})</span>
+                    </div>
                   ))}
                 </div>
               )}
@@ -447,9 +812,24 @@ function SellBatteryPage() {
               {showBatteryTypeDropdown && (
                 <div className="dropdown-menu">
                   {batteryTypes.map((type, index) => (
-                    <a key={index} href="#" className="dropdown-item">
-                      {type}
-                    </a>
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedBatteryTypes.includes(type) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedBatteryTypes.includes(type)) {
+                          setSelectedBatteryTypes(selectedBatteryTypes.filter(t => t !== type));
+                        } else {
+                          setSelectedBatteryTypes([...selectedBatteryTypes, type]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedBatteryTypes.includes(type)}
+                        readOnly
+                      />
+                      <span>{type}</span>
+                    </div>
                   ))}
                 </div>
               )}
@@ -464,67 +844,256 @@ function SellBatteryPage() {
               </button>
               {showConditionDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Mới
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Đã sử dụng
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Va chạm nhẹ
-                  </a>
+                  {conditions.map((condition, index) => (
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedConditions.includes(condition) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedConditions.includes(condition)) {
+                          setSelectedConditions(selectedConditions.filter(c => c !== condition));
+                        } else {
+                          setSelectedConditions([...selectedConditions, condition]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedConditions.includes(condition)}
+                        readOnly
+                      />
+                      <span>{condition}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
             <div className="filter-dropdown-wrapper">
               <button
-                className="filter-btn more"
-                onClick={() =>
-                  setShowMoreFiltersDropdown(!showMoreFiltersDropdown)
-                }
+                className="filter-btn"
+                onClick={() => setShowHealthDropdown(!showHealthDropdown)}
               >
-                <svg
-                  width="4"
-                  height="16"
-                  viewBox="0 0 4 16"
-                  fill="currentColor"
-                >
-                  <circle cx="2" cy="2" r="2" />
-                  <circle cx="2" cy="8" r="2" />
-                  <circle cx="2" cy="14" r="2" />
-                </svg>
+                <span>Độ sức khỏe pin (%)</span>
+                <ChevronDownIcon />
               </button>
-              {showMoreFiltersDropdown && (
+              {showHealthDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Độ sức khỏe pin (%)
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Số chu kỳ sạc
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Bảo hành
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Điện áp (V)
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Công suất (kW)
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Xuất xứ
-                  </a>
+                  {batteryHealthRanges.map((health) => (
+                    <label key={health} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedBatteryHealth.includes(health)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedBatteryHealth([...selectedBatteryHealth, health]);
+                          } else {
+                            setSelectedBatteryHealth(
+                              selectedBatteryHealth.filter((h) => h !== health)
+                            );
+                          }
+                        }}
+                      />
+                      {health}
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
-            <button className="clear-filter">Xoá lọc</button>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowCycleDropdown(!showCycleDropdown)}
+              >
+                <span>Số chu kỳ sạc</span>
+                <ChevronDownIcon />
+              </button>
+              {showCycleDropdown && (
+                <div className="dropdown-menu">
+                  {cycleCountRanges.map((cycle) => (
+                    <label key={cycle} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedCycleCount.includes(cycle)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCycleCount([...selectedCycleCount, cycle]);
+                          } else {
+                            setSelectedCycleCount(
+                              selectedCycleCount.filter((c) => c !== cycle)
+                            );
+                          }
+                        }}
+                      />
+                      {cycle}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowWarrantyDropdown(!showWarrantyDropdown)}
+              >
+                <span>Bảo hành</span>
+                <ChevronDownIcon />
+              </button>
+              {showWarrantyDropdown && (
+                <div className="dropdown-menu">
+                  {warrantyPeriods.map((warranty) => (
+                    <label key={warranty} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedWarranty.includes(warranty)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedWarranty([...selectedWarranty, warranty]);
+                          } else {
+                            setSelectedWarranty(
+                              selectedWarranty.filter((w) => w !== warranty)
+                            );
+                          }
+                        }}
+                      />
+                      {warranty}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowVoltageDropdown(!showVoltageDropdown)}
+              >
+                <span>Điện áp (V)</span>
+                <ChevronDownIcon />
+              </button>
+              {showVoltageDropdown && (
+                <div className="dropdown-menu">
+                  {voltageRanges.map((voltage) => (
+                    <label key={voltage} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedVoltage.includes(voltage)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedVoltage([...selectedVoltage, voltage]);
+                          } else {
+                            setSelectedVoltage(
+                              selectedVoltage.filter((v) => v !== voltage)
+                            );
+                          }
+                        }}
+                      />
+                      {voltage}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowPowerDropdown(!showPowerDropdown)}
+              >
+                <span>Công suất (kW)</span>
+                <ChevronDownIcon />
+              </button>
+              {showPowerDropdown && (
+                <div className="dropdown-menu">
+                  {powerRanges.map((power) => (
+                    <label key={power} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedPower.includes(power)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPower([...selectedPower, power]);
+                          } else {
+                            setSelectedPower(
+                              selectedPower.filter((p) => p !== power)
+                            );
+                          }
+                        }}
+                      />
+                      {power}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowOriginDropdown(!showOriginDropdown)}
+              >
+                <span>Xuất xứ</span>
+                <ChevronDownIcon />
+              </button>
+              {showOriginDropdown && (
+                <div className="dropdown-menu">
+                  {origins.map((origin) => (
+                    <label key={origin} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrigins.includes(origin)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOrigins([...selectedOrigins, origin]);
+                          } else {
+                            setSelectedOrigins(
+                              selectedOrigins.filter((o) => o !== origin)
+                            );
+                          }
+                        }}
+                      />
+                      {origin}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button 
+              className="clear-filter"
+              onClick={() => {
+                setSelectedBrands([]);
+                setSelectedPriceRanges([]);
+                setSelectedBatteryTypes([]);
+                setSelectedCapacities([]);
+                setSelectedConditions([]);
+                setSelectedCities([]);
+                setSelectedLocations([]);
+                setSelectedBatteryHealth([]);
+                setSelectedCycleCount([]);
+                setSelectedWarranty([]);
+                setSelectedVoltage([]);
+                setSelectedPower([]);
+                setSelectedOrigins([]);
+              }}
+            >
+              Xoá lọc
+            </button>
           </div>
 
           {/* Location Filter */}
           <div className="location-filter">
             <span className="label">Khu vực:</span>
             {locations.map((location, index) => (
-              <button key={index} className="location-btn">
+              <button 
+                key={index} 
+                className={`location-btn ${
+                  selectedLocations.includes(location) ? "active" : ""
+                }`}
+                onClick={() => {
+                  if (selectedLocations.includes(location)) {
+                    setSelectedLocations(
+                      selectedLocations.filter((l) => l !== location)
+                    );
+                  } else {
+                    setSelectedLocations([...selectedLocations, location]);
+                  }
+                }}
+              >
                 {location}
               </button>
             ))}
@@ -564,14 +1133,22 @@ function SellBatteryPage() {
             <div className="filter-section">
               <h3 className="filter-title">Lọc theo tình trạng</h3>
               <div className="filter-options">
-                <label className="filter-option">
-                  <input type="radio" name="condition" defaultChecked />
-                  <span>Đã sử dụng</span>
-                </label>
-                <label className="filter-option">
-                  <input type="radio" name="condition" />
-                  <span>Mới</span>
-                </label>
+                {conditions.map((condition, index) => (
+                  <label key={index} className="filter-option">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedConditions.includes(condition)}
+                      onChange={() => {
+                        if (selectedConditions.includes(condition)) {
+                          setSelectedConditions(selectedConditions.filter(c => c !== condition));
+                        } else {
+                          setSelectedConditions([...selectedConditions, condition]);
+                        }
+                      }}
+                    />
+                    <span>{condition}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -584,7 +1161,17 @@ function SellBatteryPage() {
                 {(showAllPrices ? priceRanges : priceRanges.slice(0, 3)).map(
                   (range, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPriceRanges.includes(range)}
+                        onChange={() => {
+                          if (selectedPriceRanges.includes(range)) {
+                            setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                          } else {
+                            setSelectedPriceRanges([...selectedPriceRanges, range]);
+                          }
+                        }}
+                      />
                       <span>{range}</span>
                     </label>
                   )
@@ -688,8 +1275,13 @@ function SellBatteryPage() {
 
             {/* Battery Listings Grid */}
             <div className="listings-grid">
-              {batteryListings.map((battery) => (
-                <div key={battery.id} className="battery-card">
+              {getFilteredBatteries().map((battery) => (
+                <div 
+                  key={battery.id} 
+                  className="battery-card"
+                  onClick={() => handleProductClick(battery)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {battery.vip && <div className="vip-badge">Tin VIP</div>}
                   {battery.featured && (
                     <div className="featured-badge">Tin tiêu biểu</div>
@@ -749,12 +1341,15 @@ function SellBatteryPage() {
                     </div>
 
                     <div className="battery-actions">
-                      <button className="action-btn primary">
+                      <button 
+                        className="action-btn primary"
+                        onClick={(e) => handleRevealPhone(e, battery.id)}
+                      >
                         <PhoneIcon />
-                        Bấm để hiện số
+                        {revealedPhones.has(battery.id) ? battery.phone : "Bấm để hiện số"}
                       </button>
                       <button 
-                        className="action-btn"
+                        className={`action-btn compare-btn ${comparedItems.has(battery.id) ? 'comparing' : ''}`}
                         onClick={(e) => handleAddToCompare(e, battery)}
                       >
                         <CompareIcon />
@@ -799,6 +1394,166 @@ function SellBatteryPage() {
           </div>
         </div>
       </div>
+
+      {/* Product Detail Modal */}
+      {showProductDetail && selectedProduct && (
+        <div className="product-detail-overlay" onClick={handleCloseProductDetail}>
+          <div className="product-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={handleCloseProductDetail}>
+              <CloseIcon />
+            </button>
+
+            <div className="product-detail-content">
+              {/* Image Gallery */}
+              <div className="product-gallery">
+                <div className="main-image">
+                  <img 
+                    src={`/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    alt={selectedProduct.title} 
+                  />
+                  {selectedProduct.images > 1 && (
+                    <>
+                      <button className="gallery-nav prev" onClick={handlePrevImage}>
+                        <ChevronLeftIcon />
+                      </button>
+                      <button className="gallery-nav next" onClick={handleNextImage}>
+                        <ChevronRightIcon />
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {selectedProduct.images > 1 && (
+                  <div className="image-thumbnails">
+                    {Array.from({ length: selectedProduct.images }, (_, index) => (
+                      <div
+                        key={index}
+                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img 
+                          src={`/api/placeholder/100/80?text=${index + 1}`} 
+                          alt={`${selectedProduct.title} ${index + 1}`} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="image-counter">
+                  {currentImageIndex + 1} / {selectedProduct.images}
+                </div>
+              </div>
+
+              {/* Product Information */}
+              <div className="product-info">
+                <div className="product-header">
+                  <h2 className="product-title">{selectedProduct.title}</h2>
+                  <div className="product-price">{selectedProduct.price}</div>
+                  {selectedProduct.discount && (
+                    <div className="product-discount">{selectedProduct.discount}</div>
+                  )}
+                </div>
+
+                <div className="product-basic-info">
+                  <div className="info-row">
+                    <span className="label">Dung lượng:</span>
+                    <span className="value">{selectedProduct.capacity}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Loại pin:</span>
+                    <span className="value">{selectedProduct.type}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Tình trạng:</span>
+                    <span className="value">{selectedProduct.condition}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Sức khỏe pin:</span>
+                    <span className="value">{selectedProduct.health}</span>
+                  </div>
+                  {selectedProduct.warranty && (
+                    <div className="info-row">
+                      <span className="label">Bảo hành:</span>
+                      <span className="value">{selectedProduct.warranty}</span>
+                    </div>
+                  )}
+                  <div className="info-row">
+                    <span className="label">Khu vực:</span>
+                    <span className="value">
+                      <LocationIcon />
+                      {selectedProduct.location}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProduct.description && (
+                  <div className="product-description">
+                    <h3>Mô tả</h3>
+                    <p>{selectedProduct.description}</p>
+                  </div>
+                )}
+
+                {selectedProduct.specs && (
+                  <div className="product-specs">
+                    <h3>Thông số kỹ thuật</h3>
+                    <div className="specs-grid">
+                      {Object.entries(selectedProduct.specs).map(([key, value]) => (
+                        <div key={key} className="spec-row">
+                          <span className="spec-label">{key}:</span>
+                          <span className="spec-value">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="seller-section">
+                  <h3>Thông tin người bán</h3>
+                  <div className="seller-card">
+                    <div className="seller-avatar">👤</div>
+                    <div className="seller-details">
+                      <div className="seller-name">
+                        {selectedProduct.seller}
+                        {selectedProduct.verified && <VerifiedIcon />}
+                      </div>
+                      {selectedProduct.rating && (
+                        <div className="seller-rating">
+                          {selectedProduct.rating} ⭐ {selectedProduct.reviews}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-actions">
+                  <button 
+                    className="action-btn primary large"
+                    onClick={(e) => handleRevealPhone(e, selectedProduct.id)}
+                  >
+                    <PhoneIcon />
+                    {revealedPhones.has(selectedProduct.id) ? selectedProduct.phone : "Bấm để hiện số"}
+                  </button>
+                  <button 
+                    className={`action-btn secondary large save-btn ${isSaved(`battery-${selectedProduct.id}`) ? 'saved' : ''}`}
+                    onClick={(e) => handleToggleSaved(e, selectedProduct)}
+                  >
+                    <HeartIcon />
+                    {isSaved(`battery-${selectedProduct.id}`) ? 'Đã lưu' : 'Lưu tin'}
+                  </button>
+                  <button 
+                    className={`action-btn secondary large compare-btn ${comparedItems.has(selectedProduct.id) ? 'comparing' : ''}`}
+                    onClick={(e) => handleAddToCompare(e, selectedProduct)}
+                  >
+                    <CompareIcon />
+                    So sánh
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

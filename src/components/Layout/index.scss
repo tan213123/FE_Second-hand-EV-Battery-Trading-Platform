@@ -1,0 +1,54 @@
+// Layout Component Styles
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  // Header is fixed, so no space needed here
+
+  .main-content {
+    flex: 1;
+    // Consistent padding for fixed header across ALL pages
+    padding-top: 60px !important;
+    min-height: calc(100vh - 110px) !important;
+    
+    // Override any page-specific top positioning
+    > * {
+      margin-top: 0 !important;
+      
+      &:first-child {
+        padding-top: 0 !important;
+      }
+    }
+  }
+
+  footer {
+    margin-top: auto;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .app-layout {
+    .main-content {
+      // Consistent mobile padding for ALL pages
+      padding-top: 50px !important;
+      min-height: calc(100vh - 110px) !important;
+    }
+  }
+}
+
+// Global override for any page-specific CSS that might interfere
+* {
+  .account-page-container,
+  .settings-container,
+  .home-container,
+  .saved-container,
+  .auction-container,
+  .admin-container,
+  .sell-container,
+  .compare-container {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+}

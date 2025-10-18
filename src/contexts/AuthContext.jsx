@@ -46,11 +46,13 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
+    console.log('🔓 Logging out user...')
     setUser(null)
     setToken(null)
     setIsAuthenticated(false)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    console.log('✅ Logout completed, localStorage cleared')
   }
 
   const value = {

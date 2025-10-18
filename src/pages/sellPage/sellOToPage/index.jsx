@@ -112,10 +112,59 @@ const HomeIcon = () => (
   </svg>
 );
 
+const CloseIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const ChevronLeftIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 function SellOtoPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedBrands, setSelectedBrands] = useState([]);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
+  const [selectedCarTypes, setSelectedCarTypes] = useState([]);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [selectedCities, setSelectedCities] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedOrigins, setSelectedOrigins] = useState([]);
   const [showAllPrices, setShowAllPrices] = useState(false);
   const [showAllCarTypes, setShowAllCarTypes] = useState(false);
   const [showAllSeats, setShowAllSeats] = useState(false);
@@ -125,7 +174,16 @@ function SellOtoPage() {
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
-  const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
+  const [showCarTypeDropdown, setShowCarTypeDropdown] = useState(false);
+  const [showSeatsDropdown, setShowSeatsDropdown] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showColorDropdown, setShowColorDropdown] = useState(false);
+  const [showOriginDropdown, setShowOriginDropdown] = useState(false);
+  const [revealedPhones, setRevealedPhones] = useState(new Set());
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductDetail, setShowProductDetail] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [comparedItems, setComparedItems] = useState(new Set());
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
 
@@ -161,7 +219,61 @@ function SellOtoPage() {
       }
     };
     addToCompare(compareCar);
-    // Không tự động chuyển trang, để người dùng quyết định
+    
+    // Add visual feedback animation
+    setComparedItems(prev => new Set(prev).add(car.id));
+    
+    // Remove the animation class after a short delay
+    setTimeout(() => {
+      setComparedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(car.id);
+        return newSet;
+      });
+    }, 2000);
+  };
+
+  const handleRevealPhone = (e, carId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRevealedPhones(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(carId)) {
+        newSet.delete(carId);
+      } else {
+        newSet.add(carId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleProductClick = (car) => {
+    setSelectedProduct(car);
+    setCurrentImageIndex(0);
+    setShowProductDetail(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleCloseProductDetail = () => {
+    setShowProductDetail(false);
+    setSelectedProduct(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  const handlePrevImage = () => {
+    if (selectedProduct && selectedProduct.images > 1) {
+      setCurrentImageIndex(prev => 
+        prev === 0 ? selectedProduct.images - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleNextImage = () => {
+    if (selectedProduct && selectedProduct.images > 1) {
+      setCurrentImageIndex(prev => 
+        prev === selectedProduct.images - 1 ? 0 : prev + 1
+      );
+    }
   };
 
   const brands = [
@@ -179,8 +291,7 @@ function SellOtoPage() {
     "Tp Hồ Chí Minh",
     "Hà Nội",
     "Đà Nẵng",
-    "Cần Thơ",
-    "Bình Dương",
+    "Huế", 
     "Gần tôi",
   ];
 
@@ -195,11 +306,28 @@ function SellOtoPage() {
       price: "756,000,000 đ",
       location: "Bình Dương",
       seller: "THÁO NGUYÊN BYD MIỀN NAM",
+      phone: "0901111111",
       verified: true,
       images: 5,
       featured: true,
       vip: true,
       discount: "6% thỏa thuận",
+      mileage: "0 km",
+      bodyType: "SUV",
+      seats: "7 chỗ",
+      color: "Đen",
+      description: "BYD M6 2025 hoàn toàn mới với công nghệ Blade Battery an toàn. Thiết kế sang trọng, không gian rộng rãi cho 7 người. Bảo hành xe 6 năm, pin 8 năm. Hỗ trợ trả góp lãi suất ưu đãi.",
+      specs: {
+        "Động cơ": "Động cơ điện kép",
+        "Công suất": "150 kW (204 PS)",
+        "Mô-men xoắn": "310 Nm",
+        "Tốc độ tối đa": "150 km/h",
+        "Quãng đường": "420 km/lần sạc",
+        "Pin": "BYD Blade Battery 71.8 kWh",
+        "Thời gian sạc": "0.5-1 giờ (DC fast)",
+        "Kích thước": "4710 x 1890 x 1680 mm",
+        "Trọng lượng": "2020 kg"
+      }
     },
     {
       id: 2,
@@ -211,6 +339,7 @@ function SellOtoPage() {
       price: "507,000,000 đ",
       location: "Tp Hồ Chí Minh",
       seller: "Vinfast VFX Thủ Đức",
+      phone: "0902222222",
       verified: false,
       images: 7,
       featured: true,
@@ -226,6 +355,7 @@ function SellOtoPage() {
       price: "651,000,000 đ",
       location: "Bình Dương",
       seller: "ĐỔ HÙNG VINFAST NAM THÁI",
+      phone: "0903333333",
       verified: true,
       images: 6,
       featured: true,
@@ -243,6 +373,7 @@ function SellOtoPage() {
       price: "378,000,000 đ",
       location: "Tp Hồ Chí Minh",
       seller: "Trần Vũ",
+      phone: "0904444444",
       verified: true,
       images: 10,
       rating: 4.7,
@@ -262,6 +393,7 @@ function SellOtoPage() {
       price: "458,000,000 đ",
       location: "Gia Lai",
       seller: "Nhân Nguyen",
+      phone: "0905555555",
       verified: true,
       images: 20,
       featured: false,
@@ -278,6 +410,7 @@ function SellOtoPage() {
       price: "379,000,000 đ",
       location: "Hà Nội",
       seller: "A Công",
+      phone: "0906666666",
       verified: false,
       images: 12,
       rating: 10,
@@ -322,6 +455,117 @@ function SellOtoPage() {
     "Vũng Tàu",
     "Huế",
   ];
+
+  const colors = [
+    "Trắng", "Đen", "Xám", "Bạc", "Đỏ", "Xanh dương", 
+    "Xanh lá", "Vàng", "Nâu", "Cam", "Tím", "Hồng"
+  ];
+
+  const origins = [
+    "Việt Nam", "Nhật Bản", "Hàn Quốc", "Đức", "Mỹ", 
+    "Thái Lan", "Trung Quốc", "Ấn Độ", "Malaysia"
+  ];
+
+  const conditions = [
+    "Mới", "Đã sử dụng", "Cũ nhưng tốt"
+  ];
+
+  const years = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016];
+
+  const seatNumbers = ["2 chỗ", "4 chỗ", "5 chỗ", "7 chỗ", "9 chỗ"];
+
+  // Hàm lọc sản phẩm theo filter
+  const getFilteredCars = () => {
+    let filteredCars = [...carListings];
+
+    // Lọc theo brands
+    if (selectedBrands.length > 0) {
+      filteredCars = filteredCars.filter(car => {
+        // Extract brand from title (first word usually)
+        const carBrand = car.title.split(' ')[0].toLowerCase();
+        return selectedBrands.some(brand => 
+          brand.toLowerCase().includes(carBrand) || 
+          carBrand.includes(brand.toLowerCase()) ||
+          car.title.toLowerCase().includes(brand.toLowerCase())
+        );
+      });
+    }
+
+    // Lọc theo price ranges
+    if (selectedPriceRanges.length > 0) {
+      filteredCars = filteredCars.filter(car => {
+        const priceValue = parseInt(car.price.replace(/[^\d]/g, ''));
+        return selectedPriceRanges.some(range => {
+          if (range.includes('dưới 200')) return priceValue < 200000000;
+          if (range.includes('200 triệu - 300')) return priceValue >= 200000000 && priceValue <= 300000000;
+          if (range.includes('300 triệu - 400')) return priceValue >= 300000000 && priceValue <= 400000000;
+          if (range.includes('400 triệu - 500')) return priceValue >= 400000000 && priceValue <= 500000000;
+          if (range.includes('500 triệu - 600')) return priceValue >= 500000000 && priceValue <= 600000000;
+          if (range.includes('600 triệu - 700')) return priceValue >= 600000000 && priceValue <= 700000000;
+          if (range.includes('700 triệu - 800')) return priceValue >= 700000000 && priceValue <= 800000000;
+          if (range.includes('Trên 800')) return priceValue > 800000000;
+          return false;
+        });
+      });
+    }
+
+    // Lọc theo car types
+    if (selectedCarTypes.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedCarTypes.includes(car.type)
+      );
+    }
+
+    // Lọc theo cities
+    if (selectedCities.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedCities.includes(car.location)
+      );
+    }
+
+    // Lọc theo conditions
+    if (selectedConditions.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedConditions.includes(car.condition)
+      );
+    }
+
+    // Lọc theo years
+    if (selectedYears.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedYears.includes(car.year.toString())
+      );
+    }
+
+    // Lọc theo colors (giả sử có field color trong data)
+    if (selectedColors.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedColors.some(color => 
+          car.title.toLowerCase().includes(color.toLowerCase()) ||
+          (car.color && car.color === color)
+        )
+      );
+    }
+
+    // Lọc theo origins (giả sử có field origin trong data)
+    if (selectedOrigins.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedOrigins.some(origin => 
+          car.title.toLowerCase().includes(origin.toLowerCase()) ||
+          (car.origin && car.origin === origin)
+        )
+      );
+    }
+
+    // Lọc theo locations (khu vực)
+    if (selectedLocations.length > 0) {
+      filteredCars = filteredCars.filter(car => 
+        selectedLocations.includes(car.location)
+      );
+    }
+
+    return filteredCars;
+  };
 
   // Lấy ngày hiện tại theo định dạng DD/MM/YYYY
   const getCurrentDate = () => {
@@ -388,9 +632,56 @@ function SellOtoPage() {
               {showPriceDropdown && (
                 <div className="dropdown-menu">
                   {priceRanges.map((range, index) => (
-                    <a key={index} href="#" className="dropdown-item">
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedPriceRanges.includes(range) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedPriceRanges.includes(range)) {
+                          setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                        } else {
+                          setSelectedPriceRanges([...selectedPriceRanges, range]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPriceRanges.includes(range)}
+                        readOnly
+                      />
                       {range}
-                    </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowCarTypeDropdown(!showCarTypeDropdown)}
+              >
+                <span>Kiểu dáng</span>
+                <ChevronDownIcon />
+              </button>
+              {showCarTypeDropdown && (
+                <div className="dropdown-menu">
+                  {carTypes.map((type) => (
+                    <label key={type} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedCarTypes.includes(type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCarTypes([...selectedCarTypes, type]);
+                          } else {
+                            setSelectedCarTypes(
+                              selectedCarTypes.filter((t) => t !== type)
+                            );
+                          }
+                        }}
+                      />
+                      {type}
+                    </label>
                   ))}
                 </div>
               )}
@@ -398,54 +689,61 @@ function SellOtoPage() {
             <div className="filter-dropdown-wrapper">
               <button
                 className="filter-btn"
-                onClick={() => setShowYearDropdown(!showYearDropdown)}
+                onClick={() => setShowSeatsDropdown(!showSeatsDropdown)}
               >
-                <span>Năm sản xuất</span>
+                <span>Số chỗ</span>
                 <ChevronDownIcon />
               </button>
-              {showYearDropdown && (
+              {showSeatsDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    2025
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2024
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2023
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2022
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2021
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2020
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2019
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Trước 2019
-                  </a>
+                  {seatNumbers.map((seat) => (
+                    <label key={seat} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedSeats.includes(seat)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSeats([...selectedSeats, seat]);
+                          } else {
+                            setSelectedSeats(
+                              selectedSeats.filter((s) => s !== seat)
+                            );
+                          }
+                        }}
+                      />
+                      {seat}
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
             <div className="filter-dropdown-wrapper">
               <button
                 className="filter-btn"
-                onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                onClick={() => setShowCityDropdown(!showCityDropdown)}
               >
-                <span>Hãng xe</span>
+                <span>Khu vực</span>
                 <ChevronDownIcon />
               </button>
-              {showBrandDropdown && (
+              {showCityDropdown && (
                 <div className="dropdown-menu">
-                  {brands.map((brand, index) => (
-                    <a key={index} href="#" className="dropdown-item">
-                      {brand.logo} {brand.name} ({brand.count})
-                    </a>
+                  {cities.map((city) => (
+                    <label key={city} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedCities.includes(city)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCities([...selectedCities, city]);
+                          } else {
+                            setSelectedCities(
+                              selectedCities.filter((c) => c !== city)
+                            );
+                          }
+                        }}
+                      />
+                      {city}
+                    </label>
                   ))}
                 </div>
               )}
@@ -460,67 +758,191 @@ function SellOtoPage() {
               </button>
               {showConditionDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Mới
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Đã sử dụng
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Va chạm nhẹ
-                  </a>
+                  {conditions.map((condition) => (
+                    <label key={condition} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedConditions.includes(condition)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedConditions([...selectedConditions, condition]);
+                          } else {
+                            setSelectedConditions(
+                              selectedConditions.filter((c) => c !== condition)
+                            );
+                          }
+                        }}
+                      />
+                      {condition}
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
             <div className="filter-dropdown-wrapper">
               <button
-                className="filter-btn more"
-                onClick={() =>
-                  setShowMoreFiltersDropdown(!showMoreFiltersDropdown)
-                }
+                className="filter-btn"
+                onClick={() => setShowYearDropdown(!showYearDropdown)}
               >
-                <svg
-                  width="4"
-                  height="16"
-                  viewBox="0 0 4 16"
-                  fill="currentColor"
-                >
-                  <circle cx="2" cy="2" r="2" />
-                  <circle cx="2" cy="8" r="2" />
-                  <circle cx="2" cy="14" r="2" />
-                </svg>
+                <span>Năm sản xuất</span>
+                <ChevronDownIcon />
               </button>
-              {showMoreFiltersDropdown && (
+              {showYearDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Loại xe
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Số chỗ ngồi
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Hộp số
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Nhiên liệu
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Xuất xứ
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Màu sắc
-                  </a>
+                  {years.map((year) => (
+                    <label key={year} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedYears.includes(year)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedYears([...selectedYears, year]);
+                          } else {
+                            setSelectedYears(
+                              selectedYears.filter((y) => y !== year)
+                            );
+                          }
+                        }}
+                      />
+                      {year}
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
-            <button className="clear-filter">Xoá lọc</button>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+              >
+                <span>Hãng xe</span>
+                <ChevronDownIcon />
+              </button>
+              {showBrandDropdown && (
+                <div className="dropdown-menu">
+                  {brands.map((brand, index) => (
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedBrands.includes(brand.name) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedBrands.includes(brand.name)) {
+                          setSelectedBrands(selectedBrands.filter(b => b !== brand.name));
+                        } else {
+                          setSelectedBrands([...selectedBrands, brand.name]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedBrands.includes(brand.name)}
+                        readOnly
+                      />
+                      {brand.logo} {brand.name} ({brand.count})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowColorDropdown(!showColorDropdown)}
+              >
+                <span>Màu sắc</span>
+                <ChevronDownIcon />
+              </button>
+              {showColorDropdown && (
+                <div className="dropdown-menu">
+                  {colors.map((color) => (
+                    <label key={color} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedColors.includes(color)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedColors([...selectedColors, color]);
+                          } else {
+                            setSelectedColors(
+                              selectedColors.filter((c) => c !== color)
+                            );
+                          }
+                        }}
+                      />
+                      {color}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowOriginDropdown(!showOriginDropdown)}
+              >
+                <span>Xuất xứ</span>
+                <ChevronDownIcon />
+              </button>
+              {showOriginDropdown && (
+                <div className="dropdown-menu">
+                  {origins.map((origin) => (
+                    <label key={origin} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrigins.includes(origin)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOrigins([...selectedOrigins, origin]);
+                          } else {
+                            setSelectedOrigins(
+                              selectedOrigins.filter((o) => o !== origin)
+                            );
+                          }
+                        }}
+                      />
+                      {origin}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button 
+              className="clear-filter"
+              onClick={() => {
+                setSelectedBrands([]);
+                setSelectedPriceRanges([]);
+                setSelectedCarTypes([]);
+                setSelectedSeats([]);
+                setSelectedCities([]);
+                setSelectedLocations([]);
+                setSelectedConditions([]);
+                setSelectedYears([]);
+                setSelectedColors([]);
+                setSelectedOrigins([]);
+              }}
+            >
+              Xoá lọc
+            </button>
           </div>
 
           {/* Location Filter */}
           <div className="location-filter">
             <span className="label">Khu vực:</span>
             {locations.map((location, index) => (
-              <button key={index} className="location-btn">
+              <button 
+                key={index} 
+                className={`location-btn ${
+                  selectedLocations.includes(location) ? "active" : ""
+                }`}
+                onClick={() => {
+                  if (selectedLocations.includes(location)) {
+                    setSelectedLocations(
+                      selectedLocations.filter((l) => l !== location)
+                    );
+                  } else {
+                    setSelectedLocations([...selectedLocations, location]);
+                  }
+                }}
+              >
                 {location}
               </button>
             ))}
@@ -584,7 +1006,17 @@ function SellOtoPage() {
                 {(showAllPrices ? priceRanges : priceRanges.slice(0, 3)).map(
                   (range, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPriceRanges.includes(range)}
+                        onChange={() => {
+                          if (selectedPriceRanges.includes(range)) {
+                            setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                          } else {
+                            setSelectedPriceRanges([...selectedPriceRanges, range]);
+                          }
+                        }}
+                      />
                       <span>{range}</span>
                     </label>
                   )
@@ -607,7 +1039,17 @@ function SellOtoPage() {
                 {(showAllCarTypes ? carTypes : carTypes.slice(0, 3)).map(
                   (type, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCarTypes.includes(type)}
+                        onChange={() => {
+                          if (selectedCarTypes.includes(type)) {
+                            setSelectedCarTypes(selectedCarTypes.filter(t => t !== type));
+                          } else {
+                            setSelectedCarTypes([...selectedCarTypes, type]);
+                          }
+                        }}
+                      />
                       <span>{type}</span>
                     </label>
                   )
@@ -630,7 +1072,17 @@ function SellOtoPage() {
                 {(showAllSeats ? seats : seats.slice(0, 3)).map(
                   (seat, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedSeats.includes(seat)}
+                        onChange={() => {
+                          if (selectedSeats.includes(seat)) {
+                            setSelectedSeats(selectedSeats.filter(s => s !== seat));
+                          } else {
+                            setSelectedSeats([...selectedSeats, seat]);
+                          }
+                        }}
+                      />
                       <span>{seat}</span>
                     </label>
                   )
@@ -653,7 +1105,17 @@ function SellOtoPage() {
                 {(showAllCities ? cities : cities.slice(0, 3)).map(
                   (city, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCities.includes(city)}
+                        onChange={() => {
+                          if (selectedCities.includes(city)) {
+                            setSelectedCities(selectedCities.filter(c => c !== city));
+                          } else {
+                            setSelectedCities([...selectedCities, city]);
+                          }
+                        }}
+                      />
                       <span>{city}</span>
                     </label>
                   )
@@ -710,8 +1172,13 @@ function SellOtoPage() {
 
             {/* Car Listings Grid */}
             <div className="listings-grid">
-              {carListings.map((car) => (
-                <div key={car.id} className="car-card">
+              {getFilteredCars().map((car) => (
+                <div 
+                  key={car.id} 
+                  className="car-card"
+                  onClick={() => handleProductClick(car)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {car.vip && <div className="vip-badge">Tin VIP</div>}
                   {car.featured && (
                     <div className="featured-badge">Tin tiêu biểu</div>
@@ -770,12 +1237,15 @@ function SellOtoPage() {
                     </div>
 
                     <div className="car-actions">
-                      <button className="action-btn primary">
+                      <button 
+                        className="action-btn primary"
+                        onClick={(e) => handleRevealPhone(e, car.id)}
+                      >
                         <PhoneIcon />
-                        Bấm để hiện số
+                        {revealedPhones.has(car.id) ? car.phone : "Bấm để hiện số"}
                       </button>
                       <button 
-                        className="action-btn"
+                        className={`action-btn compare-btn ${comparedItems.has(car.id) ? 'comparing' : ''}`}
                         onClick={(e) => handleAddToCompare(e, car)}
                       >
                         <CompareIcon />
@@ -818,6 +1288,172 @@ function SellOtoPage() {
           </div>
         </div>
       </div>
+
+      {/* Product Detail Modal */}
+      {showProductDetail && selectedProduct && (
+        <div className="product-detail-overlay" onClick={handleCloseProductDetail}>
+          <div className="product-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={handleCloseProductDetail}>
+              <CloseIcon />
+            </button>
+
+            <div className="product-detail-content">
+              {/* Image Gallery */}
+              <div className="product-gallery">
+                <div className="main-image">
+                  <img 
+                    src={`/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    alt={selectedProduct.title} 
+                  />
+                  {selectedProduct.images > 1 && (
+                    <>
+                      <button className="gallery-nav prev" onClick={handlePrevImage}>
+                        <ChevronLeftIcon />
+                      </button>
+                      <button className="gallery-nav next" onClick={handleNextImage}>
+                        <ChevronRightIcon />
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {selectedProduct.images > 1 && (
+                  <div className="image-thumbnails">
+                    {Array.from({ length: selectedProduct.images }, (_, index) => (
+                      <div
+                        key={index}
+                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img 
+                          src={`/api/placeholder/100/80?text=${index + 1}`} 
+                          alt={`${selectedProduct.title} ${index + 1}`} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="image-counter">
+                  {currentImageIndex + 1} / {selectedProduct.images}
+                </div>
+              </div>
+
+              {/* Product Information */}
+              <div className="product-info">
+                <div className="product-header">
+                  <h2 className="product-title">{selectedProduct.title}</h2>
+                  <div className="product-price">{selectedProduct.price}</div>
+                  {selectedProduct.discount && (
+                    <div className="product-discount">{selectedProduct.discount}</div>
+                  )}
+                </div>
+
+                <div className="product-basic-info">
+                  <div className="info-row">
+                    <span className="label">Năm sản xuất:</span>
+                    <span className="value">{selectedProduct.year}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Tình trạng:</span>
+                    <span className="value">{selectedProduct.condition}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Loại xe:</span>
+                    <span className="value">{selectedProduct.type}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Hộp số:</span>
+                    <span className="value">{selectedProduct.transmission}</span>
+                  </div>
+                  {selectedProduct.mileage && (
+                    <div className="info-row">
+                      <span className="label">Số km đã đi:</span>
+                      <span className="value">{selectedProduct.mileage}</span>
+                    </div>
+                  )}
+                  {selectedProduct.seats && (
+                    <div className="info-row">
+                      <span className="label">Số chỗ ngồi:</span>
+                      <span className="value">{selectedProduct.seats}</span>
+                    </div>
+                  )}
+                  <div className="info-row">
+                    <span className="label">Khu vực:</span>
+                    <span className="value">
+                      <LocationIcon />
+                      {selectedProduct.location}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProduct.description && (
+                  <div className="product-description">
+                    <h3>Mô tả</h3>
+                    <p>{selectedProduct.description}</p>
+                  </div>
+                )}
+
+                {selectedProduct.specs && (
+                  <div className="product-specs">
+                    <h3>Thông số kỹ thuật</h3>
+                    <div className="specs-grid">
+                      {Object.entries(selectedProduct.specs).map(([key, value]) => (
+                        <div key={key} className="spec-row">
+                          <span className="spec-label">{key}:</span>
+                          <span className="spec-value">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="seller-section">
+                  <h3>Thông tin người bán</h3>
+                  <div className="seller-card">
+                    <div className="seller-avatar">👤</div>
+                    <div className="seller-details">
+                      <div className="seller-name">
+                        {selectedProduct.seller}
+                        {selectedProduct.verified && <VerifiedIcon />}
+                      </div>
+                      {selectedProduct.rating && (
+                        <div className="seller-rating">
+                          {selectedProduct.rating} ⭐ {selectedProduct.reviews}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-actions">
+                  <button 
+                    className="action-btn primary large"
+                    onClick={(e) => handleRevealPhone(e, selectedProduct.id)}
+                  >
+                    <PhoneIcon />
+                    {revealedPhones.has(selectedProduct.id) ? selectedProduct.phone : "Bấm để hiện số"}
+                  </button>
+                  <button 
+                    className={`action-btn secondary large save-btn ${isSaved(`oto-${selectedProduct.id}`) ? 'saved' : ''}`}
+                    onClick={(e) => handleToggleSaved(e, selectedProduct)}
+                  >
+                    <HeartIcon />
+                    {isSaved(`oto-${selectedProduct.id}`) ? 'Đã lưu' : 'Lưu tin'}
+                  </button>
+                  <button 
+                    className={`action-btn secondary large compare-btn ${comparedItems.has(selectedProduct.id) ? 'comparing' : ''}`}
+                    onClick={(e) => handleAddToCompare(e, selectedProduct)}
+                  >
+                    <CompareIcon />
+                    So sánh
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

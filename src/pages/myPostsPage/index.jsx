@@ -110,7 +110,6 @@ function MyPostsPage({ onNavigate }) {
     const badges = {
       active: { text: 'Đang bán', class: 'status-active' },
       sold: { text: 'Đã bán', class: 'status-sold' },
-      pending: { text: 'Chờ duyệt', class: 'status-pending' },
       expired: { text: 'Hết hạn', class: 'status-expired' }
     }
     return badges[status] || badges.active

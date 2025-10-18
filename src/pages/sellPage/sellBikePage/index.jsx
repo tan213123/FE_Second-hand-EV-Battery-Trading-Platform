@@ -39,12 +39,12 @@ const LocationIcon = () => (
 
 const HeartIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="18"
+    height="18"
     viewBox="0 0 24 24"
-    fill="none"
+    fill="currentColor"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth="1.5"
   >
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
   </svg>
@@ -112,10 +112,59 @@ const HomeIcon = () => (
   </svg>
 );
 
+const CloseIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const ChevronLeftIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 function SellBikePage() {
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedBrands, setSelectedBrands] = useState([]);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedCities, setSelectedCities] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [selectedCarTypes, setSelectedCarTypes] = useState([]);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedOrigins, setSelectedOrigins] = useState([]);
   const [showAllPrices, setShowAllPrices] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
@@ -123,7 +172,16 @@ function SellBikePage() {
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
-  const [showMoreFiltersDropdown, setShowMoreFiltersDropdown] = useState(false);
+  const [showCarTypeDropdown, setShowCarTypeDropdown] = useState(false);
+  const [showSeatsDropdown, setShowSeatsDropdown] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showColorDropdown, setShowColorDropdown] = useState(false);
+  const [showOriginDropdown, setShowOriginDropdown] = useState(false);
+  const [revealedPhones, setRevealedPhones] = useState(new Set());
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductDetail, setShowProductDetail] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [comparedItems, setComparedItems] = useState(new Set());
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
 
@@ -159,7 +217,61 @@ function SellBikePage() {
       }
     };
     addToCompare(compareBike);
-    // Không tự động chuyển trang, để người dùng quyết định
+    
+    // Add visual feedback animation
+    setComparedItems(prev => new Set(prev).add(bike.id));
+    
+    // Remove the animation class after a short delay
+    setTimeout(() => {
+      setComparedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bike.id);
+        return newSet;
+      });
+    }, 2000);
+  };
+
+  const handleRevealPhone = (e, bikeId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRevealedPhones(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(bikeId)) {
+        newSet.delete(bikeId);
+      } else {
+        newSet.add(bikeId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleProductClick = (bike) => {
+    setSelectedProduct(bike);
+    setCurrentImageIndex(0);
+    setShowProductDetail(true);
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  };
+
+  const handleCloseProductDetail = () => {
+    setShowProductDetail(false);
+    setSelectedProduct(null);
+    document.body.style.overflow = 'unset'; // Restore scrolling
+  };
+
+  const handlePrevImage = () => {
+    if (selectedProduct && selectedProduct.images > 1) {
+      setCurrentImageIndex(prev => 
+        prev === 0 ? selectedProduct.images - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleNextImage = () => {
+    if (selectedProduct && selectedProduct.images > 1) {
+      setCurrentImageIndex(prev => 
+        prev === selectedProduct.images - 1 ? 0 : prev + 1
+      );
+    }
   };
 
   const brands = [
@@ -175,12 +287,141 @@ function SellBikePage() {
 
   const locations = [
     "Tp Hồ Chí Minh",
-    "Hà Nội",
+    "Hà Nội", 
     "Đà Nẵng",
-    "Cần Thơ",
-    "Bình Dương",
+    "Huế",
     "Gần tôi",
   ];
+
+  // Filter data
+  const priceRanges = [
+    "Giá dưới 30 triệu",
+    "Giá 30 triệu - 50 triệu",
+    "Giá 50 triệu - 70 triệu",
+    "Giá 70 triệu - 100 triệu",
+    "Trên 100 triệu",
+  ];
+
+  const years = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018];
+
+  const conditions = [
+    "Mới",
+    "Đã sử dụng",
+    "Cũ nhưng tốt",
+  ];
+
+  const carTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible"];
+  const seatNumbers = ["2 chỗ", "4 chỗ", "5 chỗ", "7 chỗ", "9 chỗ"];
+  const colors = [
+    "Trắng", "Đen", "Xám", "Bạc", "Đỏ", "Xanh dương", 
+    "Xanh lá", "Vàng", "Nâu", "Cam", "Tím", "Hồng"
+  ];
+  const origins = [
+    "Việt Nam", "Nhật Bản", "Hàn Quốc", "Đức", "Mỹ", 
+    "Thái Lan", "Trung Quốc", "Ấn Độ", "Malaysia"
+  ];
+
+  // Hàm lọc xe máy theo filter
+  const getFilteredBikes = () => {
+    let filteredBikes = [...bikeListings];
+
+    // Lọc theo brands
+    if (selectedBrands.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => {
+        const bikeBrand = bike.title.split(' ')[0].toLowerCase();
+        return selectedBrands.some(brand => 
+          brand.toLowerCase().includes(bikeBrand) || 
+          bikeBrand.includes(brand.toLowerCase()) ||
+          bike.title.toLowerCase().includes(brand.toLowerCase())
+        );
+      });
+    }
+
+    // Lọc theo price ranges
+    if (selectedPriceRanges.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => {
+        const priceValue = parseInt(bike.price.replace(/[^\d]/g, ''));
+        return selectedPriceRanges.some(range => {
+          if (range.includes('dưới 30')) return priceValue < 30000000;
+          if (range.includes('30 triệu - 50')) return priceValue >= 30000000 && priceValue <= 50000000;
+          if (range.includes('50 triệu - 70')) return priceValue >= 50000000 && priceValue <= 70000000;
+          if (range.includes('70 triệu - 100')) return priceValue >= 70000000 && priceValue <= 100000000;
+          if (range.includes('Trên 100')) return priceValue > 100000000;
+          return false;
+        });
+      });
+    }
+
+    // Lọc theo years
+    if (selectedYears.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedYears.includes(bike.year)
+      );
+    }
+
+    // Lọc theo conditions
+    if (selectedConditions.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedConditions.includes(bike.condition)
+      );
+    }
+
+    // Lọc theo cities
+    if (selectedCities.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedCities.includes(bike.location)
+      );
+    }
+
+    // Lọc theo car types
+    if (selectedCarTypes.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedCarTypes.some(type => 
+          bike.title.toLowerCase().includes(type.toLowerCase()) ||
+          (bike.type && bike.type === type)
+        )
+      );
+    }
+
+    // Lọc theo seats
+    if (selectedSeats.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedSeats.some(seat => 
+          bike.title.toLowerCase().includes(seat.toLowerCase()) ||
+          (bike.seats && bike.seats === seat)
+        )
+      );
+    }
+
+    // Lọc theo colors
+    if (selectedColors.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedColors.some(color => 
+          bike.title.toLowerCase().includes(color.toLowerCase()) ||
+          (bike.color && bike.color === color)
+        )
+      );
+    }
+
+    // Lọc theo origins
+    if (selectedOrigins.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedOrigins.some(origin => 
+          bike.title.toLowerCase().includes(origin.toLowerCase()) ||
+          (bike.origin && bike.origin === origin)
+        )
+      );
+    }
+
+    // Lọc theo locations (khu vực)
+    if (selectedLocations.length > 0) {
+      filteredBikes = filteredBikes.filter(bike => 
+        selectedLocations.includes(bike.location)
+      );
+    }
+
+    return filteredBikes;
+  };
 
   const bikeListings = [
     {
@@ -192,11 +433,27 @@ function SellBikePage() {
       price: "58,000,000 đ",
       location: "Tp Hồ Chí Minh",
       seller: "HONDA HEAD MIỀN NAM",
+      phone: "0901234567",
       verified: true,
       images: 8,
       featured: true,
       vip: true,
       discount: "5% thỏa thuận",
+      mileage: "0 km",
+      engine: "125cc",
+      fuelType: "Xăng",
+      color: "Đen",
+      description: "Honda SH Mode 2024 hoàn toàn mới, chưa qua sử dụng. Bảo hành chính hãng 3 năm. Tặng kèm nón bảo hiểm, áo mưa và thảm sàn. Có thể trả góp với lãi suất ưu đãi.",
+      specs: {
+        "Động cơ": "125cc, xi-lanh đơn",
+        "Công suất": "9.3 kW (12.6 PS) @ 6,750 rpm",
+        "Mô-men xoắn": "12.2 Nm @ 5,000 rpm",
+        "Hộp số": "Vô cấp (CVT)",
+        "Dung tích bình xăng": "7.1 lít",
+        "Trọng lượng": "116 kg",
+        "Phanh trước": "Đĩa đơn 240mm",
+        "Phanh sau": "Trống 130mm"
+      }
     },
     {
       id: 2,
@@ -207,10 +464,26 @@ function SellBikePage() {
       price: "62,900,000 đ",
       location: "Hà Nội",
       seller: "VinFast Showroom",
+      phone: "0987654321",
       verified: true,
       images: 10,
       featured: true,
       vip: false,
+      mileage: "0 km",
+      engine: "Động cơ điện",
+      fuelType: "Điện",
+      color: "Trắng",
+      description: "VinFast Evo 200 - Xe máy điện thông minh với công nghệ tiên tiến. Kết nối smartphone, GPS tích hợp, chống trộm thông minh. Bảo hành pin 3 năm, xe 2 năm.",
+      specs: {
+        "Động cơ": "Động cơ điện BLDC",
+        "Công suất": "3.2 kW",
+        "Mô-men xoắn": "110 Nm",
+        "Tốc độ tối đa": "99 km/h",
+        "Quãng đường": "200 km/lần sạc",
+        "Pin": "Lithium 4.2 kWh",
+        "Thời gian sạc": "6-8 tiếng",
+        "Trọng lượng": "118 kg"
+      }
     },
     {
       id: 3,
@@ -222,6 +495,7 @@ function SellBikePage() {
       price: "45,000,000 đ",
       location: "Đà Nẵng",
       seller: "Nguyễn Văn A",
+      phone: "0912345678",
       verified: false,
       images: 6,
       featured: false,
@@ -237,6 +511,7 @@ function SellBikePage() {
       price: "28,500,000 đ",
       location: "Hà Nội",
       seller: "Trần Minh",
+      phone: "0934567890",
       verified: true,
       images: 7,
       rating: 4.8,
@@ -251,8 +526,9 @@ function SellBikePage() {
       type: "Điện",
       condition: "Mới",
       price: "18,900,000 đ",
-      location: "Bình Dương",
+      location: "Huế",
       seller: "Yadea Chính Hãng",
+      phone: "0945678901",
       verified: true,
       images: 5,
       featured: true,
@@ -268,6 +544,7 @@ function SellBikePage() {
       price: "85,000,000 đ",
       location: "Tp Hồ Chí Minh",
       seller: "Dat Bike Official",
+      phone: "0956789012",
       verified: true,
       images: 12,
       rating: 4.9,
@@ -277,24 +554,12 @@ function SellBikePage() {
     },
   ];
 
-  const priceRanges = [
-    "Giá dưới 10 triệu",
-    "Giá 10 triệu - 20 triệu",
-    "Giá 20 triệu - 30 triệu",
-    "Giá 30 triệu - 40 triệu",
-    "Giá 40 triệu - 50 triệu",
-    "Giá 50 triệu - 70 triệu",
-    "Giá 70 triệu - 100 triệu",
-    "Trên 100 triệu",
-  ];
-
   const cities = [
     "Tp Hồ Chí Minh",
     "Hà Nội",
     "Đà Nẵng",
-    "Cần Thơ",
+    "Huế",
     "Hải Phòng",
-    "Bình Dương",
     "Đồng Nai",
     "Vũng Tàu",
   ];
@@ -364,9 +629,24 @@ function SellBikePage() {
               {showPriceDropdown && (
                 <div className="dropdown-menu">
                   {priceRanges.map((range, index) => (
-                    <a key={index} href="#" className="dropdown-item">
-                      {range}
-                    </a>
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedPriceRanges.includes(range) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedPriceRanges.includes(range)) {
+                          setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                        } else {
+                          setSelectedPriceRanges([...selectedPriceRanges, range]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPriceRanges.includes(range)}
+                        readOnly
+                      />
+                      <span>{range}</span>
+                    </div>
                   ))}
                 </div>
               )}
@@ -381,30 +661,26 @@ function SellBikePage() {
               </button>
               {showYearDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    2025
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2024
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2023
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2022
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2021
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2020
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    2019
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Trước 2019
-                  </a>
+                  {years.map((year, index) => (
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedYears.includes(year) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedYears.includes(year)) {
+                          setSelectedYears(selectedYears.filter(y => y !== year));
+                        } else {
+                          setSelectedYears([...selectedYears, year]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedYears.includes(year)}
+                        readOnly
+                      />
+                      <span>{year}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -419,9 +695,24 @@ function SellBikePage() {
               {showBrandDropdown && (
                 <div className="dropdown-menu">
                   {brands.map((brand, index) => (
-                    <a key={index} href="#" className="dropdown-item">
-                      {brand.logo} {brand.name} ({brand.count})
-                    </a>
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedBrands.includes(brand.name) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedBrands.includes(brand.name)) {
+                          setSelectedBrands(selectedBrands.filter(b => b !== brand.name));
+                        } else {
+                          setSelectedBrands([...selectedBrands, brand.name]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedBrands.includes(brand.name)}
+                        readOnly
+                      />
+                      <span>{brand.logo} {brand.name} ({brand.count})</span>
+                    </div>
                   ))}
                 </div>
               )}
@@ -436,67 +727,222 @@ function SellBikePage() {
               </button>
               {showConditionDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Mới
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Đã sử dụng
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Va chạm nhẹ
-                  </a>
+                  {conditions.map((condition, index) => (
+                    <div 
+                      key={index} 
+                      className={`dropdown-item ${selectedConditions.includes(condition) ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (selectedConditions.includes(condition)) {
+                          setSelectedConditions(selectedConditions.filter(c => c !== condition));
+                        } else {
+                          setSelectedConditions([...selectedConditions, condition]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedConditions.includes(condition)}
+                        readOnly
+                      />
+                      <span>{condition}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
             <div className="filter-dropdown-wrapper">
               <button
-                className="filter-btn more"
-                onClick={() =>
-                  setShowMoreFiltersDropdown(!showMoreFiltersDropdown)
-                }
+                className="filter-btn"
+                onClick={() => setShowCarTypeDropdown(!showCarTypeDropdown)}
               >
-                <svg
-                  width="4"
-                  height="16"
-                  viewBox="0 0 4 16"
-                  fill="currentColor"
-                >
-                  <circle cx="2" cy="2" r="2" />
-                  <circle cx="2" cy="8" r="2" />
-                  <circle cx="2" cy="14" r="2" />
-                </svg>
+                <span>Kiểu dáng</span>
+                <ChevronDownIcon />
               </button>
-              {showMoreFiltersDropdown && (
+              {showCarTypeDropdown && (
                 <div className="dropdown-menu">
-                  <a href="#" className="dropdown-item">
-                    Công suất động cơ
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Dung lượng pin
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Quãng đường
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Hộp số
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Màu sắc
-                  </a>
-                  <a href="#" className="dropdown-item">
-                    Xuất xứ
-                  </a>
+                  {carTypes.map((type) => (
+                    <label key={type} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedCarTypes.includes(type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCarTypes([...selectedCarTypes, type]);
+                          } else {
+                            setSelectedCarTypes(
+                              selectedCarTypes.filter((t) => t !== type)
+                            );
+                          }
+                        }}
+                      />
+                      {type}
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
-            <button className="clear-filter">Xoá lọc</button>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowSeatsDropdown(!showSeatsDropdown)}
+              >
+                <span>Số chỗ</span>
+                <ChevronDownIcon />
+              </button>
+              {showSeatsDropdown && (
+                <div className="dropdown-menu">
+                  {seatNumbers.map((seat) => (
+                    <label key={seat} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedSeats.includes(seat)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSeats([...selectedSeats, seat]);
+                          } else {
+                            setSelectedSeats(
+                              selectedSeats.filter((s) => s !== seat)
+                            );
+                          }
+                        }}
+                      />
+                      {seat}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowCityDropdown(!showCityDropdown)}
+              >
+                <span>Khu vực</span>
+                <ChevronDownIcon />
+              </button>
+              {showCityDropdown && (
+                <div className="dropdown-menu">
+                  {locations.map((city) => (
+                    <label key={city} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedCities.includes(city)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCities([...selectedCities, city]);
+                          } else {
+                            setSelectedCities(
+                              selectedCities.filter((c) => c !== city)
+                            );
+                          }
+                        }}
+                      />
+                      {city}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowColorDropdown(!showColorDropdown)}
+              >
+                <span>Màu sắc</span>
+                <ChevronDownIcon />
+              </button>
+              {showColorDropdown && (
+                <div className="dropdown-menu">
+                  {colors.map((color) => (
+                    <label key={color} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedColors.includes(color)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedColors([...selectedColors, color]);
+                          } else {
+                            setSelectedColors(
+                              selectedColors.filter((c) => c !== color)
+                            );
+                          }
+                        }}
+                      />
+                      {color}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="filter-dropdown-wrapper">
+              <button
+                className="filter-btn"
+                onClick={() => setShowOriginDropdown(!showOriginDropdown)}
+              >
+                <span>Xuất xứ</span>
+                <ChevronDownIcon />
+              </button>
+              {showOriginDropdown && (
+                <div className="dropdown-menu">
+                  {origins.map((origin) => (
+                    <label key={origin} className="dropdown-item checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrigins.includes(origin)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOrigins([...selectedOrigins, origin]);
+                          } else {
+                            setSelectedOrigins(
+                              selectedOrigins.filter((o) => o !== origin)
+                            );
+                          }
+                        }}
+                      />
+                      {origin}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button 
+              className="clear-filter"
+              onClick={() => {
+                setSelectedBrands([]);
+                setSelectedPriceRanges([]);
+                setSelectedYears([]);
+                setSelectedConditions([]);
+                setSelectedCities([]);
+                setSelectedLocations([]);
+                setSelectedCarTypes([]);
+                setSelectedSeats([]);
+                setSelectedColors([]);
+                setSelectedOrigins([]);
+              }}
+            >
+              Xoá lọc
+            </button>
           </div>
 
           {/* Location Filter */}
           <div className="location-filter">
             <span className="label">Khu vực:</span>
             {locations.map((location, index) => (
-              <button key={index} className="location-btn">
+              <button 
+                key={index} 
+                className={`location-btn ${
+                  selectedLocations.includes(location) ? "active" : ""
+                }`}
+                onClick={() => {
+                  if (selectedLocations.includes(location)) {
+                    setSelectedLocations(
+                      selectedLocations.filter((l) => l !== location)
+                    );
+                  } else {
+                    setSelectedLocations([...selectedLocations, location]);
+                  }
+                }}
+              >
                 {location}
               </button>
             ))}
@@ -536,18 +982,22 @@ function SellBikePage() {
             <div className="filter-section">
               <h3 className="filter-title">Lọc theo tình trạng</h3>
               <div className="filter-options">
-                <label className="filter-option">
-                  <input type="radio" name="condition" defaultChecked />
-                  <span>Đã sử dụng</span>
-                </label>
-                <label className="filter-option">
-                  <input type="radio" name="condition" />
-                  <span>Mới</span>
-                </label>
-                <label className="filter-option">
-                  <input type="radio" name="condition" />
-                  <span>Va chạm nhẹ</span>
-                </label>
+                {conditions.map((condition, index) => (
+                  <label key={index} className="filter-option">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedConditions.includes(condition)}
+                      onChange={() => {
+                        if (selectedConditions.includes(condition)) {
+                          setSelectedConditions(selectedConditions.filter(c => c !== condition));
+                        } else {
+                          setSelectedConditions([...selectedConditions, condition]);
+                        }
+                      }}
+                    />
+                    <span>{condition}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -560,7 +1010,17 @@ function SellBikePage() {
                 {(showAllPrices ? priceRanges : priceRanges.slice(0, 3)).map(
                   (range, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPriceRanges.includes(range)}
+                        onChange={() => {
+                          if (selectedPriceRanges.includes(range)) {
+                            setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                          } else {
+                            setSelectedPriceRanges([...selectedPriceRanges, range]);
+                          }
+                        }}
+                      />
                       <span>{range}</span>
                     </label>
                   )
@@ -583,7 +1043,17 @@ function SellBikePage() {
                 {(showAllCities ? cities : cities.slice(0, 3)).map(
                   (city, index) => (
                     <label key={index} className="filter-option">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCities.includes(city)}
+                        onChange={() => {
+                          if (selectedCities.includes(city)) {
+                            setSelectedCities(selectedCities.filter(c => c !== city));
+                          } else {
+                            setSelectedCities([...selectedCities, city]);
+                          }
+                        }}
+                      />
                       <span>{city}</span>
                     </label>
                   )
@@ -640,8 +1110,13 @@ function SellBikePage() {
 
             {/* Bike Listings Grid */}
             <div className="listings-grid">
-              {bikeListings.map((bike) => (
-                <div key={bike.id} className="bike-card">
+              {getFilteredBikes().map((bike) => (
+                <div 
+                  key={bike.id} 
+                  className="bike-card"
+                  onClick={() => handleProductClick(bike)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {bike.vip && <div className="vip-badge">Tin VIP</div>}
                   {bike.featured && (
                     <div className="featured-badge">Tin tiêu biểu</div>
@@ -699,16 +1174,19 @@ function SellBikePage() {
                     </div>
 
                     <div className="bike-actions">
-                      <button className="action-btn primary">
+                      <button 
+                        className="action-btn primary"
+                        onClick={(e) => handleRevealPhone(e, bike.id)}
+                      >
                         <PhoneIcon />
-                        Bấm để hiện số
+                        {revealedPhones.has(bike.id) ? bike.phone : "Bấm để hiện số"}
                       </button>
                       <button 
-                        className="action-btn"
+                        className={`action-btn compare-btn ${comparedItems.has(bike.id) ? 'comparing' : ''}`}
                         onClick={(e) => handleAddToCompare(e, bike)}
                       >
                         <CompareIcon />
-                        So sánh
+                        {comparedItems.has(bike.id) ? 'Đã thêm' : 'So sánh'}
                       </button>
                     </div>
                   </div>
@@ -747,6 +1225,162 @@ function SellBikePage() {
           </div>
         </div>
       </div>
+
+      {/* Product Detail Modal */}
+      {showProductDetail && selectedProduct && (
+        <div className="product-detail-overlay" onClick={handleCloseProductDetail}>
+          <div className="product-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={handleCloseProductDetail}>
+              <CloseIcon />
+            </button>
+
+            <div className="product-detail-content">
+              {/* Image Gallery */}
+              <div className="product-gallery">
+                <div className="main-image">
+                  <img 
+                    src={`/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    alt={selectedProduct.title} 
+                  />
+                  {selectedProduct.images > 1 && (
+                    <>
+                      <button className="gallery-nav prev" onClick={handlePrevImage}>
+                        <ChevronLeftIcon />
+                      </button>
+                      <button className="gallery-nav next" onClick={handleNextImage}>
+                        <ChevronRightIcon />
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {selectedProduct.images > 1 && (
+                  <div className="image-thumbnails">
+                    {Array.from({ length: selectedProduct.images }, (_, index) => (
+                      <div
+                        key={index}
+                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img 
+                          src={`/api/placeholder/100/80?text=${index + 1}`} 
+                          alt={`${selectedProduct.title} ${index + 1}`} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="image-counter">
+                  {currentImageIndex + 1} / {selectedProduct.images}
+                </div>
+              </div>
+
+              {/* Product Information */}
+              <div className="product-info">
+                <div className="product-header">
+                  <h2 className="product-title">{selectedProduct.title}</h2>
+                  <div className="product-price">{selectedProduct.price}</div>
+                  {selectedProduct.discount && (
+                    <div className="product-discount">{selectedProduct.discount}</div>
+                  )}
+                </div>
+
+                <div className="product-basic-info">
+                  <div className="info-row">
+                    <span className="label">Năm sản xuất:</span>
+                    <span className="value">{selectedProduct.year}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Tình trạng:</span>
+                    <span className="value">{selectedProduct.condition}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Loại xe:</span>
+                    <span className="value">{selectedProduct.type}</span>
+                  </div>
+                  {selectedProduct.mileage && (
+                    <div className="info-row">
+                      <span className="label">Số km đã đi:</span>
+                      <span className="value">{selectedProduct.mileage}</span>
+                    </div>
+                  )}
+                  <div className="info-row">
+                    <span className="label">Khu vực:</span>
+                    <span className="value">
+                      <LocationIcon />
+                      {selectedProduct.location}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProduct.description && (
+                  <div className="product-description">
+                    <h3>Mô tả</h3>
+                    <p>{selectedProduct.description}</p>
+                  </div>
+                )}
+
+                {selectedProduct.specs && (
+                  <div className="product-specs">
+                    <h3>Thông số kỹ thuật</h3>
+                    <div className="specs-grid">
+                      {Object.entries(selectedProduct.specs).map(([key, value]) => (
+                        <div key={key} className="spec-row">
+                          <span className="spec-label">{key}:</span>
+                          <span className="spec-value">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="seller-section">
+                  <h3>Thông tin người bán</h3>
+                  <div className="seller-card">
+                    <div className="seller-avatar">👤</div>
+                    <div className="seller-details">
+                      <div className="seller-name">
+                        {selectedProduct.seller}
+                        {selectedProduct.verified && <VerifiedIcon />}
+                      </div>
+                      {selectedProduct.rating && (
+                        <div className="seller-rating">
+                          {selectedProduct.rating} ⭐ {selectedProduct.reviews}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-actions">
+                  <button 
+                    className="action-btn primary large"
+                    onClick={(e) => handleRevealPhone(e, selectedProduct.id)}
+                  >
+                    <PhoneIcon />
+                    {revealedPhones.has(selectedProduct.id) ? selectedProduct.phone : "Bấm để hiện số"}
+                  </button>
+                  <button 
+                    className={`action-btn secondary large save-btn ${isSaved(`bike-${selectedProduct.id}`) ? 'saved' : ''}`}
+                    onClick={(e) => handleToggleSaved(e, selectedProduct)}
+                  >
+                    <HeartIcon />
+                    {isSaved(`bike-${selectedProduct.id}`) ? 'Đã lưu' : 'Lưu tin'}
+                  </button>
+                  <button 
+                    className={`action-btn secondary large compare-btn ${comparedItems.has(selectedProduct.id) ? 'comparing' : ''}`}
+                    onClick={(e) => handleAddToCompare(e, selectedProduct)}
+                  >
+                    <CompareIcon />
+                    {comparedItems.has(selectedProduct.id) ? 'Đã thêm' : 'So sánh'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

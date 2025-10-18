@@ -17,6 +17,7 @@ import SettingsPage from './pages/settingsPage';
 import MyPostsPage from './pages/myPostsPage';
 import PackagePage from './pages/packagePage';
 import AuctionRegisterPage from './pages/auctionRegisterPage';
+import AccountPage from './pages/accountPage';
 
 function App() {
   const router = createBrowserRouter([
@@ -35,6 +36,7 @@ function App() {
         { path: '/auction', element: <AuctionPage /> },
         { path: '/auction/:id', element: <AuctionDetailPage /> },
         { path: '/compare', element: <Compare /> },
+        { path: '/account', element: <AccountPage /> },
         { path: '/settings', element: <SettingsPage /> },
         { path: '/my-posts', element: <MyPostsPage /> },
         { path: '/packages', element: <PackagePage /> },

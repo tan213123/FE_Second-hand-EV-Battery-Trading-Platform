@@ -96,8 +96,6 @@ const LoginPage = () => {
           password: formData.password
         });
 
-        console.log('Login successful:', response.data);
-
         // Sử dụng AuthContext để lưu user data
         const userData = {
           memberId: response.data.memberId,

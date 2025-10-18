@@ -1,26 +1,79 @@
-import { useState } from 'react'
-import Header from '../../components/Header'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import './index.scss'
 
-function AccountPage({ onNavigate }) {
-  const [profile, setProfile] = useState({
-    fullName: 'Nguyễn Văn A',
-    username: 'nguyenvana',
-    email: 'user@example.com',
-    phone: '0900 000 000',
-    location: 'Hà Nội, Việt Nam',
-    bio: 'Người đam mê xe điện và công nghệ.',
-  })
+function AccountPage() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const [isEditing, setIsEditing] = useState(false)
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    yearOfBirth: '',
+    sex: '',
+    bio: 'Người đam mê xe điện và công nghệ.'
+  })
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+
+    // Load user data from AuthContext
+    if (user) {
+      setProfile(prevProfile => ({
+        ...prevProfile,
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        yearOfBirth: user.yearOfBirth || '',
+        sex: user.sex || ''
+      }))
+    }
+  }, [isAuthenticated, user, navigate])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setProfile((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleSave = () => {
+    // TODO: Save profile changes to backend
+    console.log('Saving profile:', profile)
+    setIsEditing(false)
+    // Show success message
+  }
+
+  const handleCancel = () => {
+    // Reset to original user data
+    if (user) {
+      setProfile(prevProfile => ({
+        ...prevProfile,
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        yearOfBirth: user.yearOfBirth || '',
+        sex: user.sex || ''
+      }))
+    }
+    setIsEditing(false)
+  }
+
+  // Show loading or redirect if not authenticated
+  if (!isAuthenticated) {
+    return <div>Đang chuyển hướng...</div>
+  }
+
   return (
     <div className="account-page">
-      <Header onNavigate={onNavigate} />
 
       <div className="profile">
         <div className="profile-cover">
@@ -29,21 +82,21 @@ function AccountPage({ onNavigate }) {
 
         <div className="profile-header container">
           <div className="avatar-wrap">
-            <img className="avatar" src="/api/placeholder/120/120" alt="avatar" />
+            <img className="avatar" src="https://via.placeholder.com/120x120/4ECDC4/FFFFFF?text=Avatar" alt="avatar" />
             <button className="btn small secondary">Đổi ảnh</button>
           </div>
           <div className="identity">
-            <h1 className="name">{profile.fullName}</h1>
+            <h1 className="name">{profile.name || 'Chưa cập nhật tên'}</h1>
             <div className="meta">
-              <span className="username">@{profile.username}</span>
+              <span className="email">📧 {profile.email || 'Chưa có email'}</span>
               <span className="dot">•</span>
-              <span className="location">{profile.location}</span>
+              <span className="location">📍 {profile.address || 'Chưa có địa chỉ'}</span>
             </div>
             <p className="bio">{profile.bio}</p>
             <div className="quick-actions">
-              <button className="btn primary" onClick={() => onNavigate && onNavigate('my-posts')}>Tin đăng</button>
-              <button className="btn outline" onClick={() => onNavigate && onNavigate('saved')}>Tin đã lưu</button>
-              <button className="btn outline" onClick={() => onNavigate && onNavigate('settings')}>Cài đặt</button>
+              <button className="btn primary" onClick={() => navigate('/my-posts')}>Tin đăng của tôi</button>
+              <button className="btn outline" onClick={() => navigate('/saved')}>Tin đã lưu</button>
+              <button className="btn outline" onClick={() => navigate('/settings')}>Cài đặt</button>
             </div>
           </div>
           <div className="stats">
@@ -75,16 +128,37 @@ function AccountPage({ onNavigate }) {
           <aside className="sidebar">
             <nav className="side-nav">
               <button className="side-link active">Hồ sơ</button>
-              <button className="side-link" onClick={() => onNavigate && onNavigate('my-posts')}>Tin đăng</button>
-              <button className="side-link" onClick={() => onNavigate && onNavigate('saved')}>Tin đã lưu</button>
-              <button className="side-link" onClick={() => onNavigate && onNavigate('settings')}>Cài đặt</button>
+              <button className="side-link" onClick={() => navigate('/my-posts')}>Tin đăng</button>
+              <button className="side-link" onClick={() => navigate('/saved')}>Tin đã lưu</button>
+              <button className="side-link" onClick={() => navigate('/settings')}>Cài đặt</button>
             </nav>
 
             <div className="info-card">
-              <h3>Thông tin liên hệ</h3>
-              <div className="info-row"><span>Email</span><strong>{profile.email}</strong></div>
-              <div className="info-row"><span>Điện thoại</span><strong>{profile.phone}</strong></div>
-              <div className="info-row"><span>Khu vực</span><strong>{profile.location}</strong></div>
+              <h3>Thông tin cá nhân</h3>
+              <div className="info-row">
+                <span>Họ và tên</span>
+                <strong>{profile.name || 'Chưa cập nhật'}</strong>
+              </div>
+              <div className="info-row">
+                <span>Email</span>
+                <strong>{profile.email || 'Chưa cập nhật'}</strong>
+              </div>
+              <div className="info-row">
+                <span>Số điện thoại</span>
+                <strong>{profile.phone || 'Chưa cập nhật'}</strong>
+              </div>
+              <div className="info-row">
+                <span>Địa chỉ</span>
+                <strong>{profile.address || 'Chưa cập nhật'}</strong>
+              </div>
+              <div className="info-row">
+                <span>Năm sinh</span>
+                <strong>{profile.yearOfBirth || 'Chưa cập nhật'}</strong>
+              </div>
+              <div className="info-row">
+                <span>Giới tính</span>
+                <strong>{profile.sex === 'male' ? 'Nam' : profile.sex === 'female' ? 'Nữ' : profile.sex || 'Chưa cập nhật'}</strong>
+              </div>
             </div>
           </aside>
 
@@ -93,39 +167,140 @@ function AccountPage({ onNavigate }) {
               <>
                 <div className="card">
                   <div className="card-header">
-                    <h2>Chỉnh sửa hồ sơ</h2>
-                    <p>Cập nhật thông tin hiển thị với người khác.</p>
+                    <h2>Thông tin tài khoản</h2>
+                    <p>Quản lý thông tin cá nhân của bạn</p>
+                    <button 
+                      className="btn primary"
+                      onClick={() => setIsEditing(!isEditing)}
+                    >
+                      {isEditing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa thông tin'}
+                    </button>
                   </div>
-                  <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
-                    <div className="field">
-                      <label>Họ và tên</label>
-                      <input name="fullName" value={profile.fullName} onChange={handleChange} placeholder="Tên của bạn" />
+                  
+                  {!isEditing ? (
+                    // View Mode - Hiển thị thông tin
+                    <div className="profile-info">
+                      <div className="info-grid">
+                        <div className="info-item">
+                          <label>Họ và tên</label>
+                          <div className="value">{profile.name || 'Chưa cập nhật'}</div>
+                        </div>
+                        <div className="info-item">
+                          <label>Email</label>
+                          <div className="value">{profile.email || 'Chưa cập nhật'}</div>
+                        </div>
+                        <div className="info-item">
+                          <label>Số điện thoại</label>
+                          <div className="value">{profile.phone || 'Chưa cập nhật'}</div>
+                        </div>
+                        <div className="info-item">
+                          <label>Địa chỉ</label>
+                          <div className="value">{profile.address || 'Chưa cập nhật'}</div>
+                        </div>
+                        <div className="info-item">
+                          <label>Năm sinh</label>
+                          <div className="value">{profile.yearOfBirth || 'Chưa cập nhật'}</div>
+                        </div>
+                        <div className="info-item">
+                          <label>Giới tính</label>
+                          <div className="value">
+                            {profile.sex === 'male' ? 'Nam' : profile.sex === 'female' ? 'Nữ' : profile.sex || 'Chưa cập nhật'}
+                          </div>
+                        </div>
+                        <div className="info-item full">
+                          <label>Giới thiệu</label>
+                          <div className="value">{profile.bio}</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="field">
-                      <label>Tên người dùng</label>
-                      <input name="username" value={profile.username} onChange={handleChange} placeholder="username" />
-                    </div>
-                    <div className="field">
-                      <label>Email</label>
-                      <input type="email" name="email" value={profile.email} onChange={handleChange} placeholder="you@example.com" />
-                    </div>
-                    <div className="field">
-                      <label>Số điện thoại</label>
-                      <input name="phone" value={profile.phone} onChange={handleChange} placeholder="0900 000 000" />
-                    </div>
-                    <div className="field full">
-                      <label>Khu vực</label>
-                      <input name="location" value={profile.location} onChange={handleChange} placeholder="Tỉnh/Thành" />
-                    </div>
-                    <div className="field full">
-                      <label>Giới thiệu</label>
-                      <textarea name="bio" rows={4} value={profile.bio} onChange={handleChange} placeholder="Mô tả ngắn về bạn" />
-                    </div>
-                    <div className="actions">
-                      <button className="btn primary" type="submit">Lưu thay đổi</button>
-                      <button className="btn ghost" type="button">Hủy</button>
-                    </div>
-                  </form>
+                  ) : (
+                    // Edit Mode - Form chỉnh sửa
+                    <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
+                      <div className="field">
+                        <label>Họ và tên *</label>
+                        <input 
+                          name="name" 
+                          value={profile.name} 
+                          onChange={handleChange} 
+                          placeholder="Nhập họ và tên" 
+                          required
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Email *</label>
+                        <input 
+                          type="email" 
+                          name="email" 
+                          value={profile.email} 
+                          onChange={handleChange} 
+                          placeholder="example@email.com" 
+                          required
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Số điện thoại *</label>
+                        <input 
+                          name="phone" 
+                          value={profile.phone} 
+                          onChange={handleChange} 
+                          placeholder="0900 000 000" 
+                          required
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Năm sinh</label>
+                        <input 
+                          type="number" 
+                          name="yearOfBirth" 
+                          value={profile.yearOfBirth} 
+                          onChange={handleChange} 
+                          placeholder="1990" 
+                          min="1950"
+                          max="2010"
+                        />
+                      </div>
+                      <div className="field full">
+                        <label>Địa chỉ</label>
+                        <input 
+                          name="address" 
+                          value={profile.address} 
+                          onChange={handleChange} 
+                          placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" 
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Giới tính</label>
+                        <select 
+                          name="sex" 
+                          value={profile.sex} 
+                          onChange={handleChange}
+                        >
+                          <option value="">Chọn giới tính</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
+                        </select>
+                      </div>
+                      <div className="field full">
+                        <label>Giới thiệu</label>
+                        <textarea 
+                          name="bio" 
+                          rows={4} 
+                          value={profile.bio} 
+                          onChange={handleChange} 
+                          placeholder="Mô tả ngắn về bản thân..." 
+                        />
+                      </div>
+                      <div className="actions">
+                        <button className="btn primary" type="button" onClick={handleSave}>
+                          Lưu thay đổi
+                        </button>
+                        <button className="btn secondary" type="button" onClick={handleCancel}>
+                          Hủy
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
 
                 <div className="card">

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import './index.scss'
 
 // Icon components
@@ -52,7 +54,10 @@ const ChevronRightIcon = () => (
   </svg>
 )
 
-function SettingsPage({ onNavigate }) {
+function SettingsPage() {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  
   const [settings, setSettings] = useState({
     notifications: {
       email: true,
@@ -84,7 +89,14 @@ function SettingsPage({ onNavigate }) {
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      onNavigate('logout')
+      console.log('🚪 Settings page - User confirmed logout')
+      
+      // Thực hiện logout
+      logout()
+      
+      // Chuyển về trang home
+      navigate('/', { replace: true })
+      console.log('✅ Settings page - Đã đăng xuất và chuyển về trang chủ')
     }
   }
 
@@ -96,126 +108,17 @@ function SettingsPage({ onNavigate }) {
         {
           title: 'Thông tin cá nhân',
           subtitle: 'Chỉnh sửa thông tin tài khoản',
-          action: () => onNavigate('account')
+          action: () => navigate('/account')
         },
         {
           title: 'Đổi mật khẩu',
           subtitle: 'Cập nhật mật khẩu bảo mật',
           action: () => console.log('Change password')
         },
-        {
-          title: 'Xác thực 2 bước',
-          subtitle: settings.twoFactorAuth ? 'Đã bật' : 'Chưa bật',
-          toggle: true,
-          value: settings.twoFactorAuth,
-          onChange: (value) => handleSettingChange('privacy', 'twoFactorAuth', value)
-        }
       ]
     },
-    {
-      title: 'Thông báo',
-      icon: <BellIcon />,
-      items: [
-        {
-          title: 'Email',
-          subtitle: 'Nhận thông báo qua email',
-          toggle: true,
-          value: settings.notifications.email,
-          onChange: (value) => handleSettingChange('notifications', 'email', value)
-        },
-        {
-          title: 'Push notifications',
-          subtitle: 'Thông báo đẩy trên thiết bị',
-          toggle: true,
-          value: settings.notifications.push,
-          onChange: (value) => handleSettingChange('notifications', 'push', value)
-        },
-        {
-          title: 'SMS',
-          subtitle: 'Nhận thông báo qua tin nhắn',
-          toggle: true,
-          value: settings.notifications.sms,
-          onChange: (value) => handleSettingChange('notifications', 'sms', value)
-        },
-        {
-          title: 'Marketing',
-          subtitle: 'Nhận tin tức và ưu đãi',
-          toggle: true,
-          value: settings.notifications.marketing,
-          onChange: (value) => handleSettingChange('notifications', 'marketing', value)
-        }
-      ]
-    },
-    {
-      title: 'Quyền riêng tư',
-      icon: <ShieldIcon />,
-      items: [
-        {
-          title: 'Hiển thị hồ sơ',
-          subtitle: 'Ai có thể xem hồ sơ của bạn',
-          select: true,
-          value: settings.privacy.profileVisibility,
-          options: [
-            { value: 'public', label: 'Công khai' },
-            { value: 'friends', label: 'Bạn bè' },
-            { value: 'private', label: 'Riêng tư' }
-          ],
-          onChange: (value) => handleSettingChange('privacy', 'profileVisibility', value)
-        },
-        {
-          title: 'Hiển thị số điện thoại',
-          subtitle: 'Cho phép người khác xem số điện thoại',
-          toggle: true,
-          value: settings.privacy.showPhone,
-          onChange: (value) => handleSettingChange('privacy', 'showPhone', value)
-        },
-        {
-          title: 'Hiển thị email',
-          subtitle: 'Cho phép người khác xem email',
-          toggle: true,
-          value: settings.privacy.showEmail,
-          onChange: (value) => handleSettingChange('privacy', 'showEmail', value)
-        },
-        {
-          title: 'Cho phép nhắn tin',
-          subtitle: 'Người khác có thể nhắn tin cho bạn',
-          toggle: true,
-          value: settings.privacy.allowMessages,
-          onChange: (value) => handleSettingChange('privacy', 'allowMessages', value)
-        }
-      ]
-    },
-    {
-      title: 'Giao diện',
-      icon: <GlobeIcon />,
-      items: [
-        {
-          title: 'Ngôn ngữ',
-          subtitle: 'Chọn ngôn ngữ hiển thị',
-          select: true,
-          value: settings.language,
-          options: [
-            { value: 'vi', label: 'Tiếng Việt' },
-            { value: 'en', label: 'English' }
-          ],
-          onChange: (value) => handleSettingChange('privacy', 'language', value)
-        },
-        {
-          title: 'Chế độ tối',
-          subtitle: settings.theme === 'dark' ? 'Đã bật' : 'Đã tắt',
-          toggle: true,
-          value: settings.theme === 'dark',
-          onChange: (value) => handleSettingChange('privacy', 'theme', value ? 'dark' : 'light')
-        },
-        {
-          title: 'Tự động lưu',
-          subtitle: 'Tự động lưu dữ liệu khi chỉnh sửa',
-          toggle: true,
-          value: settings.autoSave,
-          onChange: (value) => handleSettingChange('privacy', 'autoSave', value)
-        }
-      ]
-    },
+    
+   
     {
       title: 'Hỗ trợ',
       icon: <HelpIcon />,
@@ -233,12 +136,12 @@ function SettingsPage({ onNavigate }) {
         {
           title: 'Điều khoản sử dụng',
           subtitle: 'Xem điều khoản và chính sách',
-          action: () => onNavigate('terms')
+          action: () => navigate('/terms')
         },
         {
           title: 'Chính sách bảo mật',
           subtitle: 'Thông tin về quyền riêng tư',
-          action: () => onNavigate('privacy')
+          action: () => navigate('/privacy')
         }
       ]
     }

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import './index.scss'
 
 // Icon Components
@@ -45,12 +46,85 @@ const AuctionIcon = () => (
 
 function Header() {
   const navigate = useNavigate()
+  const { user, isAuthenticated, logout } = useAuth()
   const [showMenuDropdown, setShowMenuDropdown] = useState(false)
   const [showSellerDropdown, setShowSellerDropdown] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+
+  // Hàm xử lý click cho các tính năng yêu cầu đăng nhập
+  const handleAuthRequired = (action) => {
+    if (!isAuthenticated) {
+      // Đóng tất cả dropdowns
+      setShowMenuDropdown(false)
+      setShowSellerDropdown(false)
+      setShowUserDropdown(false)
+      
+      // Hiển thị thông báo
+      alert('🔒 Tính năng này yêu cầu đăng nhập!\n\nVui lòng đăng nhập để truy cập đầy đủ các tính năng của EcoXe.')
+      
+      // Chuyển đến trang đăng nhập
+      setTimeout(() => {
+        navigate('/login')
+      }, 500)
+      return
+    }
+    action()
+  }
+
+  const handleLogout = () => {
+    console.log('🚪 User clicked logout button')
+    
+    // Đóng tất cả dropdowns
+    setShowUserDropdown(false)
+    setShowMenuDropdown(false)
+    setShowSellerDropdown(false)
+    
+    // Thực hiện logout
+    logout()
+    
+    // Chuyển về trang home sau khi đăng xuất - sử dụng replace để không lưu history
+    navigate('/', { replace: true })
+    console.log('✅ Đăng xuất thành công, đã chuyển về trang home')
+  }
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.menu-wrapper')) {
+        setShowMenuDropdown(false)
+      }
+      if (!event.target.closest('.seller-menu')) {
+        setShowSellerDropdown(false)
+      }
+      if (!event.target.closest('.user-menu')) {
+        setShowUserDropdown(false)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   return (
-    <header className="main-header">
-      <div className="header-container">
+    <div className="header-wrapper">
+      {!isAuthenticated && (
+        <div className="auth-banner">
+          <div className="auth-banner-content">
+            <span className="auth-banner-icon">🔒</span>
+            <span className="auth-banner-text">
+              Đăng nhập để sử dụng đầy đủ tính năng EcoXe
+            </span>
+            <button 
+              className="auth-banner-btn"
+              onClick={() => navigate('/login')}
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        </div>
+      )}
+      <header className="main-header">
+        <div className="header-container">
         <div className="header-left">
           <div className="menu-wrapper">
             <button 
@@ -63,101 +137,200 @@ function Header() {
               <div className="dropdown-menu menu-dropdown">
                 <div className="menu-section">
                   <div className="menu-section-title">Tài khoản</div>
-                  <Link 
-                    to="/account" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <UserIcon />
-                    <span>Tài khoản của tôi</span>
-                  </Link>
-                  <Link 
-                    to="/my-posts" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">📋</div>
-                    <span>Tin đăng của tôi</span>
-                  </Link>
-                  <Link 
-                    to="/saved" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <HeartIcon />
-                    <span>Tin đã lưu</span>
-                  </Link>
-                  <Link 
-                    to="/compare" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">⚖️</div>
-                    <span>So sánh sản phẩm</span>
-                  </Link>
-                  <Link 
-                    to="/auction-register" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">🎯</div>
-                    <span>Đăng ký đấu giá</span>
-                  </Link>
+                  {isAuthenticated ? (
+                    <>
+                      <Link 
+                        to="/account" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <UserIcon />
+                        <span>Tài khoản của tôi</span>
+                      </Link>
+                      <Link 
+                        to="/my-posts" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon">📋</div>
+                        <span>Tin đăng của tôi</span>
+                      </Link>
+                      <Link 
+                        to="/saved" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <HeartIcon />
+                        <span>Tin đã lưu</span>
+                      </Link>
+                      <Link 
+                        to="/compare" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon">⚖️</div>
+                        <span>So sánh sản phẩm</span>
+                      </Link>
+                      <Link 
+                        to="/auction-register" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon">🎯</div>
+                        <span>Đăng ký đấu giá</span>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <UserIcon />
+                        <span>Tài khoản của tôi</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon">📋</div>
+                        <span>Tin đăng của tôi</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <HeartIcon />
+                        <span>Tin đã lưu</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon">⚖️</div>
+                        <span>So sánh sản phẩm</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon">🎯</div>
+                        <span>Đăng ký đấu giá</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <hr className="dropdown-divider" />
                 <div className="menu-section">
                   <div className="menu-section-title">Dành cho người bán</div>
-                  <Link 
-                    to="/post" 
-                    className="dropdown-item highlight"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">➕</div>
-                    <span>Đăng tin</span>
-                  </Link>
-                  <Link 
-                    to="/packages" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">📋</div>
-                    <span>Gói Đăng tin</span>
-                  </Link>
-                  <Link 
-                    to="/packages" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon pro-badge">PRO</div>
-                    <span>Gói Đăng tin Pro</span>
-                  </Link>
-                  <Link 
-                    to="/packages" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon partner-badge">👥</div>
-                    <span>Gói đấu giá</span>
-                  </Link>
+                  {isAuthenticated ? (
+                    <>
+                      <Link 
+                        to="/post" 
+                        className="dropdown-item highlight"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon">➕</div>
+                        <span>Đăng tin</span>
+                      </Link>
+                      <Link 
+                        to="/packages" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon">📋</div>
+                        <span>Gói Đăng tin</span>
+                      </Link>
+                      <Link 
+                        to="/packages" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon pro-badge">PRO</div>
+                        <span>Gói Đăng tin Pro</span>
+                      </Link>
+                      <Link 
+                        to="/packages" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon partner-badge">👥</div>
+                        <span>Gói đấu giá</span>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <div 
+                        className="dropdown-item disabled highlight"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon">➕</div>
+                        <span>Đăng tin</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon">📋</div>
+                        <span>Gói Đăng tin</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon pro-badge">PRO</div>
+                        <span>Gói Đăng tin Pro</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon partner-badge">👥</div>
+                        <span>Gói đấu giá</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <hr className="dropdown-divider" />
                 <div className="menu-section">
-                  <Link 
-                    to="/settings" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">⚙️</div>
-                    <span>Cài đặt</span>
-                  </Link>
-                  <Link 
-                    to="/login" 
-                    className="dropdown-item"
-                    onClick={() => setShowMenuDropdown(false)}
-                  >
-                    <div className="item-icon">🚪</div>
-                    <span>Đăng xuất</span>
-                  </Link>
+                  {isAuthenticated ? (
+                    <Link 
+                      to="/settings" 
+                      className="dropdown-item"
+                      onClick={() => setShowMenuDropdown(false)}
+                    >
+                      <div className="item-icon">⚙️</div>
+                      <span>Cài đặt</span>
+                    </Link>
+                  ) : (
+                    <>
+                      <div 
+                        className="dropdown-item disabled"
+                        onClick={() => handleAuthRequired(() => {})}
+                      >
+                        <div className="item-icon">⚙️</div>
+                        <span>Cài đặt</span>
+                        <span className="lock-icon">🔒</span>
+                      </div>
+                      <Link 
+                        to="/login" 
+                        className="dropdown-item"
+                        onClick={() => setShowMenuDropdown(false)}
+                      >
+                        <div className="item-icon">🚪</div>
+                        <span>Đăng nhập</span>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -168,13 +341,20 @@ function Header() {
           </Link>
           <div className="seller-menu">
             <button 
-              className="location-selector"
-              onClick={() => setShowSellerDropdown(!showSellerDropdown)}
+              className={`location-selector ${!isAuthenticated ? 'disabled' : ''}`}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  handleAuthRequired(() => {})
+                  return
+                }
+                setShowSellerDropdown(!showSellerDropdown)
+              }}
             >
               <span className="location-label">Dành cho người bán</span>
               <ChevronDownIcon />
+              {!isAuthenticated && <span className="lock-icon">🔒</span>}
             </button>
-            {showSellerDropdown && (
+            {showSellerDropdown && isAuthenticated && (
               <div className="dropdown-menu seller-dropdown">
                 <Link to="/packages" className="dropdown-item">
                   <div className="item-icon">📋</div>
@@ -195,40 +375,134 @@ function Header() {
 
         <nav className="header-nav">
           <Link to="/" className="nav-link active">EcoXe</Link>
-          <Link to="/oto" className="nav-link">Xe cộ</Link>
-          <Link to="/battery" className="nav-link">Pin</Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/oto" className="nav-link">Xe cộ</Link>
+              <Link to="/battery" className="nav-link">Pin</Link>
+            </>
+          ) : (
+            <>
+              <div 
+                className="nav-link disabled"
+                onClick={() => handleAuthRequired(() => navigate('/oto'))}
+              >
+                🔒 Xe cộ
+              </div>
+              <div 
+                className="nav-link disabled"
+                onClick={() => handleAuthRequired(() => navigate('/battery'))}
+              >
+                🔒 Pin
+              </div>
+            </>
+          )}
         </nav>
 
         <div className="header-right">
           <button 
-            className="icon-btn"
-            onClick={() => navigate('/compare')}
-            title="So sánh sản phẩm"
+            className={`icon-btn ${!isAuthenticated ? 'disabled' : ''}`}
+            onClick={() => handleAuthRequired(() => navigate('/compare'))}
+            title={isAuthenticated ? "So sánh sản phẩm" : "Vui lòng đăng nhập"}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
             </svg>
+            {!isAuthenticated && <span className="lock-badge">🔒</span>}
           </button>
           <button 
-            className="icon-btn"
-            onClick={() => navigate('/saved')}
+            className={`icon-btn ${!isAuthenticated ? 'disabled' : ''}`}
+            onClick={() => handleAuthRequired(() => navigate('/saved'))}
+            title={isAuthenticated ? "Tin đã lưu" : "Vui lòng đăng nhập"}
           >
             <HeartIcon />
+            {!isAuthenticated && <span className="lock-badge">🔒</span>}
           </button>
           <button 
-            className="icon-btn"
-            onClick={() => navigate('/auction-register')}
-            title="Đăng ký đấu giá"
+            className={`icon-btn ${!isAuthenticated ? 'disabled' : ''}`}
+            onClick={() => handleAuthRequired(() => navigate('/auction-register'))}
+            title={isAuthenticated ? "Đăng ký đấu giá" : "Vui lòng đăng nhập"}
           >
             <AuctionIcon />
+            {!isAuthenticated && <span className="lock-badge">🔒</span>}
           </button>
           
-          <button className="btn-primary" onClick={() => navigate('/login')}>Đăng nhập</button>
-          <button className="btn-secondary" onClick={() => navigate('/post')}>Đăng tin</button>
-          <button className="btn-secondary" onClick={() => navigate('/auction')}>Đấu giá</button>
+          {!isAuthenticated ? (
+            <button className="btn-primary" onClick={() => navigate('/login')}>Đăng nhập</button>
+          ) : (
+            <div className="user-menu">
+              <button 
+                className="user-profile-btn"
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+              >
+                <UserIcon />
+                <span className="user-name">Xin chào, {user?.name || 'User'}</span>
+                <ChevronDownIcon />
+              </button>
+              {showUserDropdown && (
+                <div className="dropdown-menu user-dropdown">
+                  <Link 
+                    to="/account" 
+                    className="dropdown-item"
+                    onClick={() => setShowUserDropdown(false)}
+                  >
+                    <UserIcon />
+                    <span>Tài khoản của tôi</span>
+                  </Link>
+                  <Link 
+                    to="/my-posts" 
+                    className="dropdown-item"
+                    onClick={() => setShowUserDropdown(false)}
+                  >
+                    <div className="item-icon">📋</div>
+                    <span>Tin đăng của tôi</span>
+                  </Link>
+                  <Link 
+                    to="/saved" 
+                    className="dropdown-item"
+                    onClick={() => setShowUserDropdown(false)}
+                  >
+                    <HeartIcon />
+                    <span>Tin đã lưu</span>
+                  </Link>
+                  <Link 
+                    to="/settings" 
+                    className="dropdown-item"
+                    onClick={() => setShowUserDropdown(false)}
+                  >
+                    <div className="item-icon">⚙️</div>
+                    <span>Cài đặt</span>
+                  </Link>
+                  <div className="dropdown-divider"></div>
+                  <button 
+                    className="dropdown-item logout-btn"
+                    onClick={handleLogout}
+                  >
+                    <div className="item-icon">🚪</div>
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <button 
+            className={`btn-secondary ${!isAuthenticated ? 'disabled' : ''}`}
+            onClick={() => handleAuthRequired(() => navigate('/post'))}
+          >
+            {!isAuthenticated && <span className="lock-icon">🔒 </span>}
+            Đăng tin
+          </button>
+          <button 
+            className={`btn-secondary ${!isAuthenticated ? 'disabled' : ''}`}
+            onClick={() => handleAuthRequired(() => navigate('/auction'))}
+          >
+            {!isAuthenticated && <span className="lock-icon">🔒 </span>}
+            Đấu giá
+          </button>
         </div>
       </div>
     </header>
+    </div>
   )
 }
 

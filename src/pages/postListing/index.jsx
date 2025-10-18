@@ -37,7 +37,7 @@ const PostListing = () => {
   const categories = [
     { id: 'car', name: 'Ô tô', icon: '🚗' },
     { id: 'electric', name: 'Xe điện', icon: '🏍️' },
-    { id: 'battery', name: 'Pin & Phụ kiện', icon: '🔋' }
+    { id: 'battery', name: 'Pin', icon: '🔋' }
   ]
 
   const carBrands = ['VinFast', 'Toyota', 'Honda', 'Mazda', 'Hyundai', 'Kia', 'Ford', 'Mitsubishi', 'Mercedes-Benz', 'BMW', 'Audi', 'Lexus']
