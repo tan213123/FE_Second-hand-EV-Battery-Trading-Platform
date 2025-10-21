@@ -16,50 +16,110 @@ const Compare = () => {
       title: "VinFast VF 8 2023",
       price: 850000000,
       category: "car",
-      image: "https://via.placeholder.com/300x200",
+      image: "/api/placeholder/300/200?text=VinFast+VF8",
       specs: {
         year: 2023,
         brand: "VinFast",
         condition: "Mới",
         bodyType: "SUV",
         seats: "5 chỗ",
-        color: "Đỏ",
+        color: "Đỏ", 
         origin: "Sản xuất trong nước",
         mileage: "0 km",
+        battery: "95%",
       },
+      // Thêm thông tin đầy đủ cho PostDetailPage
+      year: 2023,
+      brand: "VinFast",
+      condition: "Mới",
+      color: "Đỏ",
+      origin: "Sản xuất trong nước",
+      mileage: 0,
+      batteryInfo: 95,
+      description: "VinFast VF 8 2023 - xe điện cao cấp với công nghệ tiên tiến, thiết kế sang trọng và hiệu suất vượt trội.",
+      contactName: "Showroom VinFast",
+      contactPhone: "0901234567",
+      location: {
+        city: "TP. Hồ Chí Minh",
+        district: "Quận 1",
+        ward: "Phường Bến Nghé",
+        address: "123 Đường Nguyễn Huệ"
+      },
+      images: ["/api/placeholder/600/400?text=VinFast+VF8+1", "/api/placeholder/600/400?text=VinFast+VF8+2"],
+      createdAt: new Date().toISOString(),
+      negotiable: true
     },
     {
       id: 2,
-      title: "Toyota Camry 2022",
-      price: 1200000000,
-      category: "car",
-      image: "https://via.placeholder.com/300x200",
+      title: "Cần bán xe điện gấp để mua xe mới", 
+      price: 200000000,
+      category: "electric",
+      image: "/api/placeholder/300/200?text=Xe+Dien",
       specs: {
-        year: 2022,
-        brand: "Toyota",
-        condition: "Đã sử dụng (Tốt)",
-        bodyType: "Sedan",
-        seats: "5 chỗ",
-        color: "Đen",
-        origin: "Nhập khẩu",
-        mileage: "15000 km",
+        year: 2023,
+        brand: "VinFast",
+        condition: "Đã sử dụng (Còn mới)",
+        color: "Nâu",
+        origin: "Sản xuất trong nước",
+        mileage: "100 km",
+        battery: "85%",
       },
+      // Thêm thông tin đầy đủ cho PostDetailPage
+      year: 2023,
+      brand: "VinFast", 
+      condition: "Đã sử dụng (Còn mới)",
+      color: "Nâu",
+      origin: "Sản xuất trong nước",
+      mileage: 100,
+      batteryInfo: 85,
+      description: "Xe điện VinFast Klara S 2022 còn mới 95%, pin tốt, chạy êm. Cần bán gấp để mua xe mới.",
+      contactName: "Nguyễn Văn A",
+      contactPhone: "0987654321",
+      location: {
+        city: "TP. Hồ Chí Minh",
+        district: "Quận 7", 
+        ward: "Phường Tân Phú",
+        address: "456 Đường Nguyễn Thị Thập"
+      },
+      images: ["/api/placeholder/600/400?text=Klara+S+1", "/api/placeholder/600/400?text=Klara+S+2"],
+      createdAt: new Date().toISOString(),
+      negotiable: true
     },
     {
       id: 3,
       title: "Yadea S3 Pro 2023",
       price: 25000000,
-      category: "electric",
-      image: "https://via.placeholder.com/300x200",
+      category: "electric", 
+      image: "/api/placeholder/300/200?text=Yadea+S3",
       specs: {
         year: 2023,
         brand: "Yadea",
         condition: "Mới",
         color: "Xanh",
         origin: "Nhập khẩu",
-        battery: "60V 20Ah",
+        battery: "90%",
         range: "70 km",
       },
+      // Thêm thông tin đầy đủ cho PostDetailPage  
+      year: 2023,
+      brand: "Yadea",
+      condition: "Mới",
+      color: "Xanh",
+      origin: "Nhập khẩu", 
+      mileage: 0,
+      batteryInfo: 90,
+      description: "Yadea S3 Pro 2023 mới 100%, pin lithium cao cấp, thiết kế thể thao năng động.",
+      contactName: "Yadea Chính Hãng",
+      contactPhone: "0912345678",
+      location: {
+        city: "Hà Nội",
+        district: "Quận Hai Bà Trưng",
+        ward: "Phường Bách Khoa", 
+        address: "789 Đường Hai Bà Trưng"
+      },
+      images: ["/api/placeholder/600/400?text=Yadea+S3+1", "/api/placeholder/600/400?text=Yadea+S3+2"],
+      createdAt: new Date().toISOString(),
+      negotiable: false
     },
   ];
 
@@ -85,6 +145,15 @@ const Compare = () => {
     }
   };
 
+  const handleViewDetail = (item) => {
+    // Lưu dữ liệu sản phẩm vào sessionStorage để sử dụng trong trang detail
+    // Ưu tiên originalPost (dữ liệu thực), fallback về item (mock data)
+    const postData = item.originalPost || item;
+    sessionStorage.setItem('viewingPost', JSON.stringify(postData));
+    // Chuyển đến trang chi tiết bài đăng  
+    navigate('/post-detail/' + postData.id);
+  };
+
   const specLabels = {
     year: "Năm sản xuất",
     brand: "Hãng/Thương hiệu",
@@ -95,7 +164,7 @@ const Compare = () => {
     origin: "Xuất xứ",
     mileage: "Số km đã đi",
     battery: "Pin",
-    range: "Quãng đường",
+
     capacity: "Dung lượng",
     type: "Loại pin",
     health: "Sức khỏe pin"
@@ -170,7 +239,7 @@ const Compare = () => {
                     </div>
                     <button
                       className="btn-view"
-                      onClick={() => navigate(`/product/${item.id}`)}
+                      onClick={() => handleViewDetail(item)}
                     >
                       Xem chi tiết
                     </button>

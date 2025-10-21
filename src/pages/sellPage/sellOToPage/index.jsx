@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSaved, useCompare } from "../../../contexts/AppContext";
+import localStorageService from "../../../services/localStorageService";
 import "./index.scss";
 
 // Icon Components
@@ -184,8 +185,76 @@ function SellOtoPage() {
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [comparedItems, setComparedItems] = useState(new Set());
+  const [carsFromStorage, setCarsFromStorage] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
+
+  // Load cars from localStorage
+  useEffect(() => {
+    const loadCarsFromStorage = () => {
+      try {
+        const allPosts = localStorageService.getAllPosts();
+        // Lọc chỉ lấy xe ô tô điện (category = 'car')
+        const carPosts = allPosts.filter(post => post.category === 'car');
+        
+        if (carPosts.length > 0) {
+          // Format lại dữ liệu để hiển thị
+          const formattedCars = carPosts.map(post => ({
+            id: post.id,
+            title: post.title,
+            year: post.year,
+            type: "Điện",
+            condition: post.condition,
+            price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+            location: post.location?.district && post.location?.city 
+              ? `${post.location.district}, ${mapCityCodeToName(post.location.city)}`
+              : mapCityCodeToName(post.location?.city) || post.location?.district || '',
+            seller: post.contactName,
+            phone: post.contactPhone,
+            verified: false,
+            images: post.images?.length || 0,
+            featured: false,
+            vip: false,
+            discount: post.negotiable ? "Có thể thương lượng" : "",
+            mileage: post.mileage ? `${post.mileage} km` : "0 km",
+            engine: "Điện",
+            transmission: "Tự động",
+            color: post.color,
+            brand: post.brand,
+            description: post.description,
+            batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+            origin: post.origin || "Chưa cập nhật",
+            bodyType: post.bodyType,
+            seats: post.seats,
+            originalPost: post,
+            image: post.images?.[0] || '/api/placeholder/400/300'
+          }));
+          
+          console.log('Formatted cars with images:', formattedCars.map(car => ({ id: car.id, title: car.title, image: car.image })));
+          setCarsFromStorage(formattedCars);
+        } else {
+          setCarsFromStorage([]);
+        }
+      } catch (error) {
+        console.error('Error loading cars from storage:', error);
+        setCarsFromStorage([]);
+      }
+      setLoading(false);
+    };
+    
+    loadCarsFromStorage();
+    
+    // Listen for storage changes
+    const handleStorageChange = () => loadCarsFromStorage();
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('postUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('postUpdated', handleStorageChange);
+    };
+  }, []);
 
   const handleToggleSaved = (e, car) => {
     e.preventDefault();
@@ -194,7 +263,7 @@ function SellOtoPage() {
       ...car,
       id: `oto-${car.id}`, // Thêm prefix để tránh conflict với trang khác
       category: 'Ô tô điện',
-      image: '/api/placeholder/400/300'
+      image: car.image || '/api/placeholder/400/300'
     };
     toggleSaved(savedCar);
   };
@@ -206,7 +275,7 @@ function SellOtoPage() {
       ...car,
       id: `oto-${car.id}`,
       category: 'Ô tô điện',
-      image: '/api/placeholder/400/300',
+      image: car.image || '/api/placeholder/400/300',
       specs: {
         year: car.year || '-',
         brand: car.brand || '-',
@@ -215,7 +284,8 @@ function SellOtoPage() {
         seats: car.seats || '-',
         color: car.color || '-',
         origin: car.origin || '-',
-        mileage: car.mileage || '-'
+        mileage: car.mileage || '-',
+        battery: car.batteryInfo || '-'
       }
     };
     addToCompare(compareCar);
@@ -231,6 +301,28 @@ function SellOtoPage() {
         return newSet;
       });
     }, 2000);
+  };
+
+  // Helper function to extract city from location
+  const getCityFromLocation = (location) => {
+    if (!location) return '';
+    const parts = location.split(',');
+    return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
+  };
+
+  // Map city codes to display names to match filter
+  const mapCityCodeToName = (cityCode) => {
+    const cityMapping = {
+      'hcm': 'Tp Hồ Chí Minh',
+      'hanoi': 'Hà Nội', 
+      'danang': 'Đà Nẵng',
+      'cantho': 'Cần Thơ',
+      'haiphong': 'Hải Phòng',
+      'binhduong': 'Bình Dương',
+      'dongnai': 'Đồng Nai',
+      'vungtau': 'Vũng Tàu'
+    };
+    return cityMapping[cityCode] || cityCode;
   };
 
   const handleRevealPhone = (e, carId) => {
@@ -276,6 +368,7 @@ function SellOtoPage() {
     }
   };
 
+  // Dữ liệu filter 
   const brands = [
     { name: "MG", logo: "🚙", count: 3210 },
     { name: "VinFast", logo: "⚡", count: 8950 },
@@ -284,7 +377,7 @@ function SellOtoPage() {
     { name: "Mercedes Benz", logo: "⭐", count: 1560 },
     { name: "Porsche", logo: "🚗", count: 980 },
     { name: "Kia", logo: "🚗", count: 2340 },
-    { name: "Rolls-Royce", logo: "🚗", count: 1870 },
+    { name: "BYD", logo: "🚗", count: 1870 },
   ];
 
   const locations = [
@@ -293,131 +386,6 @@ function SellOtoPage() {
     "Đà Nẵng",
     "Huế", 
     "Gần tôi",
-  ];
-
-  const carListings = [
-    {
-      id: 1,
-      title: "BYD M6 2025 - DEAL RỰC RỠ - QUÀ BẤT NGỜ",
-      year: 2025,
-      type: "Điện",
-      transmission: "Tự động",
-      condition: "Mới",
-      price: "756,000,000 đ",
-      location: "Bình Dương",
-      seller: "THÁO NGUYÊN BYD MIỀN NAM",
-      phone: "0901111111",
-      verified: true,
-      images: 5,
-      featured: true,
-      vip: true,
-      discount: "6% thỏa thuận",
-      mileage: "0 km",
-      bodyType: "SUV",
-      seats: "7 chỗ",
-      color: "Đen",
-      description: "BYD M6 2025 hoàn toàn mới với công nghệ Blade Battery an toàn. Thiết kế sang trọng, không gian rộng rãi cho 7 người. Bảo hành xe 6 năm, pin 8 năm. Hỗ trợ trả góp lãi suất ưu đãi.",
-      specs: {
-        "Động cơ": "Động cơ điện kép",
-        "Công suất": "150 kW (204 PS)",
-        "Mô-men xoắn": "310 Nm",
-        "Tốc độ tối đa": "150 km/h",
-        "Quãng đường": "420 km/lần sạc",
-        "Pin": "BYD Blade Battery 71.8 kWh",
-        "Thời gian sạc": "0.5-1 giờ (DC fast)",
-        "Kích thước": "4710 x 1890 x 1680 mm",
-        "Trọng lượng": "2020 kg"
-      }
-    },
-    {
-      id: 2,
-      title: "MUA XE VF5 Ở ĐỘNG, MẪU NÂNG CAO GIÁ CƠ BẢN",
-      year: 2025,
-      type: "Điện",
-      transmission: "Tự động",
-      condition: "Mới",
-      price: "507,000,000 đ",
-      location: "Tp Hồ Chí Minh",
-      seller: "Vinfast VFX Thủ Đức",
-      phone: "0902222222",
-      verified: false,
-      images: 7,
-      featured: true,
-      vip: false,
-    },
-    {
-      id: 3,
-      title: "VF6 trả trước 90 triệu, không cần bằng lái & cmtn",
-      year: 2025,
-      type: "Điện",
-      transmission: "Tự động",
-      condition: "Mới",
-      price: "651,000,000 đ",
-      location: "Bình Dương",
-      seller: "ĐỔ HÙNG VINFAST NAM THÁI",
-      phone: "0903333333",
-      verified: true,
-      images: 6,
-      featured: true,
-      vip: false,
-      soldTime: "5 đã bán",
-    },
-    {
-      id: 4,
-      title: "Hyundai Elantra 2017 2.0 AT - 1chủ mua mới",
-      year: 2017,
-      km: "76000 km",
-      type: "Xăng",
-      transmission: "Tự động",
-      condition: "1 chủ",
-      price: "378,000,000 đ",
-      location: "Tp Hồ Chí Minh",
-      seller: "Trần Vũ",
-      phone: "0904444444",
-      verified: true,
-      images: 10,
-      rating: 4.7,
-      reviews: "19 đã bán",
-      featured: false,
-      vip: true,
-      discount: "6% thỏa thuận",
-    },
-    {
-      id: 5,
-      title: "Kia Sorento 2016 GAT - 93000 km",
-      year: 2016,
-      km: "93000 km",
-      type: "Xăng",
-      transmission: "Tự động",
-      condition: "Cũ",
-      price: "458,000,000 đ",
-      location: "Gia Lai",
-      seller: "Nhân Nguyen",
-      phone: "0905555555",
-      verified: true,
-      images: 20,
-      featured: false,
-      vip: true,
-    },
-    {
-      id: 6,
-      title: "Hyundai Accent 2021 1.4 AT - 72000 km bao zin 1chu",
-      year: 2021,
-      km: "72000 km",
-      type: "Xăng",
-      transmission: "Tự động",
-      condition: "1 chủ",
-      price: "379,000,000 đ",
-      location: "Hà Nội",
-      seller: "A Công",
-      phone: "0906666666",
-      verified: false,
-      images: 12,
-      rating: 10,
-      featured: false,
-      vip: false,
-      discount: "Giá tốt",
-    },
   ];
 
   const priceRanges = [
@@ -474,9 +442,50 @@ function SellOtoPage() {
 
   const seatNumbers = ["2 chỗ", "4 chỗ", "5 chỗ", "7 chỗ", "9 chỗ"];
 
+  // Thêm một số dữ liệu test để kiểm tra hình ảnh
+  const testCars = [
+    {
+      id: 1,
+      title: "BYD M6 2025 - DEAL RỰC RỠ - QUÀ BẤT NGỜ",
+      year: 2025,
+      type: "Điện",
+      transmission: "Tự động",
+      condition: "Mới",
+      price: "756,000,000 đ",
+      location: "Bình Dương",
+      seller: "BYD Miền Nam",
+      phone: "0901111111",
+      verified: true,
+      images: 5,
+      featured: true,
+      vip: true,
+      image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop"
+    },
+    {
+      id: 2,
+      title: "VinFast VF5 2025 - Mẫu nâng cao giá cơ bản",
+      year: 2025,
+      type: "Điện",
+      transmission: "Tự động",
+      condition: "Mới",
+      price: "507,000,000 đ",
+      location: "Tp Hồ Chí Minh",
+      seller: "VinFast Thủ Đức",
+      phone: "0902222222",
+      verified: true,
+      images: 7,
+      featured: true,
+      vip: false,
+      image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop"
+    }
+  ];
+
+  // Chỉ sử dụng dữ liệu thật từ localStorage, fallback về test data nếu trống
+  const allCarListings = loading ? [] : (carsFromStorage.length > 0 ? carsFromStorage : testCars);
+
   // Hàm lọc sản phẩm theo filter
   const getFilteredCars = () => {
-    let filteredCars = [...carListings];
+    let filteredCars = [...allCarListings];
 
     // Lọc theo brands
     if (selectedBrands.length > 0) {
@@ -519,7 +528,7 @@ function SellOtoPage() {
     // Lọc theo cities
     if (selectedCities.length > 0) {
       filteredCars = filteredCars.filter(car => 
-        selectedCities.includes(car.location)
+        selectedCities.some(city => car.location.includes(city))
       );
     }
 
@@ -560,7 +569,7 @@ function SellOtoPage() {
     // Lọc theo locations (khu vực)
     if (selectedLocations.length > 0) {
       filteredCars = filteredCars.filter(car => 
-        selectedLocations.includes(car.location)
+        selectedLocations.some(location => car.location.includes(location))
       );
     }
 
@@ -1185,7 +1194,13 @@ function SellOtoPage() {
                   )}
 
                   <div className="car-image">
-                    <img src="/api/placeholder/400/300" alt={car.title} />
+                    <img 
+                      src={car.image || "/api/placeholder/400/300"} 
+                      alt={car.title}
+                      onError={(e) => {
+                        e.target.src = "/api/placeholder/400/300"
+                      }}
+                    />
                     <button 
                       className={`favorite-btn ${isSaved(`oto-${car.id}`) ? 'saved' : ''}`}
                       onClick={(e) => handleToggleSaved(e, car)}
@@ -1216,7 +1231,7 @@ function SellOtoPage() {
 
                     <div className="car-location">
                       <LocationIcon />
-                      <span>{car.location}</span>
+                      <span>{getCityFromLocation(car.location)}</span>
                     </div>
 
                     <div className="car-seller">
@@ -1257,34 +1272,7 @@ function SellOtoPage() {
               ))}
             </div>
 
-            {/* Price Range Banner */}
-            <div className="price-range-banner">
-              <span className="banner-icon">🚗</span>
-              <span className="banner-text">
-                Bạn tìm xe trong khoảng giá nào?
-              </span>
-              <span className="banner-icon">🚙</span>
-            </div>
 
-            <div className="price-range-options">
-              <button className="price-option">dưới 300 triệu</button>
-              <button className="price-option">300 - 500 triệu</button>
-              <button className="price-option">500 - 800 triệu</button>
-              <button className="price-option">trên 800 triệu</button>
-            </div>
-
-            {/* Brand Selection Section */}
-            <div className="brand-selection-section">
-              <h2 className="section-title">Bạn cần tìm hãng xe nào ?</h2>
-              <div className="brand-grid">
-                {brands.slice(0, 8).map((brand, index) => (
-                  <div key={index} className="brand-card">
-                    <div className="brand-logo-large">{brand.logo}</div>
-                    <div className="brand-name">{brand.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1302,8 +1290,11 @@ function SellOtoPage() {
               <div className="product-gallery">
                 <div className="main-image">
                   <img 
-                    src={`/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
-                    alt={selectedProduct.title} 
+                    src={selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    alt={selectedProduct.title}
+                    onError={(e) => {
+                      e.target.src = `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`
+                    }}
                   />
                   {selectedProduct.images > 1 && (
                     <>
@@ -1366,10 +1357,14 @@ function SellOtoPage() {
                     <span className="label">Hộp số:</span>
                     <span className="value">{selectedProduct.transmission}</span>
                   </div>
-                  {selectedProduct.mileage && (
+                  <div className="info-row">
+                    <span className="label">Xuất xứ:</span>
+                    <span className="value">{selectedProduct.origin || 'Chưa cập nhật'}</span>
+                  </div>
+                  {selectedProduct.batteryInfo && (
                     <div className="info-row">
-                      <span className="label">Số km đã đi:</span>
-                      <span className="value">{selectedProduct.mileage}</span>
+                      <span className="label">Pin:</span>
+                      <span className="value">{selectedProduct.batteryInfo}</span>
                     </div>
                   )}
                   {selectedProduct.seats && (

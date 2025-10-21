@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSaved, useCompare } from "../../../contexts/AppContext";
+import localStorageService from "../../../services/localStorageService";
 import "./index.scss";
 
 function SellBatteryPage() {
@@ -40,8 +41,71 @@ function SellBatteryPage() {
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [comparedItems, setComparedItems] = useState(new Set());
+  const [batteriesFromStorage, setBatteriesFromStorage] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
+
+  // Load batteries from localStorage
+  useEffect(() => {
+    const loadBatteriesFromStorage = () => {
+      try {
+        const allPosts = localStorageService.getAllPosts();
+        // Lọc chỉ lấy pin (category = 'battery')
+        const batteryPosts = allPosts.filter(post => post.category === 'battery');
+        
+        if (batteryPosts.length > 0) {
+          // Format lại dữ liệu để hiển thị
+          const formattedBatteries = batteryPosts.map(post => ({
+            id: post.id,
+            title: post.title,
+            year: post.year,
+            type: post.batteryType || "Lithium-ion",
+            condition: post.condition,
+            price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+            location: post.location?.district && post.location?.city 
+              ? `${post.location.district}, ${mapCityCodeToName(post.location.city)}`
+              : mapCityCodeToName(post.location?.city) || post.location?.district || '',
+            seller: post.contactName,
+            phone: post.contactPhone,
+            verified: false,
+            images: post.images?.length || 0,
+            featured: false,
+            vip: false,
+            discount: post.negotiable ? "Có thể thương lượng" : "",
+            capacity: post.capacity || "N/A",
+            health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+            brand: post.brand,
+            description: post.description,
+            origin: post.origin || "Chưa cập nhật",
+            originalPost: post,
+            image: post.images?.[0] || '/api/placeholder/400/300'
+          }));
+          
+          console.log('Formatted batteries with images:', formattedBatteries.map(battery => ({ id: battery.id, title: battery.title, image: battery.image })));
+          setBatteriesFromStorage(formattedBatteries);
+        } else {
+          setBatteriesFromStorage([]);
+        }
+      } catch (error) {
+        console.error('Error loading batteries from storage:', error);
+        setBatteriesFromStorage([]);
+      }
+      setLoading(false);
+    };
+    
+    loadBatteriesFromStorage();
+    
+    // Listen for storage changes
+    const handleStorageChange = () => loadBatteriesFromStorage();
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('postUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('postUpdated', handleStorageChange);
+    };
+  }, []);
 
   const handleToggleSaved = (e, battery) => {
     e.preventDefault();
@@ -50,7 +114,7 @@ function SellBatteryPage() {
       ...battery,
       id: `battery-${battery.id}`, // Thêm prefix để tránh conflict với trang khác
       category: 'Pin xe điện',
-      image: '/api/placeholder/400/300'
+      image: battery.image || '/api/placeholder/400/300'
     };
     toggleSaved(savedBattery);
   };
@@ -62,15 +126,16 @@ function SellBatteryPage() {
       ...battery,
       id: `battery-${battery.id}`,
       category: 'Pin xe điện',
-      image: '/api/placeholder/400/300',
+      image: battery.image || '/api/placeholder/400/300',
       specs: {
         brand: battery.seller || '-',
         capacity: battery.capacity || '-',
         type: battery.type || '-',
         condition: battery.condition || '-',
         health: battery.health || '-',
+        battery: battery.batteryInfo || '-',
         color: '-',
-        origin: '-'
+        origin: battery.origin || '-'
       }
     };
     addToCompare(compareBattery);
@@ -86,6 +151,28 @@ function SellBatteryPage() {
         return newSet;
       });
     }, 2000);
+  };
+
+  // Helper function to extract city from location
+  const getCityFromLocation = (location) => {
+    if (!location) return '';
+    const parts = location.split(',');
+    return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
+  };
+
+  // Map city codes to display names to match filter
+  const mapCityCodeToName = (cityCode) => {
+    const cityMapping = {
+      'hcm': 'Tp Hồ Chí Minh',
+      'hanoi': 'Hà Nội', 
+      'danang': 'Đà Nẵng',
+      'cantho': 'Cần Thơ',
+      'haiphong': 'Hải Phòng',
+      'binhduong': 'Bình Dương',
+      'dongnai': 'Đồng Nai',
+      'vungtau': 'Vũng Tàu',
+    };
+    return cityMapping[cityCode] || cityCode;
   };
 
   const handleRevealPhone = (e, batteryId) => {
@@ -280,6 +367,7 @@ function SellBatteryPage() {
     </svg>
   );
 
+  // Dữ liệu filter 
   const brands = [
     { name: "VinFast", logo: "🔋", count: 8950 },
     { name: "BYD", logo: "🔋", count: 4320 },
@@ -287,6 +375,7 @@ function SellBatteryPage() {
     { name: "LG", logo: "🔋", count: 2890 },
     { name: "CATL", logo: "🔋", count: 2150 },
     { name: "Samsung SDI", logo: "🔋", count: 1870 },
+    { name: "Tesla", logo: "🔋", count: 1650 },
     { name: "Khác", logo: "🔋", count: 1560 },
   ];
 
@@ -298,7 +387,6 @@ function SellBatteryPage() {
     "Gần tôi",
   ];
 
-  // Filter data
   const priceRanges = [
     "Giá dưới 50 triệu",
     "Giá 50 triệu - 100 triệu",
@@ -310,8 +398,10 @@ function SellBatteryPage() {
   const batteryTypes = [
     "Lithium-ion",
     "LiFePO4",
-    "Lead-acid",
-    "NiMH",
+    "LFP (Lithium Iron Phosphate)",
+    "Li-ion 18650",
+    "NCM",
+    "NCA",
   ];
 
   const capacities = [
@@ -328,7 +418,6 @@ function SellBatteryPage() {
     "Cũ nhưng tốt",
   ];
 
-  // Additional filter data for battery-specific features
   const batteryHealthRanges = [
     "90-100%",
     "80-90%",
@@ -378,9 +467,52 @@ function SellBatteryPage() {
     "Mỹ",
   ];
 
+  // Thêm một số dữ liệu test để kiểm tra hình ảnh
+  const testBatteries = [
+    {
+      id: 1,
+      title: "Pin VinFast VF8 - Dung lượng 87.7 kWh - Bảo hành 8 năm",
+      capacity: "87.7 kWh",
+      type: "Lithium-ion",
+      condition: "Mới",
+      health: "100%",
+      price: "280,000,000 đ",
+      location: "Tp Hồ Chí Minh",
+      seller: "VinFast Official Store",
+      phone: "1900636648",
+      verified: true,
+      images: 8,
+      featured: true,
+      vip: true,
+      discount: "Trả góp 0%",
+      image: "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=400&h=300&fit=crop"
+    },
+    {
+      id: 2,
+      title: "Pin Tesla Model 3 Long Range - 82 kWh - 95% dung lượng",
+      capacity: "82 kWh",
+      type: "Lithium-ion",
+      condition: "Đã sử dụng",
+      health: "95%",
+      price: "180,000,000 đ",
+      location: "Hà Nội",
+      seller: "Tesla Center Vietnam",
+      phone: "0901234567",
+      verified: true,
+      images: 6,
+      rating: 4.7,
+      featured: false,
+      vip: false,
+      image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop"
+    }
+  ];
+
+  // Chỉ sử dụng dữ liệu thật từ localStorage, fallback về test data nếu trống
+  const allBatteryListings = loading ? [] : (batteriesFromStorage.length > 0 ? batteriesFromStorage : testBatteries);
+
   // Hàm lọc pin theo filter
   const getFilteredBatteries = () => {
-    let filteredBatteries = [...batteryListings];
+    let filteredBatteries = [...allBatteryListings];
 
     // Lọc theo brands
     if (selectedBrands.length > 0) {
@@ -441,7 +573,7 @@ function SellBatteryPage() {
     // Lọc theo cities
     if (selectedCities.length > 0) {
       filteredBatteries = filteredBatteries.filter(battery => 
-        selectedCities.includes(battery.location)
+        selectedCities.some(city => battery.location.includes(city))
       );
     }
 
@@ -508,132 +640,12 @@ function SellBatteryPage() {
     // Lọc theo locations (khu vực)
     if (selectedLocations.length > 0) {
       filteredBatteries = filteredBatteries.filter(battery => 
-        selectedLocations.includes(battery.location)
+        selectedLocations.some(location => battery.location.includes(location))
       );
     }
 
     return filteredBatteries;
   };
-
-  const batteryListings = [
-    {
-      id: 1,
-      title: "Pin VinFast VF8 - Dung lượng 87.7 kWh - Bảo hành 8 năm",
-      capacity: "87.7 kWh",
-      type: "Lithium-ion",
-      condition: "Mới",
-      health: "100%",
-      price: "280,000,000 đ",
-      location: "Tp Hồ Chí Minh",
-      seller: "VinFast Official Store",
-      phone: "1900636648",
-      verified: true,
-      images: 8,
-      featured: true,
-      vip: true,
-      discount: "Trả góp 0%",
-      voltage: "400V",
-      cycleLife: "3000+ chu kỳ",
-      warranty: "8 năm",
-      description: "Pin VinFast VF8 chính hãng với công nghệ Lithium-ion tiên tiến. Dung lượng lớn 87.7 kWh đảm bảo quãng đường di chuyển xa. Bảo hành chính hãng 8 năm hoặc 160,000km. Hỗ trợ sạc nhanh DC.",
-      specs: {
-        "Dung lượng": "87.7 kWh",
-        "Loại pin": "Lithium-ion NCM",
-        "Điện áp": "400V",
-        "Chu kỳ sống": "3000+ chu kỳ",
-        "Sức khỏe pin": "100%",
-        "Thời gian bảo hành": "8 năm hoặc 160,000km",
-        "Tốc độ sạc": "DC Fast Charging 150kW",
-        "Khối lượng": "~500kg",
-        "Chứng nhận": "UN38.3, IEC62133"
-      }
-    },
-    {
-      id: 2,
-      title: "Pin Tesla Model 3 Long Range - 82 kWh - 95% dung lượng",
-      capacity: "82 kWh",
-      type: "Lithium-ion",
-      condition: "Đã sử dụng",
-      health: "95%",
-      price: "195,000,000 đ",
-      location: "Hà Nội",
-      seller: "Tesla Battery Center",
-      phone: "0971111111",
-      verified: true,
-      images: 10,
-      featured: true,
-      vip: false,
-    },
-    {
-      id: 3,
-      title: "Pin BYD Blade Battery 60.48 kWh - Công nghệ LFP an toàn",
-      capacity: "60.48 kWh",
-      type: "LFP (Lithium Iron Phosphate)",
-      condition: "Mới",
-      health: "100%",
-      price: "165,000,000 đ",
-      location: "Đà Nẵng",
-      seller: "BYD Authorized Dealer",
-      phone: "0972222222",
-      verified: true,
-      images: 6,
-      featured: false,
-      vip: true,
-    },
-    {
-      id: 4,
-      title: "Pin VinFast VF5 - 37.23 kWh - Chính hãng, bảo hành còn 6 năm",
-      capacity: "37.23 kWh",
-      type: "Lithium-ion",
-      condition: "Đã sử dụng",
-      health: "92%",
-      price: "85,000,000 đ",
-      location: "Hà Nội",
-      seller: "Nguyễn Minh Tuấn",
-      phone: "0973333333",
-      verified: true,
-      images: 7,
-      rating: 4.8,
-      reviews: "15 đã bán",
-      featured: false,
-      vip: false,
-    },
-    {
-      id: 5,
-      title: "Pin Panasonic NCR18650B - 48V 40Ah - Dùng cho xe máy điện",
-      capacity: "1.92 kWh",
-      type: "Lithium-ion 18650",
-      condition: "Mới",
-      health: "100%",
-      price: "12,500,000 đ",
-      location: "Bình Dương",
-      seller: "Pin Xe Điện Chính Hãng",
-      phone: "0974444444",
-      verified: true,
-      images: 5,
-      featured: true,
-      vip: false,
-      discount: "Giá tốt",
-    },
-    {
-      id: 6,
-      title: "Pin CATL LFP 75 kWh - Cho ô tô điện, tuổi thọ cao",
-      capacity: "75 kWh",
-      type: "LFP (Lithium Iron Phosphate)",
-      condition: "Mới",
-      health: "100%",
-      price: "220,000,000 đ",
-      location: "Tp Hồ Chí Minh",
-      seller: "CATL Battery Vietnam",
-      phone: "0975555555",
-      verified: true,
-      images: 12,
-      rating: 4.9,
-      featured: true,
-      vip: true,
-      discount: "Bảo hành 10 năm",
-    },
-  ];
 
   const cities = [
     "Tp Hồ Chí Minh",
@@ -1288,7 +1300,13 @@ function SellBatteryPage() {
                   )}
 
                   <div className="battery-image">
-                    <img src="/api/placeholder/400/300" alt={battery.title} />
+                    <img 
+                      src={battery.image || "/api/placeholder/400/300"} 
+                      alt={battery.title}
+                      onError={(e) => {
+                        e.target.src = "/api/placeholder/400/300"
+                      }}
+                    />
                     <button 
                       className={`favorite-btn ${isSaved(`battery-${battery.id}`) ? 'saved' : ''}`}
                       onClick={(e) => handleToggleSaved(e, battery)}
@@ -1320,7 +1338,7 @@ function SellBatteryPage() {
 
                     <div className="battery-location">
                       <LocationIcon />
-                      <span>{battery.location}</span>
+                      <span>{getCityFromLocation(battery.location)}</span>
                     </div>
 
                     <div className="battery-seller">
@@ -1361,36 +1379,7 @@ function SellBatteryPage() {
               ))}
             </div>
 
-            {/* Price Range Banner */}
-            <div className="price-range-banner">
-              <span className="banner-icon">🔋</span>
-              <span className="banner-text">
-                Bạn tìm pin xe điện trong khoảng giá nào?
-              </span>
-              <span className="banner-icon">⚡</span>
-            </div>
 
-            <div className="price-range-options">
-              <button className="price-option">dưới 50 triệu</button>
-              <button className="price-option">50 - 100 triệu</button>
-              <button className="price-option">100 - 200 triệu</button>
-              <button className="price-option">trên 200 triệu</button>
-            </div>
-
-            {/* Brand Selection Section */}
-            <div className="brand-selection-section">
-              <h2 className="section-title">
-                Bạn cần tìm thương hiệu pin nào?
-              </h2>
-              <div className="brand-grid">
-                {brands.slice(0, 8).map((brand, index) => (
-                  <div key={index} className="brand-card">
-                    <div className="brand-logo-large">{brand.logo}</div>
-                    <div className="brand-name">{brand.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1408,8 +1397,11 @@ function SellBatteryPage() {
               <div className="product-gallery">
                 <div className="main-image">
                   <img 
-                    src={`/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
-                    alt={selectedProduct.title} 
+                    src={selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    alt={selectedProduct.title}
+                    onError={(e) => {
+                      e.target.src = `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`
+                    }}
                   />
                   {selectedProduct.images > 1 && (
                     <>

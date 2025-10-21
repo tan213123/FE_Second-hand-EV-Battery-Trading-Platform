@@ -2,16 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaved } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
+import localStorageService from '../../services/localStorageService'
 import './index.scss'
 // import api from '../../config/api' // Tạm comment để tránh unused warning
 
 // Icon SVG components
-const SearchIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-  </svg>
-)
-
 const LocationIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
@@ -49,10 +44,10 @@ const VerifiedIcon = () => (
 )
 
 function HomePage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedLocation] = useState('Chọn khu vực')
+  const [allPosts, setAllPosts] = useState([])
+  const [loading, setLoading] = useState(true)
   const { toggleSaved, isSaved } = useSaved()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, token } = useAuth()
   const navigate = useNavigate()
 
   const categories = [
@@ -85,14 +80,53 @@ function HomePage() {
     // navigate(`/product/${listing.id}`)
   }
 
-  // Tạm thời disable API calls để tránh lỗi
+  // Load dữ liệu từ localStorage
   useEffect(() => {
-    console.log('HomePage loaded - API calls disabled')
+    console.log('HomePage loaded - Loading data from localStorage')
     console.log('User authenticated:', isAuthenticated)
     if (user) {
-      console.log('User info:', user.name)
+      console.log('👤 User info:', {
+        id: user.memberId,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address
+      })
     }
-  }, [isAuthenticated, user])
+    if (token) {
+      console.log('🔑 User token:', token)
+    }
+    
+    const loadAllPosts = () => {
+      setLoading(true)
+      try {
+        // Lấy tất cả bài đăng từ localStorage
+        const posts = localStorageService.getAllPosts()
+        console.log('Loaded posts from localStorage:', posts)
+        setAllPosts(posts)
+      } catch (error) {
+        console.error('Error loading posts:', error)
+        setAllPosts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadAllPosts()
+    
+    // Listen for storage changes to update when new posts are added
+    const handleStorageChange = () => loadAllPosts()
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also listen for custom events from same window (since storage event doesn't fire for same window)
+    const handleCustomPostUpdate = () => loadAllPosts()
+    window.addEventListener('postUpdated', handleCustomPostUpdate)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('postUpdated', handleCustomPostUpdate)
+    }
+  }, [isAuthenticated, user, token])
 
   const getCategoryIcon = (type) => {
     const icons = {
@@ -103,7 +137,51 @@ function HomePage() {
     return icons[type] || '🚗'
   }
 
-  const latestListings = [
+  const getCategoryName = (category) => {
+    const categoryNames = {
+      'car': 'Ô tô điện',
+      'electric': 'Xe máy điện',
+      'battery': 'Pin xe điện'
+    }
+    return categoryNames[category] || 'Khác'
+  }
+
+  const formatPostForDisplay = (post) => {
+    const now = new Date()
+    const created = new Date(post.createdAt)
+    const diffInMinutes = Math.floor((now - created) / (1000 * 60))
+    
+    const timeAgo = () => {
+      if (diffInMinutes < 1) return 'Vừa xong'
+      if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
+      
+      const diffInHours = Math.floor(diffInMinutes / 60)
+      if (diffInHours < 24) return `${diffInHours} giờ trước`
+      
+      const diffInDays = Math.floor(diffInHours / 24)
+      return `${diffInDays} ngày trước`
+    }
+
+    return {
+      id: post.id,
+      title: post.title,
+      year: post.year,
+      transmission: post.category === 'battery' ? 'Pin' : 'Điện',
+      condition: post.condition,
+      price: parseInt(post.price),
+      location: `${post.location?.district || ''}, ${post.location?.city || ''}`,
+      images: post.images?.length || 0,
+      timePosted: timeAgo(),
+      badge: diffInMinutes < 60 ? 'Mới đăng' : null,
+      category: getCategoryName(post.category),
+      image: post.images?.[0] || '/api/placeholder/300/200'
+    }
+  }
+
+  // Sử dụng dữ liệu thật từ localStorage hoặc fallback về mock data
+  const latestListings = loading ? [] : allPosts.length > 0 
+    ? allPosts.slice(0, 12).map(formatPostForDisplay)
+    : [
     {
       id: 'home-1',
       title: 'VinFast VF 8 Plus 2023 - Pin thuê bao',
@@ -303,49 +381,9 @@ function HomePage() {
       {/* Hero Section with Search */}
       <div className="hero-section">
         <div className="hero-overlay"></div>
-        <div className="search-container">
+        <div className="hero-content">
           <h1 className="hero-title">EcoXe - Mua bán xe cũ uy tín</h1>
           <p className="hero-subtitle">Hơn 75,000+ tin đăng xe ô tô, xe máy, xe điện trên toàn quốc</p>
-
-          <div className={`search-box ${!isAuthenticated ? 'disabled' : ''}`}>
-            <div className="search-input-wrapper">
-              <SearchIcon />
-              <input 
-                type="text" 
-                placeholder={isAuthenticated ? "Tìm xe cũ theo mẫu xe, hãng xe..." : "Vui lòng đăng nhập để tìm kiếm"}
-                value={searchQuery}
-                onChange={(e) => isAuthenticated && setSearchQuery(e.target.value)}
-                className="search-input"
-                disabled={!isAuthenticated}
-              />
-            </div>
-            <button 
-              className="location-btn" 
-              disabled={!isAuthenticated}
-              onClick={() => !isAuthenticated && navigate('/login')}
-            >
-              <LocationIcon />
-              <span>{selectedLocation}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 10l5 5 5-5z"/>
-              </svg>
-            </button>
-            <button 
-              className="filter-btn" 
-              disabled={!isAuthenticated}
-              onClick={() => !isAuthenticated && navigate('/login')}
-            >
-              <CarIcon />
-              <span>Tất cả Xe cũ</span>
-            </button>
-            <button 
-              className="search-btn"
-              disabled={!isAuthenticated}
-              onClick={() => !isAuthenticated && navigate('/login')}
-            >
-              {isAuthenticated ? 'Tìm xe' : '🔒 Đăng nhập để tìm kiếm'}
-            </button>
-          </div>
         </div>
       </div>
 
@@ -391,7 +429,18 @@ function HomePage() {
             <a href="#" className="view-all-link">Xem tất cả →</a>
           </div>
           <div className="listings-grid">
-            {latestListings.map((listing) => (
+            {loading ? (
+              // Loading state
+              <div className="loading-state">
+                <p>Đang tải tin đăng...</p>
+              </div>
+            ) : latestListings.length === 0 ? (
+              // Empty state
+              <div className="empty-state">
+                <p>Chưa có tin đăng nào. Hãy <a href="/post" style={{color: '#007bff'}}>đăng tin đầu tiên</a> của bạn!</p>
+              </div>
+            ) : (
+              latestListings.map((listing) => (
               <div 
                 key={listing.id} 
                 className={`listing-card ${!isAuthenticated ? 'disabled' : ''}`}
@@ -450,7 +499,8 @@ function HomePage() {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
           <button className="view-more-btn">
             Xem thêm 75,347 tin đăng

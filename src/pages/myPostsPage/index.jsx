@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import localStorageService from '../../services/localStorageService'
 import './index.scss'
 
 // Icons
@@ -38,73 +40,139 @@ const MoreIcon = () => (
   </svg>
 )
 
-function MyPostsPage({ onNavigate }) {
+function MyPostsPage() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
+  const [posts, setPosts] = useState([])
+  const [selectedCities, setSelectedCities] = useState([])
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false)
 
-  const mockPosts = [
-    {
-      id: 1,
-      title: 'VinFast VF 8 Plus 2023 - Pin thuê bao',
-      price: '250,000,000 đ',
-      location: 'Quận Cầu Giấy, Hà Nội',
-      status: 'active',
-      views: 124,
-      likes: 8,
-      postedDate: '2024-01-15',
-      images: 12,
-      category: 'Ô tô điện'
-    },
-    {
-      id: 2,
-      title: 'Pin Lithium 48V 20Ah cho xe máy điện',
-      price: '12,500,000 đ',
-      location: 'Quận 7, TP.HCM',
-      status: 'sold',
-      views: 89,
-      likes: 5,
-      postedDate: '2024-01-10',
-      images: 6,
-      category: 'Pin xe điện'
-    },
-    {
-      id: 3,
-      title: 'Yadea S3 Pro 2023 - Xe máy điện',
-      price: '18,900,000 đ',
-      location: 'Quận Tân Bình, TP.HCM',
-      status: 'pending',
-      views: 67,
-      likes: 3,
-      postedDate: '2024-01-08',
-      images: 10,
-      category: 'Xe máy điện'
-    },
-    {
-      id: 4,
-      title: 'VinFast VF e34 2022 - Đã qua sử dụng',
-      price: '520,000,000 đ',
-      location: 'Quận Đống Đa, Hà Nội',
-      status: 'active',
-      views: 203,
-      likes: 12,
-      postedDate: '2024-01-05',
-      images: 15,
-      category: 'Ô tô điện'
-    },
-    {
-      id: 5,
-      title: 'Pin Ắc quy Lithium Tesla 72V 32Ah',
-      price: '28,000,000 đ',
-      location: 'Quận Hoàng Mai, Hà Nội',
-      status: 'expired',
-      views: 45,
-      likes: 2,
-      postedDate: '2023-12-28',
-      images: 8,
-      category: 'Pin xe điện'
+  // Load posts from localStorage khi component mount
+  useEffect(() => {
+    const loadPosts = () => {
+      const myPosts = localStorageService.getMyPosts()
+      
+      // Format lại data để phù hợp với giao diện
+      const formattedPosts = myPosts.map(post => ({
+        id: post.id,
+        title: post.title,
+        price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+        location: post.location?.district && post.location?.city 
+          ? `${post.location.district}, ${post.location.city}`
+          : post.location?.city || post.location?.district || 'N/A',
+        status: post.status || 'active',
+        views: post.views || 0,
+        likes: post.saves || 0,
+        postedDate: new Date(post.createdAt).toISOString().split('T')[0],
+        images: post.images?.length || 0,
+        category: getCategoryName(post.category),
+        imageUrl: post.images?.[0] || null,
+        description: post.description,
+        originalData: post // Lưu data gốc để dùng khi cần
+      }))
+      
+      setPosts(formattedPosts)
     }
+    
+    loadPosts()
+    
+    // Reload khi có thay đổi trong localStorage
+    const handleStorageChange = () => loadPosts()
+    window.addEventListener('storage', handleStorageChange)
+    
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showLocationDropdown && !event.target.closest('.location-filter')) {
+        setShowLocationDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showLocationDropdown])
+
+  const getCategoryName = (category) => {
+    const categoryNames = {
+      'car': 'Ô tô điện',
+      'electric': 'Xe máy điện', 
+      'battery': 'Pin xe điện'
+    }
+    return categoryNames[category] || 'Khác'
+  }
+
+  // Danh sách thành phố cho filter
+  const cities = [
+    "Tp Hồ Chí Minh",
+    "Hà Nội", 
+    "Đà Nẵng",
+    "Cần Thơ",
+    "Hải Phòng",
+    "Bình Dương",
+    "Đồng Nai",
+    "Vũng Tàu",
   ]
+
+  // Helper function để lấy thành phố từ location
+  const getCityFromLocation = (location) => {
+    if (!location) return '';
+    const parts = location.split(',');
+    return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
+  }
+
+  const handleDeletePost = (postId) => {
+    if (window.confirm('Bạn có chắc muốn xóa tin đăng này?')) {
+      const success = localStorageService.deletePost(postId)
+      if (success) {
+        // Reload posts sau khi xóa
+        const myPosts = localStorageService.getMyPosts()
+        const formattedPosts = myPosts.map(post => ({
+          id: post.id,
+          title: post.title,
+          price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+          location: `${post.location?.district || 'N/A'}, ${post.location?.city || 'N/A'}`,
+          status: post.status || 'active',
+          views: post.views || 0,
+          likes: post.saves || 0,
+          postedDate: new Date(post.createdAt).toISOString().split('T')[0],
+          images: post.images?.length || 0,
+          category: getCategoryName(post.category),
+          imageUrl: post.images?.[0] || null,
+          description: post.description,
+          originalData: post
+        }))
+        setPosts(formattedPosts)
+        
+        // Dispatch event để cập nhật HomePage
+        window.dispatchEvent(new CustomEvent('postUpdated'))
+        
+        alert('Xóa tin đăng thành công!')
+      } else {
+        alert('Có lỗi xảy ra khi xóa tin đăng!')
+      }
+    }
+  }
+
+  const handleEditPost = (post) => {
+    // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang edit
+    sessionStorage.setItem('editingPost', JSON.stringify(post.originalData))
+    // Chuyển đến trang đăng tin với mode edit
+    navigate('/post?mode=edit&id=' + post.id)
+  }
+
+  const handleViewDetail = (post) => {
+    // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang detail
+    sessionStorage.setItem('viewingPost', JSON.stringify(post.originalData))
+    // Chuyển đến trang chi tiết bài đăng
+    navigate('/post-detail/' + post.id)
+  }
+
+
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -115,9 +183,26 @@ function MyPostsPage({ onNavigate }) {
     return badges[status] || badges.active
   }
 
-  const filteredPosts = mockPosts.filter(post => {
-    if (activeTab === 'all') return true
-    return post.status === activeTab
+  const filteredPosts = posts.filter(post => {
+    // Filter theo tab
+    if (activeTab !== 'all' && post.status !== activeTab) return false
+    
+    // Filter theo search query
+    if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    
+    // Filter theo location
+    if (selectedCities.length > 0) {
+      const postCity = getCityFromLocation(post.location);
+      if (!selectedCities.some(city => postCity.includes(city))) return false
+    }
+    
+    return true
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.updatedAt) - new Date(a.updatedAt)
+    if (sortBy === 'oldest') return new Date(a.updatedAt) - new Date(b.updatedAt)
+    if (sortBy === 'price-high') return parseInt(b.price) - parseInt(a.price)
+    if (sortBy === 'price-low') return parseInt(a.price) - parseInt(b.price)
+    return 0
   })
 
   return (
@@ -128,7 +213,7 @@ function MyPostsPage({ onNavigate }) {
             <h1>Tin đăng của tôi</h1>
             <p>Quản lý và theo dõi tất cả tin đăng của bạn</p>
           </div>
-          <button className="btn btn-primary" onClick={() => onNavigate && onNavigate('oto')}>
+          <button className="btn btn-primary" onClick={() => navigate('/post')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 5v14M5 12h14"/>
             </svg>
@@ -148,6 +233,54 @@ function MyPostsPage({ onNavigate }) {
           </div>
           
           <div className="filter-controls">
+            <div className="location-filter">
+              <button 
+                className={`filter-dropdown-btn ${selectedCities.length > 0 ? 'active' : ''}`}
+                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                Khu vực {selectedCities.length > 0 && `(${selectedCities.length})`}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 10l5 5 5-5z"/>
+                </svg>
+              </button>
+              
+              {showLocationDropdown && (
+                <div className="dropdown-content">
+                  <div className="dropdown-header">
+                    <span>Chọn khu vực</span>
+                    {selectedCities.length > 0 && (
+                      <button 
+                        className="clear-all"
+                        onClick={() => setSelectedCities([])}
+                      >
+                        Xóa tất cả
+                      </button>
+                    )}
+                  </div>
+                  {cities.map((city) => (
+                    <label key={city} className="dropdown-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedCities.includes(city)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCities([...selectedCities, city]);
+                          } else {
+                            setSelectedCities(selectedCities.filter(c => c !== city));
+                          }
+                        }}
+                      />
+                      <span>{city}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select">
               <option value="newest">Mới nhất</option>
               <option value="oldest">Cũ nhất</option>
@@ -158,7 +291,7 @@ function MyPostsPage({ onNavigate }) {
             
             <button className="btn btn-outline">
               <FilterIcon />
-              Bộ lọc
+              Bộ lọc khác
             </button>
           </div>
         </div>
@@ -168,31 +301,31 @@ function MyPostsPage({ onNavigate }) {
             className={`tab ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            Tất cả ({mockPosts.length})
+            Tất cả ({posts.length})
           </button>
           <button 
             className={`tab ${activeTab === 'active' ? 'active' : ''}`}
             onClick={() => setActiveTab('active')}
           >
-            Đang bán ({mockPosts.filter(p => p.status === 'active').length})
+            Đang bán ({posts.filter(p => p.status === 'active').length})
           </button>
           <button 
             className={`tab ${activeTab === 'sold' ? 'active' : ''}`}
             onClick={() => setActiveTab('sold')}
           >
-            Đã bán ({mockPosts.filter(p => p.status === 'sold').length})
+            Đã bán ({posts.filter(p => p.status === 'sold').length})
           </button>
           <button 
             className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
             onClick={() => setActiveTab('pending')}
           >
-            Chờ duyệt ({mockPosts.filter(p => p.status === 'pending').length})
+            Chờ duyệt ({posts.filter(p => p.status === 'pending').length})
           </button>
           <button 
             className={`tab ${activeTab === 'expired' ? 'active' : ''}`}
             onClick={() => setActiveTab('expired')}
           >
-            Hết hạn ({mockPosts.filter(p => p.status === 'expired').length})
+            Hết hạn ({posts.filter(p => p.status === 'expired').length})
           </button>
         </div>
 
@@ -200,7 +333,13 @@ function MyPostsPage({ onNavigate }) {
           {filteredPosts.map(post => (
             <div key={post.id} className="post-card">
               <div className="post-image">
-                <img src="/api/placeholder/300/200" alt={post.title} />
+                <img 
+                  src={post.imageUrl || "/api/placeholder/300/200"} 
+                  alt={post.title}
+                  onError={(e) => {
+                    e.target.src = "/api/placeholder/300/200"
+                  }}
+                />
                 <div className="image-overlay">
                   <span className="image-count">{post.images} ảnh</span>
                   <div className={`status-badge ${getStatusBadge(post.status).class}`}>
@@ -237,11 +376,23 @@ function MyPostsPage({ onNavigate }) {
                 <div className="post-footer">
                   <div className="price">{post.price}</div>
                   <div className="actions">
-                    <button className="btn btn-sm btn-outline">
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => handleEditPost(post)}
+                    >
                       <EditIcon />
                       Sửa
                     </button>
-                    <button className="btn btn-sm btn-primary">
+                    <button 
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeletePost(post.id)}
+                    >
+                      Xóa
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleViewDetail(post)}
+                    >
                       Xem chi tiết
                     </button>
                   </div>
@@ -262,11 +413,20 @@ function MyPostsPage({ onNavigate }) {
                 <polyline points="10,9 9,9 8,9"/>
               </svg>
             </div>
-            <h3>Chưa có tin đăng nào</h3>
-            <p>Bắt đầu đăng tin đầu tiên của bạn để bán sản phẩm</p>
-            <button className="btn btn-primary" onClick={() => onNavigate && onNavigate('oto')}>
-              Đăng tin ngay
-            </button>
+            <h3>
+              {posts.length === 0 ? 'Chưa có tin đăng nào' : `Không tìm thấy tin đăng nào phù hợp`}
+            </h3>
+            <p>
+              {posts.length === 0 
+                ? 'Bắt đầu đăng tin đầu tiên của bạn để bán sản phẩm' 
+                : 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm'
+              }
+            </p>
+            {posts.length === 0 && (
+              <button className="btn btn-primary" onClick={() => navigate('/post')}>
+                Đăng tin ngay
+              </button>
+            )}
           </div>
         )}
       </div>

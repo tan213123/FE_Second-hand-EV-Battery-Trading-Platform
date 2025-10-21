@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSaved, useCompare } from "../../../contexts/AppContext";
+import localStorageService from "../../../services/localStorageService";
 import "./index.scss";
 
 // Icon Components
@@ -155,6 +156,8 @@ const ChevronRightIcon = () => (
 function SellBikePage() {
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
+  const [bikesFromStorage, setBikesFromStorage] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
@@ -185,6 +188,74 @@ function SellBikePage() {
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
 
+  // Load xe điện từ localStorage
+  useEffect(() => {
+    const loadBikesFromStorage = () => {
+      setLoading(true);
+      try {
+        const allPosts = localStorageService.getAllPosts();
+        // Lọc chỉ lấy xe điện (category = 'electric')
+        const bikesPosts = allPosts.filter(post => post.category === 'electric');
+        
+        // Format lại dữ liệu để hiển thị
+        const formattedBikes = bikesPosts.map(post => ({
+          id: post.id,
+          title: post.title,
+          year: post.year,
+          type: "Điện",
+          condition: post.condition,
+          price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+          location: post.location?.district && post.location?.city 
+            ? `${post.location.district}, ${mapCityCodeToName(post.location.city)}`
+            : mapCityCodeToName(post.location?.city) || post.location?.district || '',
+          seller: post.contactName,
+          phone: post.contactPhone,
+          verified: false,
+          images: post.images?.length || 0,
+          featured: false,
+          vip: false,
+          discount: post.negotiable ? "Có thể thương lượng" : "",
+          mileage: post.mileage ? `${post.mileage} km` : "0 km",
+          engine: "Điện",
+          fuelType: "Điện",
+          color: post.color,
+          brand: post.brand,
+          description: post.description,
+          batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+          origin: post.origin || "Chưa cập nhật",
+          originalPost: post,
+          image: post.images?.[0] || '/api/placeholder/400/300',
+          specs: {
+            "Hãng xe": post.brand || "N/A",
+            "Năm sản xuất": post.year || "N/A", 
+            "Xuất xứ": post.origin || "Chưa cập nhật",
+            "Pin": post.batteryInfo ? `${post.batteryInfo}%` : "Chưa cập nhật"
+          }
+        }));
+        
+        setBikesFromStorage(formattedBikes);
+        console.log('Loaded bikes from storage:', formattedBikes);
+      } catch (error) {
+        console.error('Error loading bikes:', error);
+        setBikesFromStorage([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBikesFromStorage();
+
+    // Listen for storage changes
+    const handleStorageChange = () => loadBikesFromStorage();
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('postUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('postUpdated', handleStorageChange);
+    };
+  }, []);
+
   const handleToggleSaved = (e, bike) => {
     e.preventDefault();
     e.stopPropagation();
@@ -192,7 +263,7 @@ function SellBikePage() {
       ...bike,
       id: `bike-${bike.id}`, // Thêm prefix để tránh conflict với trang khác
       category: 'Xe máy điện',
-      image: '/api/placeholder/400/300'
+      image: bike.image || '/api/placeholder/400/300'
     };
     toggleSaved(savedBike);
   };
@@ -203,17 +274,16 @@ function SellBikePage() {
     const compareBike = {
       ...bike,
       id: `bike-${bike.id}`,
-      category: 'Xe máy điện',
-      image: '/api/placeholder/400/300',
+      category: 'Xe máy điện', 
+      image: bike.image || '/api/placeholder/400/300',
       specs: {
         year: bike.year || '-',
-        brand: bike.brand || '-',
+        brand: bike.brand || '-', 
         condition: bike.condition || '-',
         color: bike.color || '-',
         origin: bike.origin || '-',
         mileage: bike.mileage || '-',
-        battery: '-',
-        range: '-'
+        battery: bike.batteryInfo || '-'
       }
     };
     addToCompare(compareBike);
@@ -229,6 +299,28 @@ function SellBikePage() {
         return newSet;
       });
     }, 2000);
+  };
+
+  // Helper function to extract city from location
+  const getCityFromLocation = (location) => {
+    if (!location) return '';
+    const parts = location.split(',');
+    return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
+  };
+
+  // Map city codes to display names to match filter
+  const mapCityCodeToName = (cityCode) => {
+    const cityMapping = {
+      'hcm': 'Tp Hồ Chí Minh',
+      'hanoi': 'Hà Nội', 
+      'danang': 'Đà Nẵng',
+      'cantho': 'Cần Thơ',
+      'haiphong': 'Hải Phòng',
+      'binhduong': 'Bình Dương',
+      'dongnai': 'Đồng Nai',
+      'vungtau': 'Vũng Tàu'
+    };
+    return cityMapping[cityCode] || cityCode;
   };
 
   const handleRevealPhone = (e, bikeId) => {
@@ -274,6 +366,7 @@ function SellBikePage() {
     }
   };
 
+  // Dữ liệu filter - sẽ được tải từ API trong tương lai
   const brands = [
     { name: "Pega", logo: "🏍️", count: 12450 },
     { name: "DKBike", logo: "🏍️", count: 9320 },
@@ -282,7 +375,7 @@ function SellBikePage() {
     { name: "Honda", logo: "🏍️", count: 5840 },
     { name: "Piaggio", logo: "🏍️", count: 3560 },
     { name: "Yadea", logo: "⚡", count: 2980 },
-    { name: "Dat Bike", logo: "⚡", count: 1870 },
+    { name: "DatBike", logo: "⚡", count: 1870 },
   ];
 
   const locations = [
@@ -293,7 +386,6 @@ function SellBikePage() {
     "Gần tôi",
   ];
 
-  // Filter data
   const priceRanges = [
     "Giá dưới 30 triệu",
     "Giá 30 triệu - 50 triệu",
@@ -328,6 +420,14 @@ function SellBikePage() {
     // Lọc theo brands
     if (selectedBrands.length > 0) {
       filteredBikes = filteredBikes.filter(bike => {
+        // Ưu tiên thuộc tính brand nếu có
+        if (bike.brand) {
+          return selectedBrands.some(brand => 
+            brand.toLowerCase() === bike.brand.toLowerCase()
+          );
+        }
+        
+        // Fallback về logic cũ nếu không có thuộc tính brand
         const bikeBrand = bike.title.split(' ')[0].toLowerCase();
         return selectedBrands.some(brand => 
           brand.toLowerCase().includes(bikeBrand) || 
@@ -368,9 +468,18 @@ function SellBikePage() {
 
     // Lọc theo cities
     if (selectedCities.length > 0) {
+      const beforeFilter = filteredBikes.length;
       filteredBikes = filteredBikes.filter(bike => 
-        selectedCities.includes(bike.location)
+        selectedCities.some(city => bike.location.includes(city))
       );
+      // Debug: Log filter results
+      if (beforeFilter > 0) {
+        console.log(`sellBikePage Filter Debug:
+          Selected cities: ${selectedCities.join(', ')}
+          Before filter: ${beforeFilter} bikes
+          After filter: ${filteredBikes.length} bikes
+          Sample locations: ${filteredBikes.slice(0,3).map(b => b.location).join(', ')}`);
+      }
     }
 
     // Lọc theo car types
@@ -416,47 +525,17 @@ function SellBikePage() {
     // Lọc theo locations (khu vực)
     if (selectedLocations.length > 0) {
       filteredBikes = filteredBikes.filter(bike => 
-        selectedLocations.includes(bike.location)
+        selectedLocations.some(location => bike.location.includes(location))
       );
     }
 
     return filteredBikes;
   };
 
-  const bikeListings = [
+  // Thêm một số dữ liệu test để kiểm tra hình ảnh và filter
+  const testBikes = [
     {
       id: 1,
-      title: "Honda SH Mode 2024 - Mới 100% - Giá tốt nhất",
-      year: 2024,
-      type: "Xăng",
-      condition: "Mới",
-      price: "58,000,000 đ",
-      location: "Tp Hồ Chí Minh",
-      seller: "HONDA HEAD MIỀN NAM",
-      phone: "0901234567",
-      verified: true,
-      images: 8,
-      featured: true,
-      vip: true,
-      discount: "5% thỏa thuận",
-      mileage: "0 km",
-      engine: "125cc",
-      fuelType: "Xăng",
-      color: "Đen",
-      description: "Honda SH Mode 2024 hoàn toàn mới, chưa qua sử dụng. Bảo hành chính hãng 3 năm. Tặng kèm nón bảo hiểm, áo mưa và thảm sàn. Có thể trả góp với lãi suất ưu đãi.",
-      specs: {
-        "Động cơ": "125cc, xi-lanh đơn",
-        "Công suất": "9.3 kW (12.6 PS) @ 6,750 rpm",
-        "Mô-men xoắn": "12.2 Nm @ 5,000 rpm",
-        "Hộp số": "Vô cấp (CVT)",
-        "Dung tích bình xăng": "7.1 lít",
-        "Trọng lượng": "116 kg",
-        "Phanh trước": "Đĩa đơn 240mm",
-        "Phanh sau": "Trống 130mm"
-      }
-    },
-    {
-      id: 2,
       title: "VinFast Evo 200 - Xe điện thông minh",
       year: 2024,
       type: "Điện",
@@ -469,55 +548,61 @@ function SellBikePage() {
       images: 10,
       featured: true,
       vip: false,
-      mileage: "0 km",
-      engine: "Động cơ điện",
-      fuelType: "Điện",
-      color: "Trắng",
-      description: "VinFast Evo 200 - Xe máy điện thông minh với công nghệ tiên tiến. Kết nối smartphone, GPS tích hợp, chống trộm thông minh. Bảo hành pin 3 năm, xe 2 năm.",
-      specs: {
-        "Động cơ": "Động cơ điện BLDC",
-        "Công suất": "3.2 kW",
-        "Mô-men xoắn": "110 Nm",
-        "Tốc độ tối đa": "99 km/h",
-        "Quãng đường": "200 km/lần sạc",
-        "Pin": "Lithium 4.2 kWh",
-        "Thời gian sạc": "6-8 tiếng",
-        "Trọng lượng": "118 kg"
-      }
+      brand: "VinFast",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop"
+    },
+    {
+      id: 2,
+      title: "Honda SH Mode 2024 - Mới 100%",
+      year: 2024,
+      type: "Xăng",
+      condition: "Mới",
+      price: "58,000,000 đ",
+      location: "Tp Hồ Chí Minh",
+      seller: "Honda Head",
+      phone: "0901234567",
+      verified: true,
+      images: 8,
+      featured: true,
+      vip: true,
+      brand: "Honda",
+      image: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=300&fit=crop"
     },
     {
       id: 3,
-      title: "Yamaha Exciter 155 2023 - Xe zin chính chủ",
-      year: 2023,
-      km: "5000 km",
-      type: "Xăng",
-      condition: "Đã sử dụng",
-      price: "45,000,000 đ",
-      location: "Đà Nẵng",
-      seller: "Nguyễn Văn A",
-      phone: "0912345678",
-      verified: false,
-      images: 6,
-      featured: false,
+      title: "DatBike Weaver 200 - Xe điện cao cấp, mạnh mẽ & tiết kiệm",
+      year: 2024,
+      type: "Điện",
+      condition: "Mới",
+      price: "85,000,000 đ",
+      location: "Tp Hồ Chí Minh",
+      seller: "DatBike Official",
+      phone: "0956789012",
+      verified: true,
+      images: 12,
+      rating: 4.9,
+      featured: true,
       vip: true,
+      discount: "Trả góp 0%",
+      brand: "DatBike",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop"
     },
     {
       id: 4,
-      title: "Honda Vision 2022 - 1 chủ từ đầu, biển Hà Nội",
-      year: 2022,
-      km: "8000 km",
-      type: "Xăng",
-      condition: "Đã sử dụng",
-      price: "28,500,000 đ",
-      location: "Hà Nội",
-      seller: "Trần Minh",
-      phone: "0934567890",
+      title: "Pega NewTech - Xe máy điện thông minh 2024",
+      year: 2024,
+      type: "Điện",
+      condition: "Mới",
+      price: "45,000,000 đ",
+      location: "Đà Nẵng",
+      seller: "Pega Vietnam",
+      phone: "0967890123",
       verified: true,
-      images: 7,
-      rating: 4.8,
-      reviews: "23 đã bán",
+      images: 6,
       featured: false,
       vip: false,
+      brand: "Pega",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop"
     },
     {
       id: 5,
@@ -534,25 +619,30 @@ function SellBikePage() {
       featured: true,
       vip: false,
       discount: "Giá tốt",
+      brand: "Yadea",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop"
     },
     {
       id: 6,
-      title: "Dat Bike Weaver 200 - Xe điện thông minh 2024",
+      title: "DKBike Uno 2024 - Xe máy điện phong cách",
       year: 2024,
-      type: "Điện",
+      type: "Điện", 
       condition: "Mới",
-      price: "85,000,000 đ",
-      location: "Tp Hồ Chí Minh",
-      seller: "Dat Bike Official",
-      phone: "0956789012",
+      price: "35,000,000 đ",
+      location: "Hà Nội",
+      seller: "DKBike Store",
+      phone: "0978901234",
       verified: true,
-      images: 12,
-      rating: 4.9,
-      featured: true,
+      images: 7,
+      featured: false,
       vip: true,
-      discount: "Trả góp 0%",
-    },
+      brand: "DKBike",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop"
+    }
   ];
+
+  // Chỉ sử dụng dữ liệu thật từ localStorage, fallback về test data nếu trống
+  const bikeListings = loading ? [] : (bikesFromStorage.length > 0 ? bikesFromStorage : testBikes);
 
   const cities = [
     "Tp Hồ Chí Minh",
@@ -1110,7 +1200,27 @@ function SellBikePage() {
 
             {/* Bike Listings Grid */}
             <div className="listings-grid">
-              {getFilteredBikes().map((bike) => (
+              {loading ? (
+                <div className="loading-state">
+                  <p>Đang tải xe điện...</p>
+                </div>
+              ) : getFilteredBikes().length === 0 ? (
+                <div className="empty-state">
+                  <h3>Chưa có xe điện nào</h3>
+                  <p>
+                    {bikesFromStorage.length === 0 
+                      ? 'Hãy đăng xe điện đầu tiên của bạn!' 
+                      : 'Không tìm thấy xe điện phù hợp với bộ lọc của bạn.'
+                    }
+                  </p>
+                  {bikesFromStorage.length === 0 && (
+                    <Link to="/post" className="btn btn-primary">
+                      Đăng bán xe điện
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                getFilteredBikes().map((bike) => (
                 <div 
                   key={bike.id} 
                   className="bike-card"
@@ -1123,7 +1233,13 @@ function SellBikePage() {
                   )}
 
                   <div className="bike-image">
-                    <img src="/api/placeholder/400/300" alt={bike.title} />
+                    <img 
+                      src={bike.image || "/api/placeholder/400/300"} 
+                      alt={bike.title}
+                      onError={(e) => {
+                        e.target.src = "/api/placeholder/400/300"
+                      }}
+                    />
                     <button 
                       className={`favorite-btn ${isSaved(`bike-${bike.id}`) ? 'saved' : ''}`}
                       onClick={(e) => handleToggleSaved(e, bike)}
@@ -1153,7 +1269,7 @@ function SellBikePage() {
 
                     <div className="bike-location">
                       <LocationIcon />
-                      <span>{bike.location}</span>
+                      <span>{getCityFromLocation(bike.location)}</span>
                     </div>
 
                     <div className="bike-seller">
@@ -1191,7 +1307,8 @@ function SellBikePage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Price Range Banner */}
@@ -1239,8 +1356,11 @@ function SellBikePage() {
               <div className="product-gallery">
                 <div className="main-image">
                   <img 
-                    src={`/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
-                    alt={selectedProduct.title} 
+                    src={selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    alt={selectedProduct.title}
+                    onError={(e) => {
+                      e.target.src = `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`
+                    }}
                   />
                   {selectedProduct.images > 1 && (
                     <>
@@ -1263,8 +1383,11 @@ function SellBikePage() {
                         onClick={() => setCurrentImageIndex(index)}
                       >
                         <img 
-                          src={`/api/placeholder/100/80?text=${index + 1}`} 
-                          alt={`${selectedProduct.title} ${index + 1}`} 
+                          src={selectedProduct.image || `/api/placeholder/100/80?text=${index + 1}`} 
+                          alt={`${selectedProduct.title} ${index + 1}`}
+                          onError={(e) => {
+                            e.target.src = `/api/placeholder/100/80?text=${index + 1}`
+                          }}
                         />
                       </div>
                     ))}
@@ -1299,10 +1422,14 @@ function SellBikePage() {
                     <span className="label">Loại xe:</span>
                     <span className="value">{selectedProduct.type}</span>
                   </div>
-                  {selectedProduct.mileage && (
+                  <div className="info-row">
+                    <span className="label">Xuất xứ:</span>
+                    <span className="value">{selectedProduct.origin || 'Chưa cập nhật'}</span>
+                  </div>
+                  {selectedProduct.batteryInfo && (
                     <div className="info-row">
-                      <span className="label">Số km đã đi:</span>
-                      <span className="value">{selectedProduct.mileage}</span>
+                      <span className="label">Pin:</span>
+                      <span className="value">{selectedProduct.batteryInfo}</span>
                     </div>
                   )}
                   <div className="info-row">

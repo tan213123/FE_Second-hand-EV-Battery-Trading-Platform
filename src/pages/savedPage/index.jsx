@@ -139,7 +139,13 @@ function SavedPage() {
             {filteredItems.map((item) => (
               <div key={item.id} className="saved-card">
                 <div className="card-image">
-                  <img src={item.image || '/api/placeholder/300/200'} alt={item.title} />
+                  <img 
+                    src={item.image || '/api/placeholder/300/200'} 
+                    alt={item.title}
+                    onError={(e) => {
+                      e.target.src = '/api/placeholder/300/200'
+                    }}
+                  />
                   <button 
                     className="remove-btn"
                     onClick={() => removeFromSaved(item.id)}

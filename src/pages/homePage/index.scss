@@ -94,6 +94,18 @@
       pointer-events: none;
     }
 
+    .hero-content {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
     .search-container {
       max-width: 900px;
       margin: 0 auto;
@@ -393,6 +405,50 @@
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
       gap: 24px;
       margin-bottom: 40px;
+      
+      .loading-state,
+      .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        
+        p {
+          font-size: 18px;
+          color: #666;
+          margin: 0;
+        }
+      }
+      
+      .empty-state {
+        background: white;
+        border-radius: 16px;
+        border: 2px dashed #ddd;
+        
+        a {
+          color: #007bff;
+          text-decoration: none;
+          font-weight: 600;
+          
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+      
+      .loading-state {
+        p {
+          animation: pulse 2s infinite;
+        }
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
     }
 
     .listing-card {

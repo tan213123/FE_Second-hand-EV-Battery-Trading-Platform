@@ -18,6 +18,7 @@ import MyPostsPage from './pages/myPostsPage';
 import PackagePage from './pages/packagePage';
 import AuctionRegisterPage from './pages/auctionRegisterPage';
 import AccountPage from './pages/accountPage';
+import PostDetailPage from './pages/postDetailPage';
 
 function App() {
   const router = createBrowserRouter([
@@ -41,6 +42,7 @@ function App() {
         { path: '/my-posts', element: <MyPostsPage /> },
         { path: '/packages', element: <PackagePage /> },
         { path: '/auction-register', element: <AuctionRegisterPage /> },
+        { path: '/post-detail/:id', element: <PostDetailPage /> },
       ],
     },
   ]);

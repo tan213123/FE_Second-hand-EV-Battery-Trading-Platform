@@ -447,6 +447,61 @@
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 24px;
       margin-bottom: 40px;
+      
+      .loading-state,
+      .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        
+        h3 {
+          font-size: 24px;
+          color: #333;
+          margin: 0 0 12px 0;
+        }
+        
+        p {
+          font-size: 16px;
+          color: #666;
+          margin: 0 0 24px 0;
+        }
+        
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 24px;
+          background: #FF6B00;
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+          
+          &:hover {
+            background: #e55a00;
+            transform: translateY(-2px);
+          }
+        }
+      }
+      
+      .loading-state {
+        p {
+          animation: pulse 2s infinite;
+        }
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
     }
 
     .bike-card {

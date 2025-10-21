@@ -1,10 +1,196 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import ImageUpload from '../../components/ImageUpload'
+import { productService } from '../../services/productService'
 import './index.scss'
+
+// Dữ liệu địa chỉ Việt Nam
+const vietnamAddressData = {
+  'hanoi': {
+    name: 'Hà Nội',
+    districts: {
+      'ba-dinh': {
+        name: 'Ba Đình',
+        wards: ['Phúc Xá', 'Trúc Bạch', 'Vĩnh Phúc', 'Cống Vị', 'Liễu Giai', 'Nguyễn Trung Trực', 'Quán Thánh', 'Ngọc Hà', 'Điện Biên', 'Đội Cấn', 'Ngọc Khánh', 'Kim Mã', 'Giảng Võ', 'Thành Công']
+      },
+      'hoan-kiem': {
+        name: 'Hoàn Kiếm',
+        wards: ['Phúc Tấn', 'Đồng Xuân', 'Hàng Mã', 'Hàng Buồm', 'Hàng Đào', 'Hàng Bồ', 'Cửa Đông', 'Lý Thái Tổ', 'Hàng Bạc', 'Hàng Gai', 'Chương Dương Độ', 'Cửa Nam', 'Hàng Trống', 'Tràng Tiền', 'Trần Hưng Đạo', 'Phan Chu Trinh', 'Hàng Bài', 'Hàng Quạt']
+      },
+      'dong-da': {
+        name: 'Đống Đa',
+        wards: ['Cát Linh', 'Văn Miếu', 'Quốc Tử Giám', 'Láng Thượng', 'Ô Chợ Dừa', 'Văn Chương', 'Hàng Bột', 'Láng Hạ', 'Khâm Thiên', 'Thổ Quan', 'Nam Đồng', 'Trung Phụng', 'Quang Trung', 'Trung Liệt', 'Phương Liên', 'Thịnh Quang', 'Trung Tự', 'Kim Liên', 'Phương Mai', 'Ngã Tư Sở', 'Khương Thượng']
+      },
+      'hai-ba-trung': {
+        name: 'Hai Bà Trưng',
+        wards: ['Nguyễn Du', 'Bạch Đằng', 'Phạm Đình Hổ', 'Lê Đại Hành', 'Đồng Nhận', 'Phố Huế', 'Đống Mác', 'Thanh Lương', 'Thanh Nhàn', 'Cầu Dền', 'Bách Khoa', 'Đồng Tâm', 'Vĩnh Tuy', 'Bạch Mai', 'Quỳnh Mai', 'Quỳnh Lôi', 'Minh Khai', 'Trương Định']
+      },
+      'cau-giay': {
+        name: 'Cầu Giấy',
+        wards: ['Nghĩa Đô', 'Nghĩa Tân', 'Mai Dịch', 'Dịch Vọng', 'Dịch Vọng Hậu', 'Quan Hoa', 'Yên Hoà', 'Trung Hoà']
+      }
+    }
+  },
+  'hcm': {
+    name: 'TP. Hồ Chí Minh',
+    districts: {
+      'quan-1': {
+        name: 'Quận 1',
+        wards: ['Tân Định', 'Đa Kao', 'Bến Nghé', 'Bến Thành', 'Nguyễn Thái Bình', 'Phạm Ngũ Lão', 'Cầu Ông Lãnh', 'Cô Giang', 'Nguyễn Cư Trinh', 'Cầu Kho']
+      },
+      'quan-3': {
+        name: 'Quận 3',
+        wards: ['Võ Thị Sáu', 'Nguyễn Thị Minh Khai', 'Phường 1', 'Phường 2', 'Phường 3', 'Phường 4', 'Phường 5', 'Phường 6', 'Phường 7', 'Phường 8', 'Phường 9', 'Phường 10', 'Phường 11', 'Phường 12', 'Phường 13', 'Phường 14']
+      },
+      'quan-7': {
+        name: 'Quận 7',
+        wards: ['Tân Thuận Đông', 'Tân Thuận Tây', 'Tân Kiểng', 'Tân Hưng', 'Bình Thuận', 'Tân Quy', 'Phú Thuận', 'Tân Phú', 'Tân Phong', 'Phú Mỹ']
+      },
+      'binh-thanh': {
+        name: 'Bình Thạnh',
+        wards: ['Phường 1', 'Phường 2', 'Phường 3', 'Phường 5', 'Phường 6', 'Phường 7', 'Phường 11', 'Phường 12', 'Phường 13', 'Phường 14', 'Phường 15', 'Phường 17', 'Phường 19', 'Phường 21', 'Phường 22', 'Phường 24', 'Phường 25', 'Phường 26', 'Phường 27', 'Phường 28']
+      },
+      'thu-duc': {
+        name: 'Thủ Đức',
+        wards: ['Linh Xuân', 'Bình Chiểu', 'Linh Trung', 'Tam Bình', 'Tam Phú', 'Hiệp Bình Phước', 'Hiệp Bình Chánh', 'Linh Chiểu', 'Linh Tây', 'Linh Đông', 'Bình Thọ', 'Trường Thọ', 'Long Bình', 'Long Thạnh Mỹ', 'Tân Phú', 'Hiệp Phú', 'Tăng Nhơn Phú A', 'Tăng Nhơn Phú B', 'Phước Long A', 'Phước Long B', 'Trường Thạnh', 'Long Phước', 'Long Trường', 'Phước Bình', 'Phú Hữu', 'Thạnh Mỹ Lợi', 'Thủ Thiêm']
+      }
+    }
+  },
+  'danang': {
+    name: 'Đà Nẵng',
+    districts: {
+      'hai-chau': {
+        name: 'Hải Châu',
+        wards: ['Thạch Thang', 'Hải Châu I', 'Hải Châu II', 'Phước Ninh', 'Hòa Thuận Tây', 'Hòa Thuận Đông', 'Nam Dương', 'Bình Hiên', 'Bình Thuận', 'Hòa Cường Bắc', 'Hòa Cường Nam', 'Thanh Bình', 'Thuận Phước']
+      },
+      'thanh-khe': {
+        name: 'Thanh Khê',
+        wards: ['Tam Thuận', 'Thanh Khê Tây', 'Thanh Khê Đông', 'Xuân Hà', 'Tân Chính', 'Chính Gian', 'Vĩnh Trung', 'Thạc Gián', 'An Khê', 'Hòa Khê']
+      },
+      'son-tra': {
+        name: 'Sơn Trà',
+        wards: ['Thọ Quang', 'Nại Hiên Đông', 'Mân Thái', 'An Hải Bắc', 'Phước Mỹ', 'An Hải Tây', 'An Hải Đông']
+      },
+      'ngu-hanh-son': {
+        name: 'Ngũ Hành Sơn',
+        wards: ['Mỹ An', 'Khuê Mỹ', 'Hoà Quý', 'Hoà Hải']
+      },
+      'lien-chieu': {
+        name: 'Liên Chiểu',
+        wards: ['Hòa Hiệp Bắc', 'Hòa Hiệp Nam', 'Hòa Khánh Bắc', 'Hòa Khánh Nam', 'Hòa Minh']
+      }
+    }
+  },
+  'cantho': {
+    name: 'Cần Thơ',
+    districts: {
+      'ninh-kieu': {
+        name: 'Ninh Kiều',
+        wards: ['Cái Khế', 'Thới Bình', 'Xuân Khánh', 'Hưng Lợi', 'An Hòa', 'Tân An', 'An Nghiệp', 'An Cư', 'Hưng Thạnh', 'An Khánh', 'An Phú']
+      },
+      'binh-thuy': {
+        name: 'Bình Thủy',
+        wards: ['Bình Thủy', 'Trà An', 'Trà Nóc', 'Thới An Đông', 'An Thới', 'Bùi Hữu Nghĩa', 'Long Hòa', 'Long Tuyền']
+      },
+      'cai-rang': {
+        name: 'Cái Răng',
+        wards: ['Lê Bình', 'Hưng Phú', 'Hưng Thạnh', 'Ba Láng', 'Thường Thạnh', 'Phước Thới', 'Tân Phú']
+      },
+      'o-mon': {
+        name: 'Ô Môn',
+        wards: ['Châu Văn Liêm', 'Thới Hòa', 'Thới Long', 'Thới An', 'Phước Thạnh', 'Trường Lạc', 'Thới Thuận']
+      }
+    }
+  },
+  'haiphong': {
+    name: 'Hải Phòng',
+    districts: {
+      'hong-bang': {
+        name: 'Hồng Bàng',
+        wards: ['Quán Toan', 'Hồng Bàng', 'Sở Dầu', 'Thượng Lý', 'Hạ Lý', 'Minh Khai', 'Trại Cau', 'Lạc Viên', 'Lê Lợi', 'Đông Khê', 'Phan Bội Châu']
+      },
+      'ngo-quyen': {
+        name: 'Ngô Quyền',
+        wards: ['Máy Chai', 'Máy Tơ', 'Lạch Tray', 'Cầu Tre', 'Đông Khê', 'Cầu Đất', 'Văn Đẩu', 'Lê Lợi', 'Đằng Giang', 'Cát Dài']
+      },
+      'le-chan': {
+        name: 'Lê Chân',
+        wards: ['Cát Dài', 'An Biên', 'Lam Sơn', 'An Dương', 'Trần Nguyên Hãn', 'Niệm Nghĩa', 'Dư Hàng', 'Kênh Dương', 'Cát Bi', 'Đông Hải', 'Hồ Nam']
+      },
+      'hai-an': {
+        name: 'Hải An',
+        wards: ['Đông Hải 1', 'Đông Hải 2', 'Bắc Sơn', 'Nam Sơn', 'Ngọc Sơn', 'Tràng Cát', 'Tân Thành', 'Thành Tô']
+      }
+    }
+  },
+  'binhduong': {
+    name: 'Bình Dương',
+    districts: {
+      'thu-dau-mot': {
+        name: 'Thủ Dầu Một',
+        wards: ['Phú Cường', 'Phú Hòa', 'Phú Thọ', 'Chánh Nghĩa', 'Định Hoà', 'Hoà Phú', 'Phú Lợi', 'Phú Tân', 'Tương Bình Hiệp', 'Khánh Bình', 'Tân An', 'Hiệp An', 'Tân Tiến', 'Hòa Lợi', 'Phú Mỹ']
+      },
+      'di-an': {
+        name: 'Dĩ An',
+        wards: ['Dĩ An', 'An Bình', 'An Sơn', 'Đông Hòa', 'Tân Bình', 'Tân Đông Hiệp', 'Bình An', 'Bình Thắng']
+      },
+      'thuan-an': {
+        name: 'Thuận An',
+        wards: ['Lái Thiêu', 'Bình Chuẩn', 'Thuận Giao', 'An Phú', 'Hưng Định', 'An Sơn', 'Bình Hòa', 'Việt Sing']
+      },
+      'ben-cat': {
+        name: 'Bến Cát',
+        wards: ['Mỹ Phước', 'Chánh Phú Hòa', 'Uyên Hưng', 'Tân Uyên', 'Khánh Bình', 'Phú An', 'Tân Định']
+      }
+    }
+  },
+  'dongnai': {
+    name: 'Đồng Nai',
+    districts: {
+      'bien-hoa': {
+        name: 'Biên Hòa',
+        wards: ['Quyết Thắng', 'Trảng Dài', 'An Bình', 'Hóa An', 'Tân Phong', 'Tân Biên', 'Hố Nai', 'Tân Hạnh', 'Hiệp Hòa', 'Bửu Long', 'Tân Tiến', 'Thống Nhất', 'Tam Hiệp', 'Tam Hòa', 'Bình Đa', 'An Hòa', 'Hưng Chiến']
+      },
+      'long-thanh': {
+        name: 'Long Thành',
+        wards: ['Long Thành', 'An Phước', 'Bình An', 'Bình Sơn', 'Cẩm Đường', 'Long Đức', 'Long Hưng', 'Long Phước', 'Phước Bình', 'Tam An', 'Tân Hiệp']
+      },
+      'nhon-trach': {
+        name: 'Nhơn Trạch',
+        wards: ['Đại Phước', 'Hiệp Phước', 'Long Tân', 'Phú Hữu', 'Phú Hội', 'Phước An', 'Phước Khánh', 'Phước Thiền', 'Vĩnh Thanh']
+      },
+      'trang-bom': {
+        name: 'Trảng Bom',
+        wards: ['Trảng Bom', 'Bàu Hàm', 'Bình Minh', 'Đông Hòa', 'Giang Điền', 'Hàng Gòn', 'Quảng Tiến', 'Sông Thao', 'Thanh Bình', 'Thiện Tân']
+      }
+    }
+  },
+  'vungtau': {
+    name: 'Vũng Tàu',
+    districts: {
+      'vung-tau': {
+        name: 'Vũng Tàu',
+        wards: ['Thắng Tam', 'Thắng Nhì', 'Thắng Nhất', 'Rạch Dừa', 'Nguyễn An Ninh', 'Bến Đà', 'Phước Hưng', 'Phước Hải', 'Phước Trung', 'Long Sơn', 'Hạ Long', 'Tân Thành', 'Miền Tây']
+      },
+      'ba-ria': {
+        name: 'Bà Rịa',
+        wards: ['Phước Hiệp', 'Phước Nguyên', 'Kim Dinh', 'Phước Trung', 'Long Toàn', 'Long Tâm', 'Hoà Long', 'Tân Hưng', 'Long Hương', 'Phước Hưng']
+      },
+      'con-dao': {
+        name: 'Côn Đảo',
+        wards: ['Côn Đảo']
+      }
+    }
+  },
+}
 
 const PostListing = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [step, setStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [agreeTerm, setAgreeTerm] = useState(false)
   const [formData, setFormData] = useState({
     category: '',
     title: '',
@@ -17,6 +203,9 @@ const PostListing = () => {
     color: '',
     origin: '',
     region: '',
+    // Common fields for vehicles
+    mileage: '', // Quãng đường đã đi (km)
+    batteryInfo: '', // Thông tin pin (%)
     // Car specific
     bodyType: '',
     seats: '',
@@ -33,6 +222,103 @@ const PostListing = () => {
     contactPhone: '',
     images: []
   })
+
+  // State để theo dõi trạng thái điền form
+  const [fieldStatus, setFieldStatus] = useState({})
+
+  // Function để kiểm tra field đã được điền đầy đủ chưa
+  const checkFieldCompletion = useCallback((fieldName, value) => {
+    let isComplete = false
+    
+    switch (fieldName) {
+      case 'title':
+        isComplete = value && value.length >= 30
+        break
+      case 'description':
+        isComplete = value && value.length >= 100
+        break
+      case 'price':
+        isComplete = value && parseFloat(value) > 0
+        break
+      case 'images':
+        isComplete = value && value.length > 0
+        break
+      case 'condition':
+      case 'brand':
+      case 'year':
+      case 'color':
+      case 'origin':
+      case 'category':
+        isComplete = value && value !== ''
+        break
+      case 'mileage':
+      case 'batteryInfo':
+        isComplete = value && value !== ''
+        break
+      case 'bodyType':
+      case 'seats':
+        isComplete = formData.category === 'car' ? (value && value !== '') : true
+        break
+      case 'batteryType':
+      case 'capacity':
+        isComplete = formData.category === 'battery' ? (value && value !== '') : true
+        break
+      case 'contactName':
+        isComplete = value && value.length >= 2
+        break
+      case 'contactPhone':
+        isComplete = value && /^[0-9]{10}$/.test(value)
+        break
+      case 'location.city':
+        isComplete = formData.location.city && formData.location.city !== ''
+        break
+      case 'location.district':
+        isComplete = formData.location.district && formData.location.district !== ''
+        break
+      case 'location.ward':
+        isComplete = formData.location.ward && formData.location.ward !== ''
+        break
+      case 'location.address':
+        isComplete = formData.location.address && formData.location.address.length >= 10
+        break
+      default:
+        isComplete = false
+    }
+    
+    setFieldStatus(prev => ({
+      ...prev,
+      [fieldName]: isComplete
+    }))
+    
+    return isComplete
+  }, [formData])
+
+  // Effect để cập nhật trạng thái field khi formData thay đổi
+  useEffect(() => {
+    // Kiểm tra tất cả các field quan trọng
+    checkFieldCompletion('title', formData.title)
+    checkFieldCompletion('description', formData.description)
+    checkFieldCompletion('price', formData.price)
+    checkFieldCompletion('images', formData.images)
+    checkFieldCompletion('condition', formData.condition)
+    checkFieldCompletion('brand', formData.brand)
+    checkFieldCompletion('year', formData.year)
+    checkFieldCompletion('color', formData.color)
+    checkFieldCompletion('origin', formData.origin)
+    checkFieldCompletion('category', formData.category)
+    checkFieldCompletion('mileage', formData.mileage)
+    checkFieldCompletion('batteryInfo', formData.batteryInfo)
+    checkFieldCompletion('bodyType', formData.bodyType)
+    checkFieldCompletion('seats', formData.seats)
+    checkFieldCompletion('batteryType', formData.batteryType)
+    checkFieldCompletion('capacity', formData.capacity)
+    checkFieldCompletion('contactName', formData.contactName)
+    checkFieldCompletion('contactPhone', formData.contactPhone)
+    checkFieldCompletion('location.city', formData.location.city)
+    checkFieldCompletion('location.district', formData.location.district)
+    checkFieldCompletion('location.ward', formData.location.ward)
+    checkFieldCompletion('location.address', formData.location.address)
+  }, [formData, checkFieldCompletion])
 
   const categories = [
     { id: 'car', name: 'Ô tô', icon: '🚗' },
@@ -51,7 +337,48 @@ const PostListing = () => {
   const regions = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
   const colors = ['Trắng', 'Đen', 'Xám', 'Bạc', 'Đỏ', 'Xanh dương', 'Xanh lá', 'Vàng', 'Nâu', 'Khác']
 
+  // Effect để load dữ liệu khi ở chế độ edit
+  useEffect(() => {
+    const mode = searchParams.get('mode')
+    const postId = searchParams.get('id')
+    
+    if (mode === 'edit' && postId) {
+      setIsEditMode(true)
+      const editingPostData = sessionStorage.getItem('editingPost')
+      
+      if (editingPostData) {
+        const postData = JSON.parse(editingPostData)
+        setFormData(postData)
+        setStep(2) // Bắt đầu từ step 2 khi edit
+      } else {
+        // Nếu không có dữ liệu, redirect về my-posts
+        navigate('/my-posts')
+      }
+    }
+  }, [searchParams, navigate])
+
+  // Lấy danh sách quận/huyện theo tỉnh/thành phố được chọn
+  const availableDistricts = useMemo(() => {
+    if (!formData.location.city) return []
+    const cityData = vietnamAddressData[formData.location.city]
+    return cityData ? Object.entries(cityData.districts).map(([key, value]) => ({
+      id: key,
+      name: value.name
+    })) : []
+  }, [formData.location.city])
+
+  // Lấy danh sách phường/xã theo quận/huyện được chọn
+  const availableWards = useMemo(() => {
+    if (!formData.location.city || !formData.location.district) return []
+    const cityData = vietnamAddressData[formData.location.city]
+    const districtData = cityData?.districts[formData.location.district]
+    return districtData ? districtData.wards : []
+  }, [formData.location.city, formData.location.district])
+
   const handleInputChange = (field, value) => {
+    if (field === 'images') {
+      console.log('Images updated:', value)
+    }
     setFormData(prev => ({ 
       ...prev,
       [field]: value
@@ -59,32 +386,33 @@ const PostListing = () => {
   }
 
   const handleLocationChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        [field]: value
+    setFormData(prev => {
+      const newLocation = { ...prev.location, [field]: value }
+      
+      // Reset district và ward khi thay đổi city
+      if (field === 'city') {
+        newLocation.district = ''
+        newLocation.ward = ''
       }
-    }))
+      
+      // Reset ward khi thay đổi district
+      if (field === 'district') {
+        newLocation.ward = ''
+      }
+      
+      return {
+        ...prev,
+        location: newLocation
+      }
+    })
   }
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files)
-    if (formData.images.length + files.length > 12) {
-      alert('Tối đa 12 ảnh!')
-      return
-    }
-    const newImages = files.map(file => URL.createObjectURL(file))
+  // Handler khi ImageUpload component thay đổi danh sách ảnh
+  const handleImagesChange = (imageUrls) => {
+    console.log('Images changed:', imageUrls)
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...newImages]
-    }))
-  }
-
-  const removeImage = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: imageUrls
     }))
   }
 
@@ -95,6 +423,14 @@ const PostListing = () => {
     }
     if (!formData.description || formData.description.length < 100) {
       alert('Mô tả phải có ít nhất 100 ký tự')
+      return false
+    }
+    if (!formData.images || formData.images.length === 0) {
+      alert('Vui lòng thêm ít nhất một hình ảnh sản phẩm')
+      return false
+    }
+    if (formData.images.length > 12) {
+      alert('Tối đa 12 hình ảnh')
       return false
     }
     if (!formData.price) {
@@ -173,6 +509,10 @@ const PostListing = () => {
       alert('Vui lòng nhập số điện thoại hợp lệ (10 số)')
       return false
     }
+    if (!agreeTerm) {
+      alert('Vui lòng đồng ý với Quy định đăng tin của EcoXe')
+      return false
+    }
     return true
   }
 
@@ -192,10 +532,73 @@ const PostListing = () => {
   const handleSubmit = async () => {
     if (!validateStep4()) return
     
-    // Call API to submit listing
-    console.log('Submitting:', formData)
-    alert('Đăng tin thành công!')
-    navigate('/my-listings')
+    setIsSubmitting(true)
+    
+    try {
+      // Hiển thị loading
+      console.log(isEditMode ? 'Đang cập nhật sản phẩm:' : 'Đang tạo sản phẩm:', formData)
+      
+      let result
+      if (isEditMode) {
+        // Cập nhật sản phẩm
+        result = await productService.updateProductWithImages(formData)
+      } else {
+        // Tạo sản phẩm mới
+        result = await productService.createProductWithImages(formData)
+      }
+      
+      if (result.error) {
+        alert(`Lỗi: ${result.error}`)
+        return
+      }
+      
+      console.log(isEditMode ? '✅ Cập nhật sản phẩm thành công:' : '✅ Tạo sản phẩm thành công:', result.data)
+      alert(isEditMode ? 'Cập nhật tin đăng thành công!' : 'Đăng tin thành công!')
+      
+      // Clear sessionStorage nếu ở edit mode
+      if (isEditMode) {
+        sessionStorage.removeItem('editingPost')
+      }
+      
+      // Reset form
+      setFormData({
+        category: '',
+        title: '',
+        description: '',
+        price: '',
+        negotiable: false,
+        condition: '',
+        brand: '',
+        year: '',
+        color: '',
+        origin: '',
+        region: '',
+        mileage: '',
+        batteryInfo: '',
+        bodyType: '',
+        seats: '',
+        batteryType: '',
+        capacity: '',
+        location: {
+          city: '',
+          district: '',
+          ward: '',
+          address: ''
+        },
+        contactName: '',
+        contactPhone: '',
+        images: []
+      })
+      
+      // Redirect về trang quản lý tin đăng
+      navigate('/my-posts')
+      
+    } catch (error) {
+      console.error('❌ Lỗi không mong muốn:', error)
+      alert('Có lỗi xảy ra, vui lòng thử lại!')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getBrandOptions = () => {
@@ -238,7 +641,7 @@ const PostListing = () => {
           {/* Step 1: Category Selection */}
           {step === 1 && (
             <div className="form-step">
-              <h2 className="step-title">Chọn danh mục sản phẩm</h2>
+              <h2 className="step-title">{isEditMode ? 'Chỉnh sửa danh mục sản phẩm' : 'Chọn danh mục sản phẩm'}</h2>
               <div className="category-grid">
                 {categories.map(cat => (
                   <div
@@ -266,10 +669,10 @@ const PostListing = () => {
           {/* Step 2: Details */}
           {step === 2 && (
             <div className="form-step">
-              <h2 className="step-title">Thông tin chi tiết - {categories.find(c => c.id === formData.category)?.name}</h2>
+              <h2 className="step-title">{isEditMode ? 'Chỉnh sửa thông tin chi tiết' : 'Thông tin chi tiết'} - {categories.find(c => c.id === formData.category)?.name}</h2>
               
               {/* Common Fields - Dùng chung cho tất cả */}
-              <div className="form-group">
+              <div className={`form-group ${fieldStatus.title ? 'completed' : ''}`}>
                 <label>Tiêu đề bài đăng *</label>
                 <input
                   type="text"
@@ -280,7 +683,7 @@ const PostListing = () => {
                 <small>Tối thiểu 30 ký tự, tối đa 100 ký tự ({formData.title.length}/100)</small>
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${fieldStatus.description ? 'completed' : ''}`}>
                 <label>Mô tả chi tiết *</label>
                 <textarea
                   rows="6"
@@ -291,7 +694,19 @@ const PostListing = () => {
                 <small>Tối thiểu 100 ký tự ({formData.description.length}/100)</small>
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${fieldStatus.images ? 'completed' : ''}`}>
+                <label>Hình ảnh sản phẩm *</label>
+                <ImageUpload
+                  onImagesChange={(images) => handleInputChange('images', images)}
+                  multiple={true}
+                  maxFiles={10}
+                  folder="products"
+                  existingImages={formData.images}
+                />
+                <small>Tối đa 10 hình ảnh, mỗi ảnh tối đa 5MB (JPG, PNG, WebP)</small>
+              </div>
+
+              <div className={`form-group ${fieldStatus.price ? 'completed' : ''}`}>
                 <label>Giá tiền *</label>
                 <input
                   type="text"
@@ -315,7 +730,7 @@ const PostListing = () => {
               </div>
 
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${formData.region ? 'completed' : ''}`}>
                   <label>Khu vực *</label>
                   <select
                     value={formData.region}
@@ -328,7 +743,7 @@ const PostListing = () => {
                   </select>
                 </div>
 
-                <div className="form-group">
+                <div className={`form-group ${fieldStatus.condition ? 'completed' : ''}`}>
                   <label>Tình trạng *</label>
                   <select
                     value={formData.condition}
@@ -343,7 +758,7 @@ const PostListing = () => {
               </div>
 
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${fieldStatus.year ? 'completed' : ''}`}>
                   <label>Năm sản xuất *</label>
                   <input
                     type="number"
@@ -355,7 +770,7 @@ const PostListing = () => {
                   />
                 </div>
 
-                <div className="form-group">
+                <div className={`form-group ${fieldStatus.brand ? 'completed' : ''}`}>
                   <label>Hãng {formData.category === 'battery' ? 'Pin' : 'xe'} *</label>
                   <select
                     value={formData.brand}
@@ -370,7 +785,7 @@ const PostListing = () => {
               </div>
 
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${fieldStatus.color ? 'completed' : ''}`}>
                   <label>Màu sắc *</label>
                   <select
                     value={formData.color}
@@ -396,6 +811,36 @@ const PostListing = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Common Vehicle Fields - Chỉ hiển thị cho xe (car và electric) */}
+              {(formData.category === 'car' || formData.category === 'electric') && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Số km đã đi (km)</label>
+                    <input
+                      type="number"
+                      placeholder="VD: 15000"
+                      min="0"
+                      value={formData.mileage}
+                      onChange={(e) => handleInputChange('mileage', e.target.value)}
+                    />
+                    <small>Nhập số km xe đã đi (có thể để trống nếu xe mới)</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Pin (%)</label>
+                    <input
+                      type="number"
+                      placeholder="VD: 85"
+                      min="0"
+                      max="100"
+                      value={formData.batteryInfo}
+                      onChange={(e) => handleInputChange('batteryInfo', e.target.value)}
+                    />
+                    <small>Nhập phần trăm pin còn lại (có thể để trống)</small>
+                  </div>
+                </div>
+              )}
 
               {/* Category Specific Fields */}
               {formData.category === 'car' && (
@@ -469,45 +914,25 @@ const PostListing = () => {
           {/* Step 3: Images & Videos */}
           {step === 3 && (
             <div className="form-step">
-              <h2 className="step-title">Hình ảnh sản phẩm</h2>
+              <h2 className="step-title">{isEditMode ? 'Chỉnh sửa hình ảnh sản phẩm' : 'Hình ảnh sản phẩm'}</h2>
               <div className="upload-section">
                 <div className="upload-info">
                   <p>📸 Thêm ít nhất 1 ảnh để tin đăng của bạn hấp dẫn hơn</p>
                   <ul>
                     <li>Ảnh rõ nét, không mờ, không chứa thông tin liên hệ</li>
                     <li>Tối đa 12 ảnh, mỗi ảnh tối đa 5MB</li>
-                    <li>Hỗ trợ: JPG, PNG, GIF</li>
+                    <li>Hỗ trợ: JPG, PNG, WebP</li>
+                    <li>Ảnh sẽ được tự động upload lên Supabase Storage</li>
                   </ul>
                 </div>
 
-                <div className="image-upload-grid">
-                  {formData.images.map((img, index) => (
-                    <div key={index} className="image-preview">
-                      <img src={img} alt={`Preview ${index + 1}`} />
-                      <button
-                        className="remove-btn"
-                        onClick={() => removeImage(index)}
-                      >
-                        ×
-                      </button>
-                      {index === 0 && <span className="main-badge">Ảnh chính</span>}
-                    </div>
-                  ))}
-                  {formData.images.length < 12 && (
-                    <label className="upload-box">
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                      />
-                      <div className="upload-icon">+</div>
-                      <div className="upload-text">Thêm ảnh</div>
-                      <small>{formData.images.length}/12</small>
-                    </label>
-                  )}
-                </div>
+                <ImageUpload
+                  onImagesChange={handleImagesChange}
+                  multiple={true}
+                  maxFiles={12}
+                  folder="products"
+                  existingImages={formData.images}
+                />
               </div>
 
               <div className="form-actions">
@@ -528,9 +953,9 @@ const PostListing = () => {
           {/* Step 4: Contact Info */}
           {step === 4 && (
             <div className="form-step">
-              <h2 className="step-title">Thông tin liên hệ</h2>
+              <h2 className="step-title">{isEditMode ? 'Chỉnh sửa thông tin liên hệ' : 'Thông tin liên hệ'}</h2>
               
-              <div className="form-group">
+              <div className={`form-group ${fieldStatus['location.city'] && fieldStatus['location.district'] && fieldStatus['location.address'] ? 'completed' : ''}`}>
                 <label>Địa chỉ *</label>
                 <div className="location-selects">
                   <select
@@ -538,11 +963,9 @@ const PostListing = () => {
                     onChange={(e) => handleLocationChange('city', e.target.value)}
                   >
                     <option value="">Tỉnh/Thành phố</option>
-                    <option value="hanoi">Hà Nội</option>
-                    <option value="hcm">TP. Hồ Chí Minh</option>
-                    <option value="danang">Đà Nẵng</option>
-                    <option value="haiphong">Hải Phòng</option>
-                    <option value="cantho">Cần Thơ</option>
+                    {Object.entries(vietnamAddressData).map(([key, city]) => (
+                      <option key={key} value={key}>{city.name}</option>
+                    ))}
                   </select>
 
                   <select
@@ -551,10 +974,9 @@ const PostListing = () => {
                     disabled={!formData.location.city}
                   >
                     <option value="">Quận/Huyện</option>
-                    <option value="cg">Cầu Giấy</option>
-                    <option value="dd">Đống Đa</option>
-                    <option value="hbt">Hai Bà Trưng</option>
-                    <option value="hk">Hoàn Kiếm</option>
+                    {availableDistricts.map((district) => (
+                      <option key={district.id} value={district.id}>{district.name}</option>
+                    ))}
                   </select>
 
                   <select
@@ -563,9 +985,9 @@ const PostListing = () => {
                     disabled={!formData.location.district}
                   >
                     <option value="">Phường/Xã</option>
-                    <option value="dv">Dịch Vọng</option>
-                    <option value="qh">Quan Hoa</option>
-                    <option value="yh">Yên Hòa</option>
+                    {availableWards.map((ward) => (
+                      <option key={ward} value={ward}>{ward}</option>
+                    ))}
                   </select>
                 </div>
                 <input
@@ -577,7 +999,7 @@ const PostListing = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${fieldStatus.contactName ? 'completed' : ''}`}>
                 <label>Tên người liên hệ *</label>
                 <input
                   type="text"
@@ -587,7 +1009,7 @@ const PostListing = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${fieldStatus.contactPhone ? 'completed' : ''}`}>
                 <label>Số điện thoại *</label>
                 <input
                   type="tel"
@@ -600,7 +1022,12 @@ const PostListing = () => {
 
               <div className="terms-checkbox">
                 <label>
-                  <input type="checkbox" required />
+                  <input 
+                    type="checkbox" 
+                    checked={agreeTerm}
+                    onChange={(e) => setAgreeTerm(e.target.checked)}
+                    required 
+                  />
                   Tôi đã đọc và đồng ý với <a href="#">Quy định đăng tin</a> của EcoXe
                 </label>
               </div>
@@ -609,8 +1036,15 @@ const PostListing = () => {
                 <button className="btn btn-secondary" onClick={handlePrev}>
                   Quay lại
                 </button>
-                <button className="btn btn-primary" onClick={handleSubmit}>
-                  Đăng tin
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting 
+                    ? (isEditMode ? 'Đang cập nhật...' : 'Đang đăng tin...') 
+                    : (isEditMode ? 'Cập nhật tin đăng' : 'Đăng tin')
+                  }
                 </button>
               </div>
             </div>
