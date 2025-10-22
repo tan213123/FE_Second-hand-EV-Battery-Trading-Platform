@@ -9,7 +9,8 @@ const samplePosts = [
     postType: 'Bán',
     createdAt: '2025-09-20',
     memberId: 'MBR1001',
-    price: 12500000
+    price: 12500000,
+    status: 'pending' // pending, approved, rejected
   },
   {
     id: 'POST002',
@@ -18,7 +19,8 @@ const samplePosts = [
     postType: 'Bán',
     createdAt: '2025-09-22',
     memberId: 'MBR1002',
-    price: 3200000
+    price: 3200000,
+    status: 'pending'
   },
   {
     id: 'POST003',
@@ -27,7 +29,18 @@ const samplePosts = [
     postType: 'Trao đổi',
     createdAt: '2025-09-25',
     memberId: 'MBR1003',
-    price: 0
+    price: 0,
+    status: 'approved'
+  },
+  {
+    id: 'POST004',
+    title: 'Pin lithium 72V mới 95%',
+    provinceCity: 'Hải Phòng',
+    postType: 'Bán',
+    createdAt: '2025-09-26',
+    memberId: 'MBR1004',
+    price: 5800000,
+    status: 'rejected'
   }
 ];
 
@@ -38,6 +51,7 @@ const Posts = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved, rejected
 
   useEffect(() => {
     setPosts(samplePosts);
@@ -48,10 +62,22 @@ const Posts = () => {
   };
 
   const filtered = useMemo(() => {
-    return posts.filter(p =>
-      Object.values(p).some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [posts, searchTerm]);
+    let result = posts;
+    
+    // Filter by status
+    if (filterStatus !== 'all') {
+      result = result.filter(p => p.status === filterStatus);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      result = result.filter(p =>
+        Object.values(p).some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    
+    return result;
+  }, [posts, searchTerm, filterStatus]);
 
   const sorted = useMemo(() => {
     if (!sortConfig.key) return filtered;
@@ -81,7 +107,31 @@ const Posts = () => {
   };
 
   const handleBulkDelete = () => {
-    setPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
+    if (window.confirm(`Bạn có chắc muốn xóa ${selectedPosts.length} bài đăng?`)) {
+      setPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
+      setSelectedPosts([]);
+    }
+  };
+
+  const handleApprove = (id) => {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'approved' } : p));
+  };
+
+  const handleReject = (id) => {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
+  };
+
+  const handleBulkApprove = () => {
+    setPosts(prev => prev.map(p => 
+      selectedPosts.includes(p.id) ? { ...p, status: 'approved' } : p
+    ));
+    setSelectedPosts([]);
+  };
+
+  const handleBulkReject = () => {
+    setPosts(prev => prev.map(p => 
+      selectedPosts.includes(p.id) ? { ...p, status: 'rejected' } : p
+    ));
     setSelectedPosts([]);
   };
 
@@ -89,11 +139,29 @@ const Posts = () => {
   const formatPrice = (v) =>
     Number(v || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: { text: 'Chờ duyệt', class: 'status-pending' },
+      approved: { text: 'Đã duyệt', class: 'status-approved' },
+      rejected: { text: 'Từ chối', class: 'status-rejected' }
+    };
+    return badges[status] || badges.pending;
+  };
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: posts.length,
+      pending: posts.filter(p => p.status === 'pending').length,
+      approved: posts.filter(p => p.status === 'approved').length,
+      rejected: posts.filter(p => p.status === 'rejected').length
+    };
+  }, [posts]);
+
   return (
     <div className="users-management">
       <div className="card">
         <div className="card-header">
-          <h2>Quản lý bài đăng</h2>
+          <h2>Duyệt bài đăng</h2>
           <div className="header-actions">
             <div className="search-box">
               <input
@@ -113,6 +181,33 @@ const Posts = () => {
           </div>
         </div>
 
+        <div className="status-filter">
+          <button 
+            className={filterStatus === 'all' ? 'active' : ''} 
+            onClick={() => setFilterStatus('all')}
+          >
+            Tất cả ({statusCounts.all})
+          </button>
+          <button 
+            className={filterStatus === 'pending' ? 'active' : ''} 
+            onClick={() => setFilterStatus('pending')}
+          >
+            Chờ duyệt ({statusCounts.pending})
+          </button>
+          <button 
+            className={filterStatus === 'approved' ? 'active' : ''} 
+            onClick={() => setFilterStatus('approved')}
+          >
+            Đã duyệt ({statusCounts.approved})
+          </button>
+          <button 
+            className={filterStatus === 'rejected' ? 'active' : ''} 
+            onClick={() => setFilterStatus('rejected')}
+          >
+            Từ chối ({statusCounts.rejected})
+          </button>
+        </div>
+
         <div className="table-responsive">
           <table>
             <thead>
@@ -127,31 +222,51 @@ const Posts = () => {
                 <th onClick={() => handleSort('createdAt')} className="sortable">Ngày {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
                 <th onClick={() => handleSort('memberId')} className="sortable">Mã thành viên {sortConfig.key === 'memberId' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
                 <th onClick={() => handleSort('price')} className="sortable">Giá {sortConfig.key === 'price' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th>Hoạt động</th>
+                <th onClick={() => handleSort('status')} className="sortable">Trạng thái {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {paginated.map(p => (
-                <tr key={p.id} className={selectedPosts.includes(p.id) ? 'selected' : ''}>
-                  <td>
-                    <input type="checkbox" checked={selectedPosts.includes(p.id)} onChange={() => handleSelect(p.id)} />
-                  </td>
-                  <td>{p.id}</td>
-                  <td>{p.title}</td>
-                  <td>{p.provinceCity}</td>
-                  <td>{p.postType}</td>
-                  <td>{formatDate(p.createdAt)}</td>
-                  <td>{p.memberId}</td>
-                  <td>{formatPrice(p.price)}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="btn-icon" title="Chi tiết">🔍</button>
-                      <button className="btn-icon" title="Chỉnh sửa">✏️</button>
-                      <button className="btn-icon delete" onClick={() => handleDelete(p.id)} title="Xóa">🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {paginated.map(p => {
+                const statusBadge = getStatusBadge(p.status);
+                return (
+                  <tr key={p.id} className={selectedPosts.includes(p.id) ? 'selected' : ''}>
+                    <td>
+                      <input type="checkbox" checked={selectedPosts.includes(p.id)} onChange={() => handleSelect(p.id)} />
+                    </td>
+                    <td>{p.id}</td>
+                    <td>{p.title}</td>
+                    <td>{p.provinceCity}</td>
+                    <td>{p.postType}</td>
+                    <td>{formatDate(p.createdAt)}</td>
+                    <td>{p.memberId}</td>
+                    <td>{formatPrice(p.price)}</td>
+                    <td>
+                      <span className={`status-badge ${statusBadge.class}`}>
+                        {statusBadge.text}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {p.status === 'pending' && (
+                          <>
+                            <button className="btn-icon approve" onClick={() => handleApprove(p.id)} title="Duyệt">✓</button>
+                            <button className="btn-icon reject" onClick={() => handleReject(p.id)} title="Từ chối">✗</button>
+                          </>
+                        )}
+                        {p.status === 'approved' && (
+                          <button className="btn-icon reject" onClick={() => handleReject(p.id)} title="Từ chối">✗</button>
+                        )}
+                        {p.status === 'rejected' && (
+                          <button className="btn-icon approve" onClick={() => handleApprove(p.id)} title="Duyệt">✓</button>
+                        )}
+                        <button className="btn-icon" title="Chi tiết">🔍</button>
+                        <button className="btn-icon delete" onClick={() => handleDelete(p.id)} title="Xóa">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -159,7 +274,11 @@ const Posts = () => {
         <div className="table-footer">
           <div className="bulk-actions">
             {selectedPosts.length > 0 && (
-              <button className="btn-danger" onClick={handleBulkDelete}>Xóa ({selectedPosts.length})</button>
+              <>
+                <button className="btn-success" onClick={handleBulkApprove}>Duyệt ({selectedPosts.length})</button>
+                <button className="btn-warning" onClick={handleBulkReject}>Từ chối ({selectedPosts.length})</button>
+                <button className="btn-danger" onClick={handleBulkDelete}>Xóa ({selectedPosts.length})</button>
+              </>
             )}
           </div>
 

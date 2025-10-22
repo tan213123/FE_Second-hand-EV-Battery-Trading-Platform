@@ -1,6 +1,47 @@
 @use "sass:color";
 
 .reports-page {
+  .filters-section {
+    background: var(--card-background);
+    padding: 20px 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+
+      select {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: white;
+        min-width: 150px;
+        cursor: pointer;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+
+        &:focus {
+          outline: none;
+          border-color: var(--primary-color);
+        }
+      }
+    }
+  }
+
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
