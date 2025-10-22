@@ -90,6 +90,27 @@ const LoginPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
+        // Demo Admin Account - kiểm tra trước khi call API
+        if (formData.email === 'admin@admin.com' && formData.password === 'admin123') {
+          const adminData = {
+            memberId: 'ADMIN001',
+            name: 'Administrator',
+            email: 'admin@admin.com',
+            role: 'admin',
+            status: 'active'
+          };
+          
+          // Lưu vào AuthContext
+          login(adminData, 'demo-admin-token');
+          
+          console.log('Admin logged in successfully');
+          
+          // Redirect về trang admin
+          navigate('/admin', { replace: true });
+          setIsSubmitting(false);
+          return;
+        }
+
         // Call API login với endpoint /members/login
         const response = await api.post('/members/login', {
           email: formData.email,
@@ -105,7 +126,8 @@ const LoginPage = () => {
           phone: response.data.phone,
           yearOfBirth: response.data.yearOfBirth,
           sex: response.data.sex,
-          status: response.data.status
+          status: response.data.status,
+          role: response.data.role || 'member' // Lấy role từ API response
         };
 
         // Gọi hàm login từ AuthContext
@@ -114,8 +136,12 @@ const LoginPage = () => {
         // Thông báo thành công
         console.log('User logged in successfully:', userData.name);
 
-        // Redirect về trang chủ
-        navigate('/', { replace: true });
+        // Redirect dựa trên role
+        if (userData.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
         
       } catch (error) {
         console.error('Login error:', error);
@@ -205,6 +231,17 @@ const LoginPage = () => {
             <p className="signup-text">
               Chưa có tài khoản? <a href="/signup">Đăng ký ngay</a>
             </p>
+
+            <div className="demo-credentials-box">
+              <div className="demo-header">
+                <span className="demo-icon">🔑</span>
+                <strong>Tài khoản demo Admin:</strong>
+              </div>
+              <div className="demo-info">
+                <p>📧 Email: <code>admin@admin.com</code></p>
+                <p>🔒 Password: <code>admin123</code></p>
+              </div>
+            </div>
 
             <div className="card-footer">
               <a href="/terms">Điều khoản</a>

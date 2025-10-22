@@ -465,11 +465,19 @@ function Header() {
                     <span>Tin đã lưu</span>
                   </Link>
                   <Link 
-                    to="/settings" 
+                    to="/admin" 
                     className="dropdown-item"
                     onClick={() => setShowUserDropdown(false)}
                   >
                     <div className="item-icon">⚙️</div>
+                    <span>Quản trị Admin</span>
+                  </Link>
+                  <Link 
+                    to="/settings" 
+                    className="dropdown-item"
+                    onClick={() => setShowUserDropdown(false)}
+                  >
+                    <div className="item-icon">🔧</div>
                     <span>Cài đặt</span>
                   </Link>
                   <div className="dropdown-divider"></div>

@@ -144,15 +144,35 @@
       background: none;
       border-radius: 4px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
+      font-size: 1.1rem;
 
       &:hover {
         background-color: var(--background-color);
       }
 
-      &.delete:hover {
-        background-color: rgba(var(--danger-color-rgb), 0.1);
-        color: var(--danger-color);
+      &.block {
+        color: #f59e0b;
+        
+        &:hover {
+          background-color: rgba(245, 158, 11, 0.1);
+        }
+      }
+
+      &.unblock {
+        color: #22c55e;
+        
+        &:hover {
+          background-color: rgba(34, 197, 94, 0.1);
+        }
+      }
+
+      &.delete {
+        color: #ef4444;
+        
+        &:hover {
+          background-color: rgba(239, 68, 68, 0.1);
+        }
       }
     }
   }
@@ -166,20 +186,104 @@
   }
 
   .bulk-actions {
-    .btn-danger {
+    display: flex;
+    gap: 12px;
+
+    .btn-success, .btn-warning, .btn-danger {
       padding: 8px 16px;
       border: none;
-      background-color: var(--danger-color);
       color: white;
       border-radius: 6px;
       cursor: pointer;
       font-size: 0.875rem;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
 
+    .btn-success {
+      background-color: #22c55e;
+      
       &:hover {
-        background-color: rgba(var(--danger-color-rgb), 0.9);
+        background-color: #16a34a;
       }
     }
+
+    .btn-warning {
+      background-color: #f59e0b;
+      
+      &:hover {
+        background-color: #d97706;
+      }
+    }
+
+    .btn-danger {
+      background-color: #ef4444;
+
+      &:hover {
+        background-color: #dc2626;
+      }
+    }
+  }
+
+  .status-filter {
+    padding: 16px 24px;
+    display: flex;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      font-weight: 500;
+
+      &:hover {
+        background: var(--background-color);
+        border-color: var(--text-primary);
+      }
+
+      &.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+    }
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &.status-active {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    &.status-blocked {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+  }
+
+  .violations-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: #fee2e2;
+    color: #991b1b;
   }
 
   .pagination {
