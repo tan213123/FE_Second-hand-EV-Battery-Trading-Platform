@@ -20,6 +20,8 @@ import AuctionRegisterPage from './pages/auctionRegisterPage';
 import AccountPage from './pages/accountPage';
 import PostDetailPage from './pages/postDetailPage';
 import AdminPage from './pages/adminPage';
+import PaymentPage from './pages/paymentPage';
+import PaymentResultPage from './pages/paymentResultPage';
   
 function App() {
   const router = createBrowserRouter([
@@ -44,6 +46,8 @@ function App() {
         { path: '/packages', element: <PackagePage /> },
         { path: '/auction-register', element: <AuctionRegisterPage /> },
         { path: '/post-detail/:id', element: <PostDetailPage /> },
+        { path: '/payment', element: <PaymentPage /> },
+        { path: '/payment/result', element: <PaymentResultPage /> },
       ],
     },
     {
