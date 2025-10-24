@@ -321,9 +321,9 @@ const PostListing = () => {
   }, [formData, checkFieldCompletion])
 
   const categories = [
-    { id: 'car', name: 'Ô tô', icon: '🚗' },
-    { id: 'electric', name: 'Xe điện', icon: '🏍️' },
-    { id: 'battery', name: 'Pin', icon: '🔋' }
+    { id: 'CAR_ARTICLE', name: 'Ô tô', icon: '🚗' },
+    { id: 'MOTOR_ARTICLE', name: 'Xe điện', icon: '🏍️' },
+    { id: 'BATTERY_ARTICLE', name: 'Pin', icon: '🔋' }
   ]
 
   const carBrands = ['VinFast', 'Toyota', 'Honda', 'Mazda', 'Hyundai', 'Kia', 'Ford', 'Mitsubishi', 'Mercedes-Benz', 'BMW', 'Audi', 'Lexus']
@@ -530,37 +530,55 @@ const PostListing = () => {
   }
 
   const handleSubmit = async () => {
-    if (!validateStep4()) return
-    
-    setIsSubmitting(true)
-    
+    if (!validateStep4()) return;
+    setIsSubmitting(true);
     try {
-      // Hiển thị loading
-      console.log(isEditMode ? 'Đang cập nhật sản phẩm:' : 'Đang tạo sản phẩm:', formData)
-      
-      let result
+      let result;
       if (isEditMode) {
-        // Cập nhật sản phẩm
-        result = await productService.updateProductWithImages(formData)
+        // Cập nhật sản phẩm (giữ nguyên logic cũ)
+        result = await productService.updateProductWithImages(formData);
       } else {
-        // Tạo sản phẩm mới
-        result = await productService.createProductWithImages(formData)
+        // Tạo bài viết mới cho motor
+        // Tạo payload đúng schema backend
+        const payload = {
+          title: formData.title,
+          content: formData.description,
+          location: `${formData.location.address}, ${formData.location.ward}, ${formData.location.district}, ${formData.location.city}`,
+          articleType: formData.category, // CAR_ARTICLE, MOTOR_ARTICLE, BATTERY_ARTICLE
+          publicDate: new Date().toISOString().slice(0, 10),
+          memberId: 9007199254740991, // TODO: lấy từ context hoặc FE nếu có
+          price: Number(formData.price) || 0,
+          status: "DRAFT", // hoặc FE/BE yêu cầu
+          approvedAdminId: null,
+          imageUrls: formData.images,
+          brand: formData.brand,
+          year: Number(formData.year),
+          vehicleCapacity: Number(formData.capacity) || 0,
+          licensesPlate: formData.licenses_plate || "",
+          origin: formData.origin,
+          milesTraveled: Number(formData.mileage) || 0,
+          warrantyMonths: Number(formData.warranty_months) || 0
+        };
+        // Chọn endpoint theo loại
+        let endpointType = '';
+        if (formData.category === 'CAR_ARTICLE') endpointType = 'car';
+        else if (formData.category === 'MOTOR_ARTICLE') endpointType = 'motor';
+        else if (formData.category === 'BATTERY_ARTICLE') endpointType = 'battery';
+        else {
+          alert('Danh mục không hợp lệ!');
+          setIsSubmitting(false);
+          return;
+        }
+        result = await productService.createArticle(endpointType, payload);
       }
-      
       if (result.error) {
-        alert(`Lỗi: ${result.error}`)
-        return
+        alert(`Lỗi: ${result.error}`);
+        return;
       }
-      
-      console.log(isEditMode ? '✅ Cập nhật sản phẩm thành công:' : '✅ Tạo sản phẩm thành công:', result.data)
-      alert(isEditMode ? 'Cập nhật tin đăng thành công!' : 'Đăng tin thành công!')
-      
-      // Clear sessionStorage nếu ở edit mode
+      alert(isEditMode ? 'Cập nhật tin đăng thành công!' : 'Đăng tin thành công!');
       if (isEditMode) {
-        sessionStorage.removeItem('editingPost')
+        sessionStorage.removeItem('editingPost');
       }
-      
-      // Reset form
       setFormData({
         category: '',
         title: '',
@@ -588,25 +606,22 @@ const PostListing = () => {
         contactName: '',
         contactPhone: '',
         images: []
-      })
-      
-      // Redirect về trang quản lý tin đăng
-      navigate('/my-posts')
-      
+      });
+      navigate('/my-posts');
     } catch (error) {
-      console.error('❌ Lỗi không mong muốn:', error)
-      alert('Có lỗi xảy ra, vui lòng thử lại!')
+      console.error('❌ Lỗi không mong muốn:', error);
+      alert('Có lỗi xảy ra, vui lòng thử lại!');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   const getBrandOptions = () => {
     switch(formData.category) {
-      case 'car': return carBrands
-      case 'electric': return electricBrands
-      case 'battery': return batteryBrands
-      default: return []
+      case 'CAR_ARTICLE': return carBrands;
+      case 'MOTOR_ARTICLE': return electricBrands;
+      case 'BATTERY_ARTICLE': return batteryBrands;
+      default: return [];
     }
   }
 
