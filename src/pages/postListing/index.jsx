@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ImageUpload from '../../components/ImageUpload'
 import { productService } from '../../services/productService'
+import api from '../../config/api'
 import './index.scss'
 
 // Dữ liệu địa chỉ Việt Nam
@@ -203,15 +204,19 @@ const PostListing = () => {
     color: '',
     origin: '',
     region: '',
-    // Common fields for vehicles
-    mileage: '', // Quãng đường đã đi (km)
-    batteryInfo: '', // Thông tin pin (%)
-    // Car specific
-    bodyType: '',
-    seats: '',
-    // Battery specific
-    batteryType: '',
-    capacity: '',
+  // Common fields for vehicles
+  mileage: '', // Quãng đường đã đi (km)
+  batteryInfo: '', // Thông tin pin (%)
+  // Car specific
+  bodyType: '',
+  seats: '',
+  licensesPlate: '',
+  registrationDeadline: '',
+  milesTraveled: '',
+  warrantyPeriodMonths: '',
+  // Battery specific
+  batteryType: '',
+  capacity: '',
     location: {
       city: '',
       district: '',
@@ -335,7 +340,6 @@ const PostListing = () => {
   const batteryTypes = ['Li-ion', 'Li-Po', 'LiFePO4', 'Ni-MH', 'Lead-acid']
   const origins = ['Nhập khẩu', 'Lắp ráp trong nước', 'Sản xuất trong nước']
   const regions = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
-  const colors = ['Trắng', 'Đen', 'Xám', 'Bạc', 'Đỏ', 'Xanh dương', 'Xanh lá', 'Vàng', 'Nâu', 'Khác']
 
   // Effect để load dữ liệu khi ở chế độ edit
   useEffect(() => {
@@ -449,10 +453,6 @@ const PostListing = () => {
       alert('Vui lòng chọn hãng')
       return false
     }
-    if (!formData.color) {
-      alert('Vui lòng chọn màu sắc')
-      return false
-    }
     if (!formData.origin) {
       alert('Vui lòng chọn xuất xứ')
       return false
@@ -534,42 +534,51 @@ const PostListing = () => {
     setIsSubmitting(true);
     try {
       let result;
+      // Lấy memberId từ AuthContext nếu có
+      let memberId = 9007199254740991;
+      try {
+        const auth = JSON.parse(localStorage.getItem('user'));
+        if (auth && auth.memberId) memberId = auth.memberId;
+      } catch {}
       if (isEditMode) {
-        // Cập nhật sản phẩm (giữ nguyên logic cũ)
         result = await productService.updateProductWithImages(formData);
       } else {
-        // Tạo bài viết mới cho motor
-        // Tạo payload đúng schema backend
-        const payload = {
-          title: formData.title,
-          content: formData.description,
-          location: `${formData.location.address}, ${formData.location.ward}, ${formData.location.district}, ${formData.location.city}`,
-          articleType: formData.category, // CAR_ARTICLE, MOTOR_ARTICLE, BATTERY_ARTICLE
-          publicDate: new Date().toISOString().slice(0, 10),
-          memberId: 9007199254740991, // TODO: lấy từ context hoặc FE nếu có
-          price: Number(formData.price) || 0,
-          status: "DRAFT", // hoặc FE/BE yêu cầu
-          approvedAdminId: null,
-          imageUrls: formData.images,
-          brand: formData.brand,
-          year: Number(formData.year),
-          vehicleCapacity: Number(formData.capacity) || 0,
-          licensesPlate: formData.licenses_plate || "",
-          origin: formData.origin,
-          milesTraveled: Number(formData.mileage) || 0,
-          warrantyMonths: Number(formData.warranty_months) || 0
-        };
-        // Chọn endpoint theo loại
-        let endpointType = '';
-        if (formData.category === 'CAR_ARTICLE') endpointType = 'car';
-        else if (formData.category === 'MOTOR_ARTICLE') endpointType = 'motor';
-        else if (formData.category === 'BATTERY_ARTICLE') endpointType = 'battery';
-        else {
-          alert('Danh mục không hợp lệ!');
-          setIsSubmitting(false);
-          return;
-        }
-        result = await productService.createArticle(endpointType, payload);
+            // Format registrationDeadline từ dd/mm/yyyy sang yyyy-MM-dd
+            let regDate = '';
+            if (formData.registrationDeadline && /^\d{2}\/\d{2}\/\d{4}$/.test(formData.registrationDeadline)) {
+              regDate = formData.registrationDeadline;
+            }
+            // Format publicDate về dd/MM/yyyy
+            let pubDate = '';
+            const now = new Date();
+            pubDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+            const payload = {
+              title: formData.title || 'string',
+              content: formData.description || 'string',
+              location: `${formData.location.address || 'string'}, ${formData.location.ward || ''}, ${formData.location.district || ''}, ${formData.location.city || ''}`,
+              articleType: 'CAR_ARTICLE',
+              publicDate: pubDate,
+              memberId: memberId,
+              price: parseFloat(formData.price) || 0,
+              status: 'DRAFT',
+              approvedAdminId: 1,
+              imageUrls: Array.isArray(formData.images) && formData.images.length > 0 ? formData.images : ['string'],
+              brand: formData.brand || 'string',
+              model: formData.model || 'string',
+              year: formData.year ? parseInt(formData.year) : 2024,
+              origin: formData.origin || 'string',
+              type: formData.bodyType || 'string',
+              numberOfSeat: formData.seats ? parseInt(formData.seats) : 4,
+              licensesPlate: formData.licensesPlate || 'string',
+              registrationDeadline: regDate,
+              milesTraveled: formData.mileage ? parseFloat(formData.mileage) : 0.1,
+              warrantyPeriodMonths: formData.warranty_months ? parseInt(formData.warranty_months) : 12
+            };
+        // Gọi đúng endpoint /api/article/car với payload chuẩn
+        console.log('API Request: /article/car', payload);
+        const response = await api.post('/article/car', payload);
+        result = { data: response.data, error: null };
+        console.log('API Response:', result);
       }
       if (result.error) {
         alert(`Lỗi: ${result.error}`);
@@ -784,7 +793,6 @@ const PostListing = () => {
                     onChange={(e) => handleInputChange('year', e.target.value)}
                   />
                 </div>
-
                 <div className={`form-group ${fieldStatus.brand ? 'completed' : ''}`}>
                   <label>Hãng {formData.category === 'battery' ? 'Pin' : 'xe'} *</label>
                   <select
@@ -800,18 +808,6 @@ const PostListing = () => {
               </div>
 
               <div className="form-row">
-                <div className={`form-group ${fieldStatus.color ? 'completed' : ''}`}>
-                  <label>Màu sắc *</label>
-                  <select
-                    value={formData.color}
-                    onChange={(e) => handleInputChange('color', e.target.value)}
-                  >
-                    <option value="">Chọn màu sắc</option>
-                    {colors.map(color => (
-                      <option key={color} value={color}>{color}</option>
-                    ))}
-                  </select>
-                </div>
 
                 <div className="form-group">
                   <label>Xuất xứ *</label>
@@ -858,7 +854,7 @@ const PostListing = () => {
               )}
 
               {/* Category Specific Fields */}
-              {formData.category === 'car' && (
+              {formData.category === 'CAR_ARTICLE' && (
                 <div className="form-row">
                   <div className="form-group">
                     <label>Kiểu dáng *</label>
@@ -872,7 +868,6 @@ const PostListing = () => {
                       ))}
                     </select>
                   </div>
-
                   <div className="form-group">
                     <label>Số chỗ *</label>
                     <select
@@ -884,6 +879,53 @@ const PostListing = () => {
                         <option key={seat} value={seat}>{seat}</option>
                       ))}
                     </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Biển số xe *</label>
+                    <input
+                      type="text"
+                      placeholder="VD: 30A-12345"
+                      value={formData.licensesPlate || ''}
+                      onChange={(e) => handleInputChange('licensesPlate', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Hạn đăng kiểm *</label>
+                    <input
+                      type="text"
+                      placeholder="dd/mm/yyyy"
+                      value={formData.registrationDeadline || ''}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^0-9/]/g, '');
+                        // Tự động thêm dấu / khi nhập
+                        if (v.length === 2 && !v.includes('/')) v = v + '/';
+                        if (v.length === 5 && v.split('/').length < 3) v = v + '/';
+                        // Giới hạn tối đa 10 ký tự
+                        v = v.slice(0, 10);
+                        handleInputChange('registrationDeadline', v);
+                      }}
+                    />
+                    <small>Định dạng: dd/mm/yyyy</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Số km đã đi *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="VD: 15000"
+                      value={formData.milesTraveled || ''}
+                      onChange={(e) => handleInputChange('milesTraveled', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Thời gian bảo hành (tháng) *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="VD: 12"
+                      value={formData.warrantyPeriodMonths || ''}
+                      onChange={(e) => handleInputChange('warrantyPeriodMonths', e.target.value)}
+                    />
                   </div>
                 </div>
               )}
