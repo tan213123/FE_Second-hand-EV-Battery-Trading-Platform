@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaved } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
-import localStorageService from '../../services/localStorageService'
+import { fetchAllPosts } from '../../services/postService'
 import './index.scss'
 // import api from '../../config/api' // Tạm comment để tránh unused warning
 
@@ -296,70 +296,19 @@ function HomePage() {
     console.log('isSaved before:', isSaved(listing.id))
     toggleSaved(listing)
     // Đợi một chút để state cập nhật
-    setTimeout(() => {
-      console.log('isSaved after:', isSaved(listing.id))
-      console.log('localStorage:', localStorage.getItem('savedItems'))
-    }, 100)
-  }
-
-  const formatPrice = (price) => {
-    return price.toLocaleString('vi-VN') + ' đ'
-  }
-
-  const customerReviews = [
-    {
-      id: 1,
-      userName: 'Nguyễn Văn An',
-      userType: 'Người mua',
-      verified: true,
-      timePosted: '2 ngày trước',
-      rating: 5,
-      product: 'VinFast VF 8 Plus 2023',
-      content: 'Mình vừa mua chiếc VF 8 từ người bán trên sàn. Xe còn rất mới, pin hoạt động tốt. Người bán tư vấn nhiệt tình, giao xe đúng hẹn. Rất hài lòng với giao dịch này!',
-      //images: ['/placeholder1.jpg', '/placeholder2.jpg'],
-      likes: 24,
-      comments: 5
-    },
-    {
-      id: 2,
-      userName: 'Trần Thị Minh',
-      userType: 'Người bán',
-      verified: true,
-      timePosted: '5 ngày trước',
-      rating: 5,
-      product: 'Pin Lithium 48V 20Ah',
-      content: 'Cảm ơn nền tảng đã giúp mình bán được pin xe điện nhanh chóng. Quy trình đăng tin đơn giản, nhiều người quan tâm. Đã giao dịch thành công!',
-     // images: ['/placeholder3.jpg'],
-      likes: 18,
-      comments: 3
-    },
-    {
-      id: 3,
-      userName: 'Lê Hoàng Nam',
-      userType: 'Người mua',
-      verified: true,
-      timePosted: '1 tuần trước',
-      rating: 5,
-      product: 'Yadea S3 Pro 2023',
-      content: 'Xe máy điện chất lượng, giá cả hợp lý. Người bán rất uy tín, cho xem xe kỹ trước khi mua. Pin còn mới 95%, chạy êm. Recommend cho mọi người!',
-      //images: ['/placeholder4.jpg', '/placeholder5.jpg', '/placeholder6.jpg'],
-      likes: 31,
-      comments: 8
-    },
-    {
-      id: 4,
-      userName: 'Phạm Thu Hà',
-      userType: 'Người bán',
-      verified: false,
-      timePosted: '1 tuần trước',
-      rating: 4,
-      product: 'VinFast VF e34 2022',
-      content: 'Nền tảng dễ sử dụng, hỗ trợ đăng tin miễn phí. Đã có nhiều người liên hệ hỏi về xe. Hy vọng sớm bán được xe điện của mình.',
-      //images: [],
-      likes: 12,
-      comments: 2
-    }
-  ]
+    useEffect(() => {
+      async function loadAllPosts() {
+        setLoading(true);
+        try {
+          const posts = await fetchAllPosts();
+          setAllPosts(posts);
+        } catch (error) {
+          setAllPosts([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+      loadAllPosts();
 
   const popularKeywords = [
     ['Giá xe Vios', 'Giá xe Innova', 'Giá xe Fortuner', 'Giá xe Yaris Cross'],
@@ -401,42 +350,36 @@ function HomePage() {
               <p>👋 Chào mừng <strong>{user.name}</strong>! Khám phá các danh mục dưới đây:</p>
             </div>
           )}
-          <div className="categories-grid">
-            {categories.map((category, index) => (
-              <div 
-                key={index} 
-                className={`category-item ${!isAuthenticated ? 'disabled' : ''}`}
-                style={{'--category-color': category.color}}
-                onClick={() => handleCategoryClick(category.page)}
-                title={!isAuthenticated ? 'Vui lòng đăng nhập để sử dụng' : ''}
-              >
-                <div className="category-icon">
-                  <span className="icon-emoji">{getCategoryIcon(category.icon)}</span>
+          <>
+            <div className="categories-grid">
+              {categories.map((category, index) => (
+                <>
+                  <div 
+                    key={index} 
+                    className={`category-item ${!isAuthenticated ? 'disabled' : ''}`}
+                    style={{'--category-color': category.color}}
+                    onClick={() => handleCategoryClick(category.page)}
+                    title={!isAuthenticated ? 'Vui lòng đăng nhập để sử dụng' : ''}
+                  >
+                    <div className="category-icon">
+                      <span className="icon-emoji">{getCategoryIcon(category.icon)}</span>
+                    </div>
+                    <div className="category-label">{category.label}</div>
+                    {!isAuthenticated && <div className="lock-overlay">🔒</div>}
+                  </div>
+                  <a href="#" className="view-all-link">Xem tất cả →</a>
+                </>
+              ))}
+            </div>
+            <div className="listings-grid">
+              {loading ? (
+                // Loading state
+                <div className="loading-state">
+                  <p>Đang tải tin đăng...</p>
                 </div>
-                <div className="category-label">{category.label}</div>
-                {!isAuthenticated && <div className="lock-overlay">🔒</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Latest Listings Section */}
-      <div className="listings-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Tin đăng mới nhất</h2>
-            <a href="#" className="view-all-link">Xem tất cả →</a>
-          </div>
-          <div className="listings-grid">
-            {loading ? (
-              // Loading state
-              <div className="loading-state">
-                <p>Đang tải tin đăng...</p>
-              </div>
-            ) : latestListings.length === 0 ? (
-              // Empty state
-              <div className="empty-state">
+              ) : latestListings.length === 0 ? (
+                // Empty state
+                <div className="empty-state">
                 <p>Chưa có tin đăng nào. Hãy <a href="/post" style={{color: '#007bff'}}>đăng tin đầu tiên</a> của bạn!</p>
               </div>
             ) : (
@@ -510,6 +453,7 @@ function HomePage() {
           </button>
         </div>
       </div>
+    </>
 
       {/* Customer Reviews Section */}
       <div className="activities-section">

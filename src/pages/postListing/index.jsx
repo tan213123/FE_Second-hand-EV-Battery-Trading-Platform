@@ -539,7 +539,9 @@ const PostListing = () => {
       try {
         const auth = JSON.parse(localStorage.getItem('user'));
         if (auth && auth.memberId) memberId = auth.memberId;
-      } catch {}
+      } catch (err) {
+        console.error('Error parsing user from localStorage:', err);
+      }
       if (isEditMode) {
         result = await productService.updateProductWithImages(formData);
       } else {

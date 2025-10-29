@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSaved, useCompare } from "../../../contexts/AppContext";
-import localStorageService from "../../../services/localStorageService";
+import { fetchAllCarPosts } from "../../../services/postService";
 import "./index.scss";
 
 // Icon Components
@@ -154,6 +154,19 @@ const ChevronRightIcon = () => (
 );
 
 function SellOtoPage() {
+  // Toggle save/unsave for a car
+  const handleToggleSaved = (e, car) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSaved(`oto-${car.id}`);
+  };
+
+  // Add/remove car from compare list
+  const handleAddToCompare = (e, car) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCompare(car);
+  };
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -190,26 +203,26 @@ function SellOtoPage() {
   const { toggleSaved, isSaved } = useSaved();
   const { addToCompare } = useCompare();
 
-  // Load cars from localStorage
   useEffect(() => {
-    const loadCarsFromStorage = () => {
+    async function loadCarsFromBackend() {
       try {
-        const allPosts = localStorageService.getAllPosts();
-        // Lọc chỉ lấy xe ô tô điện (category = 'car')
-        const carPosts = allPosts.filter(post => post.category === 'car');
-        
+        const carPosts = await fetchAllCarPosts();
         if (carPosts.length > 0) {
-          // Format lại dữ liệu để hiển thị
-          const formattedCars = carPosts.map(post => ({
+          const formattedCars = carPosts.map((post) => ({
             id: post.id,
             title: post.title,
             year: post.year,
             type: "Điện",
             condition: post.condition,
-            price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-            location: post.location?.district && post.location?.city 
-              ? `${post.location.district}, ${mapCityCodeToName(post.location.city)}`
-              : mapCityCodeToName(post.location?.city) || post.location?.district || '',
+            price: new Intl.NumberFormat("vi-VN").format(post.price) + " đ",
+            location:
+              post.location?.district && post.location?.city
+                ? `${post.location.district}, ${mapCityCodeToName(
+                    post.location.city
+                  )}`
+                : mapCityCodeToName(post.location?.city) ||
+                  post.location?.district ||
+                  "",
             seller: post.contactName,
             phone: post.contactPhone,
             verified: false,
@@ -228,99 +241,38 @@ function SellOtoPage() {
             bodyType: post.bodyType,
             seats: post.seats,
             originalPost: post,
-            image: post.images?.[0] || '/api/placeholder/400/300'
+            image: post.images?.[0] || "/api/placeholder/400/300",
           }));
-          
-          console.log('Formatted cars with images:', formattedCars.map(car => ({ id: car.id, title: car.title, image: car.image })));
           setCarsFromStorage(formattedCars);
         } else {
           setCarsFromStorage([]);
         }
       } catch (error) {
-        console.error('Error loading cars from storage:', error);
         setCarsFromStorage([]);
       }
       setLoading(false);
-    };
-    
-    loadCarsFromStorage();
-    
-    // Listen for storage changes
-    const handleStorageChange = () => loadCarsFromStorage();
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('postUpdated', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('postUpdated', handleStorageChange);
-    };
+    }
+    loadCarsFromBackend();
   }, []);
-
-  const handleToggleSaved = (e, car) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const savedCar = {
-      ...car,
-      id: `oto-${car.id}`, // Thêm prefix để tránh conflict với trang khác
-      category: 'Ô tô điện',
-      image: car.image || '/api/placeholder/400/300'
-    };
-    toggleSaved(savedCar);
-  };
-
-  const handleAddToCompare = (e, car) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const compareCar = {
-      ...car,
-      id: `oto-${car.id}`,
-      category: 'Ô tô điện',
-      image: car.image || '/api/placeholder/400/300',
-      specs: {
-        year: car.year || '-',
-        brand: car.brand || '-',
-        condition: car.condition || '-',
-        bodyType: car.bodyType || '-',
-        seats: car.seats || '-',
-        color: car.color || '-',
-        origin: car.origin || '-',
-        mileage: car.mileage || '-',
-        battery: car.batteryInfo || '-'
-      }
-    };
-    addToCompare(compareCar);
-    
-    // Add visual feedback animation
-    setComparedItems(prev => new Set(prev).add(car.id));
-    
-    // Remove the animation class after a short delay
-    setTimeout(() => {
-      setComparedItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(car.id);
-        return newSet;
-      });
-    }, 2000);
-  };
 
   // Helper function to extract city from location
   const getCityFromLocation = (location) => {
-    if (!location) return '';
-    const parts = location.split(',');
+    if (!location) return "";
+    const parts = location.split(",");
     return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
   };
 
   // Map city codes to display names to match filter
   const mapCityCodeToName = (cityCode) => {
     const cityMapping = {
-      'hcm': 'Tp Hồ Chí Minh',
-      'hanoi': 'Hà Nội', 
-      'danang': 'Đà Nẵng',
-      'cantho': 'Cần Thơ',
-      'haiphong': 'Hải Phòng',
-      'binhduong': 'Bình Dương',
-      'dongnai': 'Đồng Nai',
-      'vungtau': 'Vũng Tàu'
+      hcm: "Tp Hồ Chí Minh",
+      hanoi: "Hà Nội",
+      danang: "Đà Nẵng",
+      cantho: "Cần Thơ",
+      haiphong: "Hải Phòng",
+      binhduong: "Bình Dương",
+      dongnai: "Đồng Nai",
+      vungtau: "Vũng Tàu",
     };
     return cityMapping[cityCode] || cityCode;
   };
@@ -328,7 +280,7 @@ function SellOtoPage() {
   const handleRevealPhone = (e, carId) => {
     e.preventDefault();
     e.stopPropagation();
-    setRevealedPhones(prev => {
+    setRevealedPhones((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(carId)) {
         newSet.delete(carId);
@@ -343,18 +295,18 @@ function SellOtoPage() {
     setSelectedProduct(car);
     setCurrentImageIndex(0);
     setShowProductDetail(true);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   };
 
   const handleCloseProductDetail = () => {
     setShowProductDetail(false);
     setSelectedProduct(null);
-    document.body.style.overflow = 'unset';
+    document.body.style.overflow = "unset";
   };
 
   const handlePrevImage = () => {
     if (selectedProduct && selectedProduct.images > 1) {
-      setCurrentImageIndex(prev => 
+      setCurrentImageIndex((prev) =>
         prev === 0 ? selectedProduct.images - 1 : prev - 1
       );
     }
@@ -362,13 +314,13 @@ function SellOtoPage() {
 
   const handleNextImage = () => {
     if (selectedProduct && selectedProduct.images > 1) {
-      setCurrentImageIndex(prev => 
+      setCurrentImageIndex((prev) =>
         prev === selectedProduct.images - 1 ? 0 : prev + 1
       );
     }
   };
 
-  // Dữ liệu filter 
+  // Dữ liệu filter
   const brands = [
     { name: "MG", logo: "🚙", count: 3210 },
     { name: "VinFast", logo: "⚡", count: 8950 },
@@ -380,13 +332,7 @@ function SellOtoPage() {
     { name: "BYD", logo: "🚗", count: 1870 },
   ];
 
-  const locations = [
-    "Tp Hồ Chí Minh",
-    "Hà Nội",
-    "Đà Nẵng",
-    "Huế", 
-    "Gần tôi",
-  ];
+  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế", "Gần tôi"];
 
   const priceRanges = [
     "Giá dưới 200 triệu",
@@ -425,18 +371,33 @@ function SellOtoPage() {
   ];
 
   const colors = [
-    "Trắng", "Đen", "Xám", "Bạc", "Đỏ", "Xanh dương", 
-    "Xanh lá", "Vàng", "Nâu", "Cam", "Tím", "Hồng"
+    "Trắng",
+    "Đen",
+    "Xám",
+    "Bạc",
+    "Đỏ",
+    "Xanh dương",
+    "Xanh lá",
+    "Vàng",
+    "Nâu",
+    "Cam",
+    "Tím",
+    "Hồng",
   ];
 
   const origins = [
-    "Việt Nam", "Nhật Bản", "Hàn Quốc", "Đức", "Mỹ", 
-    "Thái Lan", "Trung Quốc", "Ấn Độ", "Malaysia"
+    "Việt Nam",
+    "Nhật Bản",
+    "Hàn Quốc",
+    "Đức",
+    "Mỹ",
+    "Thái Lan",
+    "Trung Quốc",
+    "Ấn Độ",
+    "Malaysia",
   ];
 
-  const conditions = [
-    "Mới", "Đã sử dụng", "Cũ nhưng tốt"
-  ];
+  const conditions = ["Mới", "Đã sử dụng", "Cũ nhưng tốt"];
 
   const years = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016];
 
@@ -459,7 +420,8 @@ function SellOtoPage() {
       images: 5,
       featured: true,
       vip: true,
-      image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop"
+      image:
+        "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop",
     },
     {
       id: 2,
@@ -476,12 +438,17 @@ function SellOtoPage() {
       images: 7,
       featured: true,
       vip: false,
-      image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop"
-    }
+      image:
+        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop",
+    },
   ];
 
   // Chỉ sử dụng dữ liệu thật từ localStorage, fallback về test data nếu trống
-  const allCarListings = loading ? [] : (carsFromStorage.length > 0 ? carsFromStorage : testCars);
+  const allCarListings = loading
+    ? []
+    : carsFromStorage.length > 0
+    ? carsFromStorage
+    : testCars;
 
   // Hàm lọc sản phẩm theo filter
   const getFilteredCars = () => {
@@ -489,30 +456,37 @@ function SellOtoPage() {
 
     // Lọc theo brands
     if (selectedBrands.length > 0) {
-      filteredCars = filteredCars.filter(car => {
+      filteredCars = filteredCars.filter((car) => {
         // Extract brand from title (first word usually)
-        const carBrand = car.title.split(' ')[0].toLowerCase();
-        return selectedBrands.some(brand => 
-          brand.toLowerCase().includes(carBrand) || 
-          carBrand.includes(brand.toLowerCase()) ||
-          car.title.toLowerCase().includes(brand.toLowerCase())
+        const carBrand = car.title.split(" ")[0].toLowerCase();
+        return selectedBrands.some(
+          (brand) =>
+            brand.toLowerCase().includes(carBrand) ||
+            carBrand.includes(brand.toLowerCase()) ||
+            car.title.toLowerCase().includes(brand.toLowerCase())
         );
       });
     }
 
     // Lọc theo price ranges
     if (selectedPriceRanges.length > 0) {
-      filteredCars = filteredCars.filter(car => {
-        const priceValue = parseInt(car.price.replace(/[^\d]/g, ''));
-        return selectedPriceRanges.some(range => {
-          if (range.includes('dưới 200')) return priceValue < 200000000;
-          if (range.includes('200 triệu - 300')) return priceValue >= 200000000 && priceValue <= 300000000;
-          if (range.includes('300 triệu - 400')) return priceValue >= 300000000 && priceValue <= 400000000;
-          if (range.includes('400 triệu - 500')) return priceValue >= 400000000 && priceValue <= 500000000;
-          if (range.includes('500 triệu - 600')) return priceValue >= 500000000 && priceValue <= 600000000;
-          if (range.includes('600 triệu - 700')) return priceValue >= 600000000 && priceValue <= 700000000;
-          if (range.includes('700 triệu - 800')) return priceValue >= 700000000 && priceValue <= 800000000;
-          if (range.includes('Trên 800')) return priceValue > 800000000;
+      filteredCars = filteredCars.filter((car) => {
+        const priceValue = parseInt(car.price.replace(/[^\d]/g, ""));
+        return selectedPriceRanges.some((range) => {
+          if (range.includes("dưới 200")) return priceValue < 200000000;
+          if (range.includes("200 triệu - 300"))
+            return priceValue >= 200000000 && priceValue <= 300000000;
+          if (range.includes("300 triệu - 400"))
+            return priceValue >= 300000000 && priceValue <= 400000000;
+          if (range.includes("400 triệu - 500"))
+            return priceValue >= 400000000 && priceValue <= 500000000;
+          if (range.includes("500 triệu - 600"))
+            return priceValue >= 500000000 && priceValue <= 600000000;
+          if (range.includes("600 triệu - 700"))
+            return priceValue >= 600000000 && priceValue <= 700000000;
+          if (range.includes("700 triệu - 800"))
+            return priceValue >= 700000000 && priceValue <= 800000000;
+          if (range.includes("Trên 800")) return priceValue > 800000000;
           return false;
         });
       });
@@ -520,56 +494,58 @@ function SellOtoPage() {
 
     // Lọc theo car types
     if (selectedCarTypes.length > 0) {
-      filteredCars = filteredCars.filter(car => 
+      filteredCars = filteredCars.filter((car) =>
         selectedCarTypes.includes(car.type)
       );
     }
 
     // Lọc theo cities
     if (selectedCities.length > 0) {
-      filteredCars = filteredCars.filter(car => 
-        selectedCities.some(city => car.location.includes(city))
+      filteredCars = filteredCars.filter((car) =>
+        selectedCities.some((city) => car.location.includes(city))
       );
     }
 
     // Lọc theo conditions
     if (selectedConditions.length > 0) {
-      filteredCars = filteredCars.filter(car => 
+      filteredCars = filteredCars.filter((car) =>
         selectedConditions.includes(car.condition)
       );
     }
 
     // Lọc theo years
     if (selectedYears.length > 0) {
-      filteredCars = filteredCars.filter(car => 
+      filteredCars = filteredCars.filter((car) =>
         selectedYears.includes(car.year.toString())
       );
     }
 
     // Lọc theo colors (giả sử có field color trong data)
     if (selectedColors.length > 0) {
-      filteredCars = filteredCars.filter(car => 
-        selectedColors.some(color => 
-          car.title.toLowerCase().includes(color.toLowerCase()) ||
-          (car.color && car.color === color)
+      filteredCars = filteredCars.filter((car) =>
+        selectedColors.some(
+          (color) =>
+            car.title.toLowerCase().includes(color.toLowerCase()) ||
+            (car.color && car.color === color)
         )
       );
     }
 
     // Lọc theo origins (giả sử có field origin trong data)
     if (selectedOrigins.length > 0) {
-      filteredCars = filteredCars.filter(car => 
-        selectedOrigins.some(origin => 
-          car.title.toLowerCase().includes(origin.toLowerCase()) ||
-          (car.origin && car.origin === origin)
+      filteredCars = filteredCars.filter((car) =>
+        selectedOrigins.some(
+          (origin) =>
+            car.title.toLowerCase().includes(origin.toLowerCase()) ||
+            (car.origin && car.origin === origin)
         )
       );
     }
 
     // Lọc theo locations (khu vực)
     if (selectedLocations.length > 0) {
-      filteredCars = filteredCars.filter(car => 
-        selectedLocations.some(location => car.location.includes(location))
+      filteredCars = filteredCars.filter((car) =>
+        selectedLocations.some((location) => car.location.includes(location))
       );
     }
 
@@ -641,19 +617,26 @@ function SellOtoPage() {
               {showPriceDropdown && (
                 <div className="dropdown-menu">
                   {priceRanges.map((range, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedPriceRanges.includes(range) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedPriceRanges.includes(range) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedPriceRanges.includes(range)) {
-                          setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                          setSelectedPriceRanges(
+                            selectedPriceRanges.filter((r) => r !== range)
+                          );
                         } else {
-                          setSelectedPriceRanges([...selectedPriceRanges, range]);
+                          setSelectedPriceRanges([
+                            ...selectedPriceRanges,
+                            range,
+                          ]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedPriceRanges.includes(range)}
                         readOnly
                       />
@@ -768,13 +751,19 @@ function SellOtoPage() {
               {showConditionDropdown && (
                 <div className="dropdown-menu">
                   {conditions.map((condition) => (
-                    <label key={condition} className="dropdown-item checkbox-item">
+                    <label
+                      key={condition}
+                      className="dropdown-item checkbox-item"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedConditions.includes(condition)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedConditions([...selectedConditions, condition]);
+                            setSelectedConditions([
+                              ...selectedConditions,
+                              condition,
+                            ]);
                           } else {
                             setSelectedConditions(
                               selectedConditions.filter((c) => c !== condition)
@@ -830,19 +819,23 @@ function SellOtoPage() {
               {showBrandDropdown && (
                 <div className="dropdown-menu">
                   {brands.map((brand, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedBrands.includes(brand.name) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedBrands.includes(brand.name) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedBrands.includes(brand.name)) {
-                          setSelectedBrands(selectedBrands.filter(b => b !== brand.name));
+                          setSelectedBrands(
+                            selectedBrands.filter((b) => b !== brand.name)
+                          );
                         } else {
                           setSelectedBrands([...selectedBrands, brand.name]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedBrands.includes(brand.name)}
                         readOnly
                       />
@@ -914,7 +907,7 @@ function SellOtoPage() {
                 </div>
               )}
             </div>
-            <button 
+            <button
               className="clear-filter"
               onClick={() => {
                 setSelectedBrands([]);
@@ -937,8 +930,8 @@ function SellOtoPage() {
           <div className="location-filter">
             <span className="label">Khu vực:</span>
             {locations.map((location, index) => (
-              <button 
-                key={index} 
+              <button
+                key={index}
                 className={`location-btn ${
                   selectedLocations.includes(location) ? "active" : ""
                 }`}
@@ -1015,14 +1008,19 @@ function SellOtoPage() {
                 {(showAllPrices ? priceRanges : priceRanges.slice(0, 3)).map(
                   (range, index) => (
                     <label key={index} className="filter-option">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedPriceRanges.includes(range)}
                         onChange={() => {
                           if (selectedPriceRanges.includes(range)) {
-                            setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                            setSelectedPriceRanges(
+                              selectedPriceRanges.filter((r) => r !== range)
+                            );
                           } else {
-                            setSelectedPriceRanges([...selectedPriceRanges, range]);
+                            setSelectedPriceRanges([
+                              ...selectedPriceRanges,
+                              range,
+                            ]);
                           }
                         }}
                       />
@@ -1048,12 +1046,14 @@ function SellOtoPage() {
                 {(showAllCarTypes ? carTypes : carTypes.slice(0, 3)).map(
                   (type, index) => (
                     <label key={index} className="filter-option">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedCarTypes.includes(type)}
                         onChange={() => {
                           if (selectedCarTypes.includes(type)) {
-                            setSelectedCarTypes(selectedCarTypes.filter(t => t !== type));
+                            setSelectedCarTypes(
+                              selectedCarTypes.filter((t) => t !== type)
+                            );
                           } else {
                             setSelectedCarTypes([...selectedCarTypes, type]);
                           }
@@ -1081,12 +1081,14 @@ function SellOtoPage() {
                 {(showAllSeats ? seats : seats.slice(0, 3)).map(
                   (seat, index) => (
                     <label key={index} className="filter-option">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedSeats.includes(seat)}
                         onChange={() => {
                           if (selectedSeats.includes(seat)) {
-                            setSelectedSeats(selectedSeats.filter(s => s !== seat));
+                            setSelectedSeats(
+                              selectedSeats.filter((s) => s !== seat)
+                            );
                           } else {
                             setSelectedSeats([...selectedSeats, seat]);
                           }
@@ -1114,12 +1116,14 @@ function SellOtoPage() {
                 {(showAllCities ? cities : cities.slice(0, 3)).map(
                   (city, index) => (
                     <label key={index} className="filter-option">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedCities.includes(city)}
                         onChange={() => {
                           if (selectedCities.includes(city)) {
-                            setSelectedCities(selectedCities.filter(c => c !== city));
+                            setSelectedCities(
+                              selectedCities.filter((c) => c !== city)
+                            );
                           } else {
                             setSelectedCities([...selectedCities, city]);
                           }
@@ -1182,11 +1186,11 @@ function SellOtoPage() {
             {/* Car Listings Grid */}
             <div className="listings-grid">
               {getFilteredCars().map((car) => (
-                <div 
-                  key={car.id} 
+                <div
+                  key={car.id}
                   className="car-card"
                   onClick={() => handleProductClick(car)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
                   {car.vip && <div className="vip-badge">Tin VIP</div>}
                   {car.featured && (
@@ -1194,17 +1198,19 @@ function SellOtoPage() {
                   )}
 
                   <div className="car-image">
-                    <img 
-                      src={car.image || "/api/placeholder/400/300"} 
+                    <img
+                      src={car.image || "/api/placeholder/400/300"}
                       alt={car.title}
                       onError={(e) => {
-                        e.target.src = "/api/placeholder/400/300"
+                        e.target.src = "/api/placeholder/400/300";
                       }}
                     />
-                    <button 
-                      className={`favorite-btn ${isSaved(`oto-${car.id}`) ? 'saved' : ''}`}
+                    <button
+                      className={`favorite-btn ${
+                        isSaved(`oto-${car.id}`) ? "saved" : ""
+                      }`}
                       onClick={(e) => handleToggleSaved(e, car)}
-                      title={isSaved(car.id) ? 'Bỏ lưu' : 'Lưu tin'}
+                      title={isSaved(car.id) ? "Bỏ lưu" : "Lưu tin"}
                     >
                       <HeartIcon />
                     </button>
@@ -1252,15 +1258,19 @@ function SellOtoPage() {
                     </div>
 
                     <div className="car-actions">
-                      <button 
+                      <button
                         className="action-btn primary"
                         onClick={(e) => handleRevealPhone(e, car.id)}
                       >
                         <PhoneIcon />
-                        {revealedPhones.has(car.id) ? car.phone : "Bấm để hiện số"}
+                        {revealedPhones.has(car.id)
+                          ? car.phone
+                          : "Bấm để hiện số"}
                       </button>
-                      <button 
-                        className={`action-btn compare-btn ${comparedItems.has(car.id) ? 'comparing' : ''}`}
+                      <button
+                        className={`action-btn compare-btn ${
+                          comparedItems.has(car.id) ? "comparing" : ""
+                        }`}
                         onClick={(e) => handleAddToCompare(e, car)}
                       >
                         <CompareIcon />
@@ -1271,16 +1281,20 @@ function SellOtoPage() {
                 </div>
               ))}
             </div>
-
-
           </div>
         </div>
       </div>
 
       {/* Product Detail Modal */}
       {showProductDetail && selectedProduct && (
-        <div className="product-detail-overlay" onClick={handleCloseProductDetail}>
-          <div className="product-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="product-detail-overlay"
+          onClick={handleCloseProductDetail}
+        >
+          <div
+            className="product-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button className="close-btn" onClick={handleCloseProductDetail}>
               <CloseIcon />
             </button>
@@ -1289,39 +1303,57 @@ function SellOtoPage() {
               {/* Image Gallery */}
               <div className="product-gallery">
                 <div className="main-image">
-                  <img 
-                    src={selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                  <img
+                    src={
+                      selectedProduct.image ||
+                      `/api/placeholder/600/400?text=Image ${
+                        currentImageIndex + 1
+                      }`
+                    }
                     alt={selectedProduct.title}
                     onError={(e) => {
-                      e.target.src = `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`
+                      e.target.src = `/api/placeholder/600/400?text=Image ${
+                        currentImageIndex + 1
+                      }`;
                     }}
                   />
                   {selectedProduct.images > 1 && (
                     <>
-                      <button className="gallery-nav prev" onClick={handlePrevImage}>
+                      <button
+                        className="gallery-nav prev"
+                        onClick={handlePrevImage}
+                      >
                         <ChevronLeftIcon />
                       </button>
-                      <button className="gallery-nav next" onClick={handleNextImage}>
+                      <button
+                        className="gallery-nav next"
+                        onClick={handleNextImage}
+                      >
                         <ChevronRightIcon />
                       </button>
                     </>
                   )}
                 </div>
-                
+
                 {selectedProduct.images > 1 && (
                   <div className="image-thumbnails">
-                    {Array.from({ length: selectedProduct.images }, (_, index) => (
-                      <div
-                        key={index}
-                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <img 
-                          src={`/api/placeholder/100/80?text=${index + 1}`} 
-                          alt={`${selectedProduct.title} ${index + 1}`} 
-                        />
-                      </div>
-                    ))}
+                    {Array.from(
+                      { length: selectedProduct.images },
+                      (_, index) => (
+                        <div
+                          key={index}
+                          className={`thumbnail ${
+                            index === currentImageIndex ? "active" : ""
+                          }`}
+                          onClick={() => setCurrentImageIndex(index)}
+                        >
+                          <img
+                            src={`/api/placeholder/100/80?text=${index + 1}`}
+                            alt={`${selectedProduct.title} ${index + 1}`}
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
 
@@ -1336,7 +1368,9 @@ function SellOtoPage() {
                   <h2 className="product-title">{selectedProduct.title}</h2>
                   <div className="product-price">{selectedProduct.price}</div>
                   {selectedProduct.discount && (
-                    <div className="product-discount">{selectedProduct.discount}</div>
+                    <div className="product-discount">
+                      {selectedProduct.discount}
+                    </div>
                   )}
                 </div>
 
@@ -1355,16 +1389,22 @@ function SellOtoPage() {
                   </div>
                   <div className="info-row">
                     <span className="label">Hộp số:</span>
-                    <span className="value">{selectedProduct.transmission}</span>
+                    <span className="value">
+                      {selectedProduct.transmission}
+                    </span>
                   </div>
                   <div className="info-row">
                     <span className="label">Xuất xứ:</span>
-                    <span className="value">{selectedProduct.origin || 'Chưa cập nhật'}</span>
+                    <span className="value">
+                      {selectedProduct.origin || "Chưa cập nhật"}
+                    </span>
                   </div>
                   {selectedProduct.batteryInfo && (
                     <div className="info-row">
                       <span className="label">Pin:</span>
-                      <span className="value">{selectedProduct.batteryInfo}</span>
+                      <span className="value">
+                        {selectedProduct.batteryInfo}
+                      </span>
                     </div>
                   )}
                   {selectedProduct.seats && (
@@ -1393,12 +1433,14 @@ function SellOtoPage() {
                   <div className="product-specs">
                     <h3>Thông số kỹ thuật</h3>
                     <div className="specs-grid">
-                      {Object.entries(selectedProduct.specs).map(([key, value]) => (
-                        <div key={key} className="spec-row">
-                          <span className="spec-label">{key}:</span>
-                          <span className="spec-value">{value}</span>
-                        </div>
-                      ))}
+                      {Object.entries(selectedProduct.specs).map(
+                        ([key, value]) => (
+                          <div key={key} className="spec-row">
+                            <span className="spec-label">{key}:</span>
+                            <span className="spec-value">{value}</span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 )}
@@ -1422,22 +1464,30 @@ function SellOtoPage() {
                 </div>
 
                 <div className="product-actions">
-                  <button 
+                  <button
                     className="action-btn primary large"
                     onClick={(e) => handleRevealPhone(e, selectedProduct.id)}
                   >
                     <PhoneIcon />
-                    {revealedPhones.has(selectedProduct.id) ? selectedProduct.phone : "Bấm để hiện số"}
+                    {revealedPhones.has(selectedProduct.id)
+                      ? selectedProduct.phone
+                      : "Bấm để hiện số"}
                   </button>
-                  <button 
-                    className={`action-btn secondary large save-btn ${isSaved(`oto-${selectedProduct.id}`) ? 'saved' : ''}`}
+                  <button
+                    className={`action-btn secondary large save-btn ${
+                      isSaved(`oto-${selectedProduct.id}`) ? "saved" : ""
+                    }`}
                     onClick={(e) => handleToggleSaved(e, selectedProduct)}
                   >
                     <HeartIcon />
-                    {isSaved(`oto-${selectedProduct.id}`) ? 'Đã lưu' : 'Lưu tin'}
+                    {isSaved(`oto-${selectedProduct.id}`)
+                      ? "Đã lưu"
+                      : "Lưu tin"}
                   </button>
-                  <button 
-                    className={`action-btn secondary large compare-btn ${comparedItems.has(selectedProduct.id) ? 'comparing' : ''}`}
+                  <button
+                    className={`action-btn secondary large compare-btn ${
+                      comparedItems.has(selectedProduct.id) ? "comparing" : ""
+                    }`}
                     onClick={(e) => handleAddToCompare(e, selectedProduct)}
                   >
                     <CompareIcon />
