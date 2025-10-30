@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ImageUpload from '../../components/ImageUpload'
 import { productService } from '../../services/productService'
+import api from '../../config/api'
 import './index.scss'
 
 // Dữ liệu địa chỉ Việt Nam
@@ -203,15 +204,22 @@ const PostListing = () => {
     color: '',
     origin: '',
     region: '',
-    // Common fields for vehicles
-    mileage: '', // Quãng đường đã đi (km)
-    batteryInfo: '', // Thông tin pin (%)
-    // Car specific
-    bodyType: '',
-    seats: '',
-    // Battery specific
-    batteryType: '',
-    capacity: '',
+  // Common fields for vehicles
+  mileage: '', // Quãng đường đã đi (km)
+  batteryInfo: '', // Thông tin pin (%)
+  // Car specific
+  bodyType: '',
+  seats: '',
+  licensesPlate: '',
+  registrationDeadline: '',
+  milesTraveled: '',
+  warrantyPeriodMonths: '',
+  // Battery specific
+  batteryType: '',
+  capacity: '',
+  volt: '',
+  size: '',
+  weight: '',
     location: {
       city: '',
       district: '',
@@ -321,9 +329,9 @@ const PostListing = () => {
   }, [formData, checkFieldCompletion])
 
   const categories = [
-    { id: 'car', name: 'Ô tô', icon: '🚗' },
-    { id: 'electric', name: 'Xe điện', icon: '🏍️' },
-    { id: 'battery', name: 'Pin', icon: '🔋' }
+    { id: 'CAR_ARTICLE', name: 'Ô tô', icon: '🚗' },
+    { id: 'MOTOR_ARTICLE', name: 'Xe điện', icon: '🏍️' },
+    { id: 'BATTERY_ARTICLE', name: 'Pin', icon: '🔋' }
   ]
 
   const carBrands = ['VinFast', 'Toyota', 'Honda', 'Mazda', 'Hyundai', 'Kia', 'Ford', 'Mitsubishi', 'Mercedes-Benz', 'BMW', 'Audi', 'Lexus']
@@ -335,7 +343,6 @@ const PostListing = () => {
   const batteryTypes = ['Li-ion', 'Li-Po', 'LiFePO4', 'Ni-MH', 'Lead-acid']
   const origins = ['Nhập khẩu', 'Lắp ráp trong nước', 'Sản xuất trong nước']
   const regions = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
-  const colors = ['Trắng', 'Đen', 'Xám', 'Bạc', 'Đỏ', 'Xanh dương', 'Xanh lá', 'Vàng', 'Nâu', 'Khác']
 
   // Effect để load dữ liệu khi ở chế độ edit
   useEffect(() => {
@@ -449,10 +456,6 @@ const PostListing = () => {
       alert('Vui lòng chọn hãng')
       return false
     }
-    if (!formData.color) {
-      alert('Vui lòng chọn màu sắc')
-      return false
-    }
     if (!formData.origin) {
       alert('Vui lòng chọn xuất xứ')
       return false
@@ -530,37 +533,64 @@ const PostListing = () => {
   }
 
   const handleSubmit = async () => {
-    if (!validateStep4()) return
-    
-    setIsSubmitting(true)
-    
+    if (!validateStep4()) return;
+    setIsSubmitting(true);
     try {
-      // Hiển thị loading
-      console.log(isEditMode ? 'Đang cập nhật sản phẩm:' : 'Đang tạo sản phẩm:', formData)
-      
-      let result
+      let result;
+      // Lấy memberId từ AuthContext nếu có
+      let memberId = 9007199254740991;
+      try {
+        const auth = JSON.parse(localStorage.getItem('user'));
+        if (auth && auth.memberId) memberId = auth.memberId;
+      } catch {}
       if (isEditMode) {
-        // Cập nhật sản phẩm
-        result = await productService.updateProductWithImages(formData)
+        result = await productService.updateProductWithImages(formData);
       } else {
-        // Tạo sản phẩm mới
-        result = await productService.createProductWithImages(formData)
+            // Format registrationDeadline từ dd/mm/yyyy sang yyyy-MM-dd
+            let regDate = '';
+            if (formData.registrationDeadline && /^\d{2}\/\d{2}\/\d{4}$/.test(formData.registrationDeadline)) {
+              regDate = formData.registrationDeadline;
+            }
+            // Format publicDate về dd/MM/yyyy
+            let pubDate = '';
+            const now = new Date();
+            pubDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+            const payload = {
+              title: formData.title || 'string',
+              content: formData.description || 'string',
+              location: `${formData.location.address || 'string'}, ${formData.location.ward || ''}, ${formData.location.district || ''}, ${formData.location.city || ''}`,
+              articleType: 'CAR_ARTICLE',
+              publicDate: pubDate,
+              memberId: memberId,
+              price: parseFloat(formData.price) || 0,
+              status: 'DRAFT',
+              approvedAdminId: 1,
+              imageUrls: Array.isArray(formData.images) && formData.images.length > 0 ? formData.images : ['string'],
+              brand: formData.brand || 'string',
+              model: formData.model || 'string',
+              year: formData.year ? parseInt(formData.year) : 2024,
+              origin: formData.origin || 'string',
+              type: formData.bodyType || 'string',
+              numberOfSeat: formData.seats ? parseInt(formData.seats) : 4,
+              licensesPlate: formData.licensesPlate || 'string',
+              registrationDeadline: regDate,
+              milesTraveled: formData.mileage ? parseFloat(formData.mileage) : 0.1,
+              warrantyPeriodMonths: formData.warranty_months ? parseInt(formData.warranty_months) : 12
+            };
+        // Gọi đúng endpoint /api/article/car với payload chuẩn
+        console.log('API Request: /article/car', payload);
+        const response = await api.post('/article/car', payload);
+        result = { data: response.data, error: null };
+        console.log('API Response:', result);
       }
-      
       if (result.error) {
-        alert(`Lỗi: ${result.error}`)
-        return
+        alert(`Lỗi: ${result.error}`);
+        return;
       }
-      
-      console.log(isEditMode ? '✅ Cập nhật sản phẩm thành công:' : '✅ Tạo sản phẩm thành công:', result.data)
-      alert(isEditMode ? 'Cập nhật tin đăng thành công!' : 'Đăng tin thành công!')
-      
-      // Clear sessionStorage nếu ở edit mode
+      alert(isEditMode ? 'Cập nhật tin đăng thành công!' : 'Đăng tin thành công!');
       if (isEditMode) {
-        sessionStorage.removeItem('editingPost')
+        sessionStorage.removeItem('editingPost');
       }
-      
-      // Reset form
       setFormData({
         category: '',
         title: '',
@@ -579,6 +609,9 @@ const PostListing = () => {
         seats: '',
         batteryType: '',
         capacity: '',
+        volt: '',
+        size: '',
+        weight: '',
         location: {
           city: '',
           district: '',
@@ -588,25 +621,22 @@ const PostListing = () => {
         contactName: '',
         contactPhone: '',
         images: []
-      })
-      
-      // Redirect về trang quản lý tin đăng
-      navigate('/my-posts')
-      
+      });
+      navigate('/my-posts');
     } catch (error) {
-      console.error('❌ Lỗi không mong muốn:', error)
-      alert('Có lỗi xảy ra, vui lòng thử lại!')
+      console.error('❌ Lỗi không mong muốn:', error);
+      alert('Có lỗi xảy ra, vui lòng thử lại!');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   const getBrandOptions = () => {
     switch(formData.category) {
-      case 'car': return carBrands
-      case 'electric': return electricBrands
-      case 'battery': return batteryBrands
-      default: return []
+      case 'CAR_ARTICLE': return carBrands;
+      case 'MOTOR_ARTICLE': return electricBrands;
+      case 'BATTERY_ARTICLE': return batteryBrands;
+      default: return [];
     }
   }
 
@@ -667,7 +697,7 @@ const PostListing = () => {
           )}
 
           {/* Step 2: Details */}
-          {step === 2 && (
+          {step === 2 && formData.category !== 'BATTERY_ARTICLE' && (
             <div className="form-step">
               <h2 className="step-title">{isEditMode ? 'Chỉnh sửa thông tin chi tiết' : 'Thông tin chi tiết'} - {categories.find(c => c.id === formData.category)?.name}</h2>
               
@@ -769,7 +799,6 @@ const PostListing = () => {
                     onChange={(e) => handleInputChange('year', e.target.value)}
                   />
                 </div>
-
                 <div className={`form-group ${fieldStatus.brand ? 'completed' : ''}`}>
                   <label>Hãng {formData.category === 'battery' ? 'Pin' : 'xe'} *</label>
                   <select
@@ -785,18 +814,6 @@ const PostListing = () => {
               </div>
 
               <div className="form-row">
-                <div className={`form-group ${fieldStatus.color ? 'completed' : ''}`}>
-                  <label>Màu sắc *</label>
-                  <select
-                    value={formData.color}
-                    onChange={(e) => handleInputChange('color', e.target.value)}
-                  >
-                    <option value="">Chọn màu sắc</option>
-                    {colors.map(color => (
-                      <option key={color} value={color}>{color}</option>
-                    ))}
-                  </select>
-                </div>
 
                 <div className="form-group">
                   <label>Xuất xứ *</label>
@@ -843,7 +860,7 @@ const PostListing = () => {
               )}
 
               {/* Category Specific Fields */}
-              {formData.category === 'car' && (
+              {formData.category === 'CAR_ARTICLE' && (
                 <div className="form-row">
                   <div className="form-group">
                     <label>Kiểu dáng *</label>
@@ -857,7 +874,6 @@ const PostListing = () => {
                       ))}
                     </select>
                   </div>
-
                   <div className="form-group">
                     <label>Số chỗ *</label>
                     <select
@@ -870,32 +886,250 @@ const PostListing = () => {
                       ))}
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label>Biển số xe *</label>
+                    <input
+                      type="text"
+                      placeholder="VD: 30A-12345"
+                      value={formData.licensesPlate || ''}
+                      onChange={(e) => handleInputChange('licensesPlate', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Hạn đăng kiểm *</label>
+                    <input
+                      type="text"
+                      placeholder="dd/mm/yyyy"
+                      value={formData.registrationDeadline || ''}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^0-9/]/g, '');
+                        // Tự động thêm dấu / khi nhập
+                        if (v.length === 2 && !v.includes('/')) v = v + '/';
+                        if (v.length === 5 && v.split('/').length < 3) v = v + '/';
+                        // Giới hạn tối đa 10 ký tự
+                        v = v.slice(0, 10);
+                        handleInputChange('registrationDeadline', v);
+                      }}
+                    />
+                    <small>Định dạng: dd/mm/yyyy</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Số km đã đi *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="VD: 15000"
+                      value={formData.milesTraveled || ''}
+                      onChange={(e) => handleInputChange('milesTraveled', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Thời gian bảo hành (tháng) *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="VD: 12"
+                      value={formData.warrantyPeriodMonths || ''}
+                      onChange={(e) => handleInputChange('warrantyPeriodMonths', e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
 
-              {formData.category === 'battery' && (
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Loại Pin *</label>
-                    <select
-                      value={formData.batteryType}
-                      onChange={(e) => handleInputChange('batteryType', e.target.value)}
-                    >
-                      <option value="">Chọn loại pin</option>
-                      {batteryTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Công suất *</label>
+              {formData.category === 'BATTERY_ARTICLE' && (
+                <div className="form-step">
+                  <h2 className="step-title">{isEditMode ? 'Chỉnh sửa thông tin chi tiết' : 'Thông tin chi tiết'} - Pin</h2>
+                  {/* Tiêu đề, mô tả, hình ảnh */}
+                  <div className={`form-group ${fieldStatus.title ? 'completed' : ''}`}>
+                    <label>Tiêu đề bài đăng *</label>
                     <input
                       type="text"
-                      placeholder="VD: 60Ah, 100kWh"
-                      value={formData.capacity}
-                      onChange={(e) => handleInputChange('capacity', e.target.value)}
+                      placeholder="VD: Pin xe điện CATL 48V 60Ah"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange('title', e.target.value)}
                     />
+                    <small>Tối thiểu 30 ký tự, tối đa 100 ký tự ({formData.title.length}/100)</small>
+                  </div>
+                  <div className={`form-group ${fieldStatus.description ? 'completed' : ''}`}>
+                    <label>Mô tả chi tiết *</label>
+                    <textarea
+                      rows="6"
+                      placeholder="Mô tả chi tiết về sản phẩm của bạn..."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                    />
+                    <small>Tối thiểu 100 ký tự ({formData.description.length}/100)</small>
+                  </div>
+                  <div className={`form-group ${fieldStatus.images ? 'completed' : ''}`}>
+                    <label>Hình ảnh sản phẩm *</label>
+                    <ImageUpload
+                      onImagesChange={(images) => handleInputChange('images', images)}
+                      multiple={true}
+                      maxFiles={10}
+                      folder="products"
+                      existingImages={formData.images}
+                    />
+                    <small>Tối đa 10 hình ảnh, mỗi ảnh tối đa 5MB (JPG, PNG, WebP)</small>
+                  </div>
+                  {/* Giá tiền, thương lượng */}
+                  <div className={`form-group ${fieldStatus.price ? 'completed' : ''}`}>
+                    <label>Giá tiền *</label>
+                    <input
+                      type="text"
+                      placeholder="VD: 5000000"
+                      value={formData.price}
+                      onChange={(e) => handleInputChange('price', e.target.value.replace(/\D/g, ''))}
+                    />
+                    {formData.price && (
+                      <small className="price-display">
+                        {parseInt(formData.price).toLocaleString('vi-VN')} đ
+                      </small>
+                    )}
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.negotiable}
+                        onChange={(e) => handleInputChange('negotiable', e.target.checked)}
+                      />
+                      Có thể thương lượng
+                    </label>
+                  </div>
+                  {/* Khu vực, tình trạng */}
+                  <div className="form-row">
+                    <div className={`form-group ${formData.region ? 'completed' : ''}`}>
+                      <label>Khu vực *</label>
+                      <select
+                        value={formData.region}
+                        onChange={(e) => handleInputChange('region', e.target.value)}
+                      >
+                        <option value="">Chọn khu vực</option>
+                        {regions.map(region => (
+                          <option key={region} value={region}>{region}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className={`form-group ${fieldStatus.condition ? 'completed' : ''}`}>
+                      <label>Tình trạng *</label>
+                      <select
+                        value={formData.condition}
+                        onChange={(e) => handleInputChange('condition', e.target.value)}
+                      >
+                        <option value="">Chọn tình trạng</option>
+                        {conditions.map(cond => (
+                          <option key={cond} value={cond}>{cond}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Năm sản xuất, hãng */}
+                  <div className="form-row">
+                    <div className={`form-group ${fieldStatus.year ? 'completed' : ''}`}>
+                      <label>Năm sản xuất *</label>
+                      <input
+                        type="number"
+                        placeholder="VD: 2020"
+                        min="1990"
+                        max={new Date().getFullYear()}
+                        value={formData.year}
+                        onChange={(e) => handleInputChange('year', e.target.value)}
+                      />
+                    </div>
+                    <div className={`form-group ${fieldStatus.brand ? 'completed' : ''}`}>
+                      <label>Hãng Pin *</label>
+                      <select
+                        value={formData.brand}
+                        onChange={(e) => handleInputChange('brand', e.target.value)}
+                      >
+                        <option value="">Chọn hãng</option>
+                        {batteryBrands.map(brand => (
+                          <option key={brand} value={brand}>{brand}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Xuất xứ */}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Xuất xứ *</label>
+                      <select
+                        value={formData.origin}
+                        onChange={(e) => handleInputChange('origin', e.target.value)}
+                      >
+                        <option value="">Chọn xuất xứ</option>
+                        {origins.map(origin => (
+                          <option key={origin} value={origin}>{origin}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Các trường đặc thù của Pin */}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Hiệu điện thế (Volt) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="VD: 48"
+                        value={formData.volt || ''}
+                        onChange={e => handleInputChange('volt', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Dung lượng (Ah/kWh) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="VD: 60"
+                        value={formData.capacity || ''}
+                        onChange={e => handleInputChange('capacity', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Kích thước (cm) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="VD: 30"
+                        value={formData.size || ''}
+                        onChange={e => handleInputChange('size', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Khối lượng (kg) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="VD: 12"
+                        value={formData.weight || ''}
+                        onChange={e => handleInputChange('weight', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Thời gian bảo hành (tháng) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="VD: 12"
+                        value={formData.warrantyPeriodMonths || ''}
+                        onChange={e => handleInputChange('warrantyPeriodMonths', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button className="btn btn-secondary" onClick={handlePrev}>
+                      Quay lại
+                    </button>
+                    <button className="btn btn-primary" onClick={handleNext}>
+                      Tiếp tục
+                    </button>
                   </div>
                 </div>
               )}
@@ -1061,26 +1295,64 @@ const PostListing = () => {
               <div className="preview-placeholder">Chưa có ảnh</div>
             )}
             <div className="preview-content">
-              <h4>{formData.title || 'Tiêu đề tin đăng'}</h4>
-              <div className="preview-price">
-                {formData.price ? `${parseInt(formData.price).toLocaleString('vi-VN')} đ` : 'Giá bán'}
-                {formData.negotiable && <span className="negotiable-badge">Có thể TL</span>}
-              </div>
-              <div className="preview-specs">
-                {formData.category && <span className="category-badge">{categories.find(c => c.id === formData.category)?.name}</span>}
-                {formData.year && <span>📅 {formData.year}</span>}
-                {formData.condition && <span>⚙️ {formData.condition}</span>}
-                {formData.brand && <span>🏭 {formData.brand}</span>}
-                {formData.color && <span>🎨 {formData.color}</span>}
-                {formData.category === 'car' && formData.seats && <span>👥 {formData.seats}</span>}
-                {formData.category === 'car' && formData.bodyType && <span>🚗 {formData.bodyType}</span>}
-                {formData.category === 'battery' && formData.batteryType && <span>🔋 {formData.batteryType}</span>}
-                {formData.category === 'battery' && formData.capacity && <span>⚡ {formData.capacity}</span>}
-              </div>
-              {formData.region && (
-                <div className="preview-location">
-                  📍 {formData.region}
-                </div>
+              {formData.category === 'BATTERY_ARTICLE' ? (
+                <>
+                  <h4>{formData.title || 'Tiêu đề tin đăng'}</h4>
+                  <div className="preview-price">
+                    {formData.price ? `${parseInt(formData.price).toLocaleString('vi-VN')} đ` : 'Giá bán'}
+                  </div>
+                  <div className="preview-specs">
+                    {formData.brand && <span>🏭 {formData.brand}</span>}
+                    {formData.origin && <span>🌏 {formData.origin}</span>}
+                    {formData.volt && <span>🔋 Volt: {formData.volt}</span>}
+                    {formData.capacity && <span>⚡ Dung lượng: {formData.capacity}</span>}
+                    {formData.size && <span>📏 Kích thước: {formData.size}</span>}
+                    {formData.weight && <span>⚖️ Khối lượng: {formData.weight}</span>}
+                    {formData.warrantyMonths && <span>🛡️ Bảo hành: {formData.warrantyMonths} tháng</span>}
+                  </div>
+                  <div className="preview-location">
+                    {formData.location?.city}, {formData.location?.district}, {formData.location?.ward}, {formData.location?.address}
+                  </div>
+                  <div className="preview-other">
+                    {formData.status && <span>Trạng thái: {formData.status}</span>}
+                    {formData.approvedById && <span>Người duyệt: {formData.approvedById}</span>}
+                    {formData.memberId && <span>Thành viên: {formData.memberId}</span>}
+                    {formData.publicDate && <span>Ngày đăng: {formData.publicDate}</span>}
+                    {formData.articleType && <span>Loại bài: {formData.articleType}</span>}
+                  </div>
+                  <div className="preview-images">
+                    {formData.imageUrls && formData.imageUrls.length > 0 && (
+                      <span>Ảnh: {formData.imageUrls.join(', ')}</span>
+                    )}
+                  </div>
+                  <div className="preview-description">
+                    {formData.description || formData.content}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4>{formData.title || 'Tiêu đề tin đăng'}</h4>
+                  <div className="preview-price">
+                    {formData.price ? `${parseInt(formData.price).toLocaleString('vi-VN')} đ` : 'Giá bán'}
+                    {formData.negotiable && <span className="negotiable-badge">Có thể TL</span>}
+                  </div>
+                  <div className="preview-specs">
+                    {formData.category && <span className="category-badge">{categories.find(c => c.id === formData.category)?.name}</span>}
+                    {formData.year && <span>📅 {formData.year}</span>}
+                    {formData.condition && <span>⚙️ {formData.condition}</span>}
+                    {formData.brand && <span>🏭 {formData.brand}</span>}
+                    {formData.color && <span>🎨 {formData.color}</span>}
+                    {formData.category === 'car' && formData.seats && <span>👥 {formData.seats}</span>}
+                    {formData.category === 'car' && formData.bodyType && <span>🚗 {formData.bodyType}</span>}
+                    {formData.category === 'battery' && formData.batteryType && <span>🔋 {formData.batteryType}</span>}
+                    {formData.category === 'battery' && formData.capacity && <span>⚡ {formData.capacity}</span>}
+                  </div>
+                  {formData.region && (
+                    <div className="preview-location">
+                      📍 {formData.region}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
