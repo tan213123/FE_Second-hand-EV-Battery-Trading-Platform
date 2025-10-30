@@ -1,6 +1,5 @@
-
-import api from '../config/api';
-import localStorageService from './localStorageService';
+import api from '../config/api'
+import localStorageService from './localStorageService'
 
 /**
  * API Services for Product operations
@@ -264,29 +263,6 @@ export const productService = {
   },
 
   /**
-   * Tạo bài viết mới cho motor, car, battery
-   * @param {'MOTOR_ARTICLE'|'CAR_ARTICLE'|'BATTERY_ARTICLE'} type
-   * @param {Object} articleData
-   */
-  createArticle: async (type, articleData) => {
-    let endpoint = '';
-    if (type === 'motor') endpoint = '/article/motor';
-    else if (type === 'car') endpoint = '/article/car';
-    else if (type === 'battery') endpoint = '/article/battery';
-    else throw new Error('Invalid article type');
-
-    try {
-      const response = await api.post(endpoint, articleData);
-      return { data: response.data, error: null };
-    } catch (error) {
-      return {
-        data: null,
-        error: error.response?.data?.message || 'Có lỗi khi tạo bài viết'
-      };
-    }
-  },
-
-  /**
    * Kiểm tra kết nối với Backend
    */
   checkBackendConnection: async () => {
@@ -303,4 +279,4 @@ export const productService = {
   }
 }
 
-export default productService;
+export default productService

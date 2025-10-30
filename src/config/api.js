@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api', // Sử dụng proxy của Vite để tránh lỗi CORS
+  baseURL: '/api', // Sử dụng proxy của Vite thay vì gọi trực tiếp
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

@@ -86,21 +86,17 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
+    
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        // Gọi API login chuẩn
-        console.log('API Request: POST /members/login', formData);
+        // Call API login với endpoint /members/login
         const response = await api.post('/members/login', {
           email: formData.email,
           password: formData.password
         });
-        console.log('API Response:', response.status, response.config.url, response.data);
-        if (!response.data || !response.data.token) {
-          setErrors({ submit: 'Lỗi: Không nhận được token từ server.' });
-          setIsSubmitting(false);
-          return;
-        }
+
+        // Sử dụng AuthContext để lưu user data
         const userData = {
           memberId: response.data.memberId,
           name: response.data.name,
@@ -111,16 +107,21 @@ const LoginPage = () => {
           sex: response.data.sex,
           status: response.data.status
         };
+
+        // Gọi hàm login từ AuthContext
         login(userData, response.data.token);
-        console.log('User logged in successfully:', userData);
-        // Chuyển về trang chủ sau đăng nhập
+
+        // Thông báo thành công
+        console.log('User logged in successfully:', userData.name);
+
+        // Redirect về trang chủ
         navigate('/', { replace: true });
+        
       } catch (error) {
-        let errorMsg = 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.';
-        if (error.response?.data?.message) errorMsg = error.response.data.message;
-        else if (error.message) errorMsg = error.message;
-        setErrors({ submit: errorMsg });
         console.error('Login error:', error);
+        setErrors({
+          submit: error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.'
+        });
       } finally {
         setIsSubmitting(false);
       }
