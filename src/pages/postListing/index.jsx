@@ -550,8 +550,33 @@ const PostListing = () => {
   const now = new Date();
   pubDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
 
-        if (formData.category === 'MOTOR_ARTICLE') {
+        if (formData.category === 'BATTERY_ARTICLE') {
           // Format location chỉ lấy thành phố
+          const payload = {
+            title: formData.title || '',
+            content: formData.description || '',
+            location: formData.region || '',
+            articleType: 'BATTERY_ARTICLE',
+            publicDate: pubDate,
+            memberId: memberId,
+            price: parseFloat(formData.price) || 0,
+            status: 'DRAFT',
+            approvedById: null,
+            imageUrls: Array.isArray(formData.images) && formData.images.length > 0 ? formData.images : [],
+            volt: formData.volt ? parseFloat(formData.volt) : 0,
+            capacity: formData.capacity ? parseFloat(formData.capacity) : 0,
+            size: formData.size ? parseFloat(formData.size) : 0,
+            weight: formData.weight ? parseFloat(formData.weight) : 0,
+            brand: formData.brand || '',
+            origin: formData.origin || '',
+            warrantyMonths: formData.warrantyPeriodMonths ? parseInt(formData.warrantyPeriodMonths) : 1
+          };
+          console.log('API Request: /article/battery', payload);
+          const response = await api.post('/article/battery', payload);
+          result = { data: response.data, error: null };
+          console.log('API Response:', result);
+        } else if (formData.category === 'MOTOR_ARTICLE') {
+          // ...existing code for MOTOR_ARTICLE...
           const payload = {
             title: formData.title || '',
             content: formData.description || '',
@@ -1010,204 +1035,207 @@ const PostListing = () => {
                 </div>
               )}
 
-              {formData.category === 'BATTERY_ARTICLE' && (
-                <div className="form-step">
-                  <h2 className="step-title">{isEditMode ? 'Chỉnh sửa thông tin chi tiết' : 'Thông tin chi tiết'} - Pin</h2>
-                  {/* Tiêu đề, mô tả, hình ảnh */}
-                  <div className={`form-group ${fieldStatus.title ? 'completed' : ''}`}>
-                    <label>Tiêu đề bài đăng *</label>
-                    <input
-                      type="text"
-                      placeholder="VD: Pin xe điện CATL 48V 60Ah"
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                    />
-                    <small>Tối thiểu 30 ký tự, tối đa 100 ký tự ({formData.title.length}/100)</small>
-                  </div>
-                  <div className={`form-group ${fieldStatus.description ? 'completed' : ''}`}>
-                    <label>Mô tả chi tiết *</label>
-                    <textarea
-                      rows="6"
-                      placeholder="Mô tả chi tiết về sản phẩm của bạn..."
-                      value={formData.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                    />
-                    <small>Tối thiểu 100 ký tự ({formData.description.length}/100)</small>
-                  </div>
-                  <div className={`form-group ${fieldStatus.images ? 'completed' : ''}`}>
-                    <label>Hình ảnh sản phẩm *</label>
-                    <ImageUpload
-                      onImagesChange={(images) => handleInputChange('images', images)}
-                      multiple={true}
-                      maxFiles={10}
-                      folder="products"
-                      existingImages={formData.images}
-                    />
-                    <small>Tối đa 10 hình ảnh, mỗi ảnh tối đa 5MB (JPG, PNG, WebP)</small>
-                  </div>
-                  {/* Giá tiền, thương lượng */}
-                  <div className={`form-group ${fieldStatus.price ? 'completed' : ''}`}>
-                    <label>Giá tiền *</label>
-                    <input
-                      type="text"
-                      placeholder="VD: 5000000"
-                      value={formData.price}
-                      onChange={(e) => handleInputChange('price', e.target.value.replace(/\D/g, ''))}
-                    />
-                    {formData.price && (
-                      <small className="price-display">
-                        {parseInt(formData.price).toLocaleString('vi-VN')} đ
-                      </small>
-                    )}
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.negotiable}
-                        onChange={(e) => handleInputChange('negotiable', e.target.checked)}
-                      />
-                      Có thể thương lượng
-                    </label>
-                  </div>
-                  {/* Khu vực, tình trạng */}
-                  <div className="form-row">
-                    <div className={`form-group ${formData.region ? 'completed' : ''}`}>
-                      <label>Khu vực *</label>
-                      <select
-                        value={formData.region}
-                        onChange={(e) => handleInputChange('region', e.target.value)}
-                      >
-                        <option value="">Chọn khu vực</option>
-                        {regions.map(region => (
-                          <option key={region} value={region}>{region}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className={`form-group ${fieldStatus.condition ? 'completed' : ''}`}>
-                      <label>Tình trạng *</label>
-                      <select
-                        value={formData.condition}
-                        onChange={(e) => handleInputChange('condition', e.target.value)}
-                      >
-                        <option value="">Chọn tình trạng</option>
-                        {conditions.map(cond => (
-                          <option key={cond} value={cond}>{cond}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  {/* Năm sản xuất, hãng */}
-                  <div className="form-row">
-                    <div className={`form-group ${fieldStatus.year ? 'completed' : ''}`}>
-                      <label>Năm sản xuất *</label>
-                      <input
-                        type="number"
-                        placeholder="VD: 2020"
-                        min="1990"
-                        max={new Date().getFullYear()}
-                        value={formData.year}
-                        onChange={(e) => handleInputChange('year', e.target.value)}
-                      />
-                    </div>
-                    <div className={`form-group ${fieldStatus.brand ? 'completed' : ''}`}>
-                      <label>Hãng Pin *</label>
-                      <select
-                        value={formData.brand}
-                        onChange={(e) => handleInputChange('brand', e.target.value)}
-                      >
-                        <option value="">Chọn hãng</option>
-                        {batteryBrands.map(brand => (
-                          <option key={brand} value={brand}>{brand}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  {/* Xuất xứ */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Xuất xứ *</label>
-                      <select
-                        value={formData.origin}
-                        onChange={(e) => handleInputChange('origin', e.target.value)}
-                      >
-                        <option value="">Chọn xuất xứ</option>
-                        {origins.map(origin => (
-                          <option key={origin} value={origin}>{origin}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  {/* Các trường đặc thù của Pin */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Hiệu điện thế (Volt) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="VD: 48"
-                        value={formData.volt || ''}
-                        onChange={e => handleInputChange('volt', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Dung lượng (Ah/kWh) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="VD: 60"
-                        value={formData.capacity || ''}
-                        onChange={e => handleInputChange('capacity', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Kích thước (cm) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="VD: 30"
-                        value={formData.size || ''}
-                        onChange={e => handleInputChange('size', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Khối lượng (kg) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="VD: 12"
-                        value={formData.weight || ''}
-                        onChange={e => handleInputChange('weight', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Thời gian bảo hành (tháng) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="VD: 12"
-                        value={formData.warrantyPeriodMonths || ''}
-                        onChange={e => handleInputChange('warrantyPeriodMonths', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-actions">
-                    <button className="btn btn-secondary" onClick={handlePrev}>
-                      Quay lại
-                    </button>
-                    <button className="btn btn-primary" onClick={handleNext}>
-                      Tiếp tục
-                    </button>
-                  </div>
-                </div>
-              )}
+              
 
+              <div className="form-actions">
+                <button className="btn btn-secondary" onClick={handlePrev}>
+                  Quay lại
+                </button>
+                <button className="btn btn-primary" onClick={handleNext}>
+                  Tiếp tục
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: CHO PIN */}
+          {step === 2 && formData.category === 'BATTERY_ARTICLE' && (
+            <div className="form-step">
+              <h2 className="step-title">{isEditMode ? 'Chỉnh sửa thông tin chi tiết' : 'Thông tin chi tiết'} - Pin</h2>
+              {/* Tiêu đề, mô tả, hình ảnh */}
+              <div className={`form-group ${fieldStatus.title ? 'completed' : ''}`}>
+                <label>Tiêu đề bài đăng *</label>
+                <input
+                  type="text"
+                  placeholder="VD: Pin xe điện CATL 48V 60Ah"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                />
+                <small>Tối thiểu 30 ký tự, tối đa 100 ký tự ({formData.title.length}/100)</small>
+              </div>
+              <div className={`form-group ${fieldStatus.description ? 'completed' : ''}`}>
+                <label>Mô tả chi tiết *</label>
+                <textarea
+                  rows="6"
+                  placeholder="Mô tả chi tiết về sản phẩm của bạn..."
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                />
+                <small>Tối thiểu 100 ký tự ({formData.description.length}/100)</small>
+              </div>
+              <div className={`form-group ${fieldStatus.images ? 'completed' : ''}`}>
+                <label>Hình ảnh sản phẩm *</label>
+                <ImageUpload
+                  onImagesChange={(images) => handleInputChange('images', images)}
+                  multiple={true}
+                  maxFiles={10}
+                  folder="products"
+                  existingImages={formData.images}
+                />
+                <small>Tối đa 10 hình ảnh, mỗi ảnh tối đa 5MB (JPG, PNG, WebP)</small>
+              </div>
+              {/* Giá tiền, thương lượng */}
+              <div className={`form-group ${fieldStatus.price ? 'completed' : ''}`}>
+                <label>Giá tiền *</label>
+                <input
+                  type="text"
+                  placeholder="VD: 5000000"
+                  value={formData.price}
+                  onChange={(e) => handleInputChange('price', e.target.value.replace(/\D/g, ''))}
+                />
+                {formData.price && (
+                  <small className="price-display">
+                    {parseInt(formData.price).toLocaleString('vi-VN')} đ
+                  </small>
+                )}
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.negotiable}
+                    onChange={(e) => handleInputChange('negotiable', e.target.checked)}
+                  />
+                  Có thể thương lượng
+                </label>
+              </div>
+              {/* Khu vực, tình trạng */}
+              <div className="form-row">
+                <div className={`form-group ${formData.region ? 'completed' : ''}`}>
+                  <label>Khu vực *</label>
+                  <select
+                    value={formData.region}
+                    onChange={(e) => handleInputChange('region', e.target.value)}
+                  >
+                    <option value="">Chọn khu vực</option>
+                    {regions.map(region => (
+                      <option key={region} value={region}>{region}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className={`form-group ${fieldStatus.condition ? 'completed' : ''}`}>
+                  <label>Tình trạng *</label>
+                  <select
+                    value={formData.condition}
+                    onChange={(e) => handleInputChange('condition', e.target.value)}
+                  >
+                    <option value="">Chọn tình trạng</option>
+                    {conditions.map(cond => (
+                      <option key={cond} value={cond}>{cond}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* Năm sản xuất, hãng */}
+              <div className="form-row">
+                <div className={`form-group ${fieldStatus.year ? 'completed' : ''}`}>
+                  <label>Năm sản xuất *</label>
+                  <input
+                    type="number"
+                    placeholder="VD: 2020"
+                    min="1990"
+                    max={new Date().getFullYear()}
+                    value={formData.year}
+                    onChange={(e) => handleInputChange('year', e.target.value)}
+                  />
+                </div>
+                <div className={`form-group ${fieldStatus.brand ? 'completed' : ''}`}>
+                  <label>Hãng Pin *</label>
+                  <select
+                    value={formData.brand}
+                    onChange={(e) => handleInputChange('brand', e.target.value)}
+                  >
+                    <option value="">Chọn hãng</option>
+                    {batteryBrands.map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* Xuất xứ */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Xuất xứ *</label>
+                  <select
+                    value={formData.origin}
+                    onChange={(e) => handleInputChange('origin', e.target.value)}
+                  >
+                    <option value="">Chọn xuất xứ</option>
+                    {origins.map(origin => (
+                      <option key={origin} value={origin}>{origin}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* Các trường đặc thù của Pin */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Hiệu điện thế (Volt) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="VD: 48"
+                    value={formData.volt || ''}
+                    onChange={e => handleInputChange('volt', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Dung lượng (Ah/kWh) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="VD: 60"
+                    value={formData.capacity || ''}
+                    onChange={e => handleInputChange('capacity', e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Kích thước (cm) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="VD: 30"
+                    value={formData.size || ''}
+                    onChange={e => handleInputChange('size', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Khối lượng (kg) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="VD: 12"
+                    value={formData.weight || ''}
+                    onChange={e => handleInputChange('weight', e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Thời gian bảo hành (tháng) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="VD: 12"
+                    value={formData.warrantyPeriodMonths || ''}
+                    onChange={e => handleInputChange('warrantyPeriodMonths', e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="form-actions">
                 <button className="btn btn-secondary" onClick={handlePrev}>
                   Quay lại
