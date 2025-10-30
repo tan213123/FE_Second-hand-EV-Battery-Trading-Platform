@@ -546,42 +546,68 @@ const PostListing = () => {
       if (isEditMode) {
         result = await productService.updateProductWithImages(formData);
       } else {
-            // Format registrationDeadline từ dd/mm/yyyy sang yyyy-MM-dd
-            let regDate = '';
-            if (formData.registrationDeadline && /^\d{2}\/\d{2}\/\d{4}$/.test(formData.registrationDeadline)) {
-              regDate = formData.registrationDeadline;
-            }
-            // Format publicDate về dd/MM/yyyy
-            let pubDate = '';
-            const now = new Date();
-            pubDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-            const payload = {
-              title: formData.title || 'string',
-              content: formData.description || 'string',
-              location: `${formData.location.address || 'string'}, ${formData.location.ward || ''}, ${formData.location.district || ''}, ${formData.location.city || ''}`,
-              articleType: 'CAR_ARTICLE',
-              publicDate: pubDate,
-              memberId: memberId,
-              price: parseFloat(formData.price) || 0,
-              status: 'DRAFT',
-              approvedAdminId: 1,
-              imageUrls: Array.isArray(formData.images) && formData.images.length > 0 ? formData.images : ['string'],
-              brand: formData.brand || 'string',
-              model: formData.model || 'string',
-              year: formData.year ? parseInt(formData.year) : 2024,
-              origin: formData.origin || 'string',
-              type: formData.bodyType || 'string',
-              numberOfSeat: formData.seats ? parseInt(formData.seats) : 4,
-              licensesPlate: formData.licensesPlate || 'string',
-              registrationDeadline: regDate,
-              milesTraveled: formData.mileage ? parseFloat(formData.mileage) : 0.1,
-              warrantyPeriodMonths: formData.warranty_months ? parseInt(formData.warranty_months) : 12
-            };
-        // Gọi đúng endpoint /api/article/car với payload chuẩn
-        console.log('API Request: /article/car', payload);
-        const response = await api.post('/article/car', payload);
-        result = { data: response.data, error: null };
-        console.log('API Response:', result);
+  let pubDate = '';
+  const now = new Date();
+  pubDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+
+        if (formData.category === 'MOTOR_ARTICLE') {
+          // Format location chỉ lấy thành phố
+          const payload = {
+            title: formData.title || '',
+            content: formData.description || '',
+            location: formData.region || '',
+            articleType: 'MOTOR_ARTICLE',
+            publicDate: pubDate,
+            memberId: memberId,
+            price: parseFloat(formData.price) || 0,
+            status: 'DRAFT',
+            approvedById: null,
+            imageUrls: Array.isArray(formData.images) && formData.images.length > 0 ? formData.images : [],
+            brand: formData.brand || '',
+            year: formData.year ? parseInt(formData.year) : new Date().getFullYear(),
+            vehicleCapacity: formData.vehicleCapacity ? parseFloat(formData.vehicleCapacity) : 1,
+            licensesPlate: formData.licensesPlate || 'string',
+            origin: formData.origin || '',
+            milesTraveled: formData.mileage ? parseFloat(formData.mileage) : 0,
+            warrantyMonths: formData.warrantyPeriodMonths ? parseInt(formData.warrantyPeriodMonths) : 1
+          };
+          console.log('API Request: /article/motor', payload);
+          const response = await api.post('/article/motor', payload);
+          result = { data: response.data, error: null };
+          console.log('API Response:', result);
+        } else {
+          // ...existing code for CAR_ARTICLE and other types...
+          let regDate = '';
+          if (formData.registrationDeadline && /^\d{2}\/\d{2}\/\d{4}$/.test(formData.registrationDeadline)) {
+            regDate = formData.registrationDeadline;
+          }
+          const payload = {
+            title: formData.title || 'string',
+            content: formData.description || 'string',
+            location: `${formData.location.address || 'string'}, ${formData.location.ward || ''}, ${formData.location.district || ''}, ${formData.location.city || ''}`,
+            articleType: 'CAR_ARTICLE',
+            publicDate: pubDate,
+            memberId: memberId,
+            price: parseFloat(formData.price) || 0,
+            status: 'DRAFT',
+            approvedAdminId: 1,
+            imageUrls: Array.isArray(formData.images) && formData.images.length > 0 ? formData.images : ['string'],
+            brand: formData.brand || 'string',
+            model: formData.model || 'string',
+            year: formData.year ? parseInt(formData.year) : 2024,
+            origin: formData.origin || 'string',
+            type: formData.bodyType || 'string',
+            numberOfSeat: formData.seats ? parseInt(formData.seats) : 4,
+            licensesPlate: formData.licensesPlate || 'string',
+            registrationDeadline: regDate,
+            milesTraveled: formData.mileage ? parseFloat(formData.mileage) : 0.1,
+            warrantyPeriodMonths: formData.warranty_months ? parseInt(formData.warranty_months) : 12
+          };
+          console.log('API Request: /article/car', payload);
+          const response = await api.post('/article/car', payload);
+          result = { data: response.data, error: null };
+          console.log('API Response:', result);
+        }
       }
       if (result.error) {
         alert(`Lỗi: ${result.error}`);
@@ -773,6 +799,54 @@ const PostListing = () => {
                   </select>
                 </div>
 
+                {/* Các trường đặc thù cho MOTOR_ARTICLE */}
+                {formData.category === 'MOTOR_ARTICLE' && (
+                  <>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Biển số xe *</label>
+                        <input
+                          type="text"
+                          placeholder="VD: 51A12345"
+                          value={formData.licensesPlate || ''}
+                          onChange={(e) => handleInputChange('licensesPlate', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Số km đã đi *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 5000"
+                          value={formData.mileage || ''}
+                          onChange={(e) => handleInputChange('mileage', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Dung tích xe (cc) *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 18"
+                          value={formData.vehicleCapacity || ''}
+                          onChange={(e) => handleInputChange('vehicleCapacity', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Thời gian bảo hành (tháng) *</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 12"
+                          value={formData.warrantyPeriodMonths || ''}
+                          onChange={(e) => handleInputChange('warrantyPeriodMonths', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div className={`form-group ${fieldStatus.condition ? 'completed' : ''}`}>
                   <label>Tình trạng *</label>
                   <select
