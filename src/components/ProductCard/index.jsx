@@ -70,10 +70,31 @@ const ProductCard = ({ product }) => {
         <HeartIcon filled={saved} />
       </button>
 
+
       <div className="product-image">
-        <img src={product.image || '/api/placeholder/300/200'} alt={product.title} />
+        {/* Ảnh chính */}
+        <img
+          src={Array.isArray(product.images) ? product.images[0] : (product.image || '/api/placeholder/300/200')}
+          alt={product.title}
+        />
         {product.imageCount && (
           <span className="image-count">📷 {product.imageCount}</span>
+        )}
+        {/* Thumbnail các ảnh còn lại */}
+        {Array.isArray(product.images) && product.images.length > 1 && (
+          <div className="product-thumbnails">
+            {product.images.map((url, idx) => (
+              url ? (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Ảnh ${idx + 1}`}
+                  className={idx === 0 ? 'active' : ''}
+                  style={{ width: 40, height: 40, objectFit: 'cover', margin: '2px', border: idx === 0 ? '2px solid orange' : '1px solid #ccc' }}
+                />
+              ) : null
+            ))}
+          </div>
         )}
       </div>
 

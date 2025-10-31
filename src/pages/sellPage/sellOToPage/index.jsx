@@ -1290,13 +1290,13 @@ function SellOtoPage() {
               <div className="product-gallery">
                 <div className="main-image">
                   <img 
-                    src={selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                    src={Array.isArray(selectedProduct.images) ? selectedProduct.images[currentImageIndex] : (selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`)} 
                     alt={selectedProduct.title}
                     onError={(e) => {
                       e.target.src = `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`
                     }}
                   />
-                  {selectedProduct.images > 1 && (
+                  {Array.isArray(selectedProduct.images) && selectedProduct.images.length > 1 && (
                     <>
                       <button className="gallery-nav prev" onClick={handlePrevImage}>
                         <ChevronLeftIcon />
@@ -1307,18 +1307,19 @@ function SellOtoPage() {
                     </>
                   )}
                 </div>
-                
-                {selectedProduct.images > 1 && (
+
+                {Array.isArray(selectedProduct.images) && selectedProduct.images.length > 1 && (
                   <div className="image-thumbnails">
-                    {Array.from({ length: selectedProduct.images }, (_, index) => (
+                    {selectedProduct.images.map((url, index) => (
                       <div
                         key={index}
                         className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                         onClick={() => setCurrentImageIndex(index)}
                       >
                         <img 
-                          src={`/api/placeholder/100/80?text=${index + 1}`} 
+                          src={url}
                           alt={`${selectedProduct.title} ${index + 1}`} 
+                          style={{ width: 60, height: 45, objectFit: 'cover', border: index === currentImageIndex ? '2px solid orange' : '1px solid #ccc' }}
                         />
                       </div>
                     ))}
@@ -1326,7 +1327,7 @@ function SellOtoPage() {
                 )}
 
                 <div className="image-counter">
-                  {currentImageIndex + 1} / {selectedProduct.images}
+                  {Array.isArray(selectedProduct.images) ? (currentImageIndex + 1) : 1} / {Array.isArray(selectedProduct.images) ? selectedProduct.images.length : 1}
                 </div>
               </div>
 
