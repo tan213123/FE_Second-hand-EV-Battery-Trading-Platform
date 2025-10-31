@@ -142,9 +142,15 @@ const Fees = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/packages');
-      if (response.data && response.data.length > 0) {
-        setPackages(response.data);
+      const token = localStorage.getItem('token');
+      if (token && token.startsWith('demo')) {
+        // Demo admin: dùng dữ liệu mặc định, không gọi API
+        setPackages(defaultPackages);
+      } else {
+        const response = await api.get('/packages');
+        if (response.data && response.data.length > 0) {
+          setPackages(response.data);
+        }
       }
       setError(null);
     } catch (error) {
@@ -193,35 +199,28 @@ const Fees = () => {
 
     try {
       setLoading(true);
-      
-      if (editing === 'new') {
-        // Tạo gói mới - GỌI API POST
-        const response = await api.post('/packages', packageData);
-        console.log('✅ Gói mới được tạo:', response.data);
-        
-        // Cập nhật state với data từ API
-        if (response.data) {
-          setPackages(prev => [...prev, response.data]);
-        } else {
-          // Fallback nếu API không trả về data
+      const token = localStorage.getItem('token');
+      if (token && token.startsWith('demo')) {
+        // Không gọi API ở chế độ demo
+        if (editing === 'new') {
           const id = `pkg${packages.length + 1}`;
           setPackages(prev => [...prev, { id, ...packageData }]);
+          alert('✅ Tạo gói mới (demo) thành công!');
+        } else {
+          setPackages(prev => prev.map(p => p.id === editing ? { ...p, ...packageData } : p));
+          alert('✅ Cập nhật gói (demo) thành công!');
         }
-        
-        alert('✅ Tạo gói mới thành công!');
       } else {
-        // Cập nhật gói - GỌI API PUT/PATCH
-        const response = await api.put(`/packages/${editing}`, packageData);
-        console.log('✅ Giá gói được cập nhật:', response.data);
-        
-        // Cập nhật state với data từ API
-        setPackages(prev => prev.map(p => p.id === editing ? {
-          ...p,
-          ...packageData,
-          id: p.id // Giữ lại ID cũ
-        } : p));
-        
-        alert('✅ Cập nhật giá thành công! Giá mới đã được lưu vào hệ thống.');
+        if (editing === 'new') {
+          const response = await api.post('/packages', packageData);
+          if (response.data) setPackages(prev => [...prev, response.data]);
+          else setPackages(prev => [...prev, { id: `pkg${packages.length + 1}`, ...packageData }]);
+          alert('✅ Tạo gói mới thành công!');
+        } else {
+          await api.put(`/packages/${editing}`, packageData);
+          setPackages(prev => prev.map(p => p.id === editing ? { ...p, ...packageData, id: p.id } : p));
+          alert('✅ Cập nhật giá thành công!');
+        }
       }
       
       setError(null);
@@ -254,11 +253,10 @@ const Fees = () => {
     if (window.confirm('Bạn có chắc muốn xóa gói này không?')) {
       try {
         setLoading(true);
-        
-        // GỌI API DELETE
-        await api.delete(`/packages/${id}`);
-        console.log('✅ Gói đã được xóa:', id);
-        
+        const token = localStorage.getItem('token');
+        if (!(token && token.startsWith('demo'))) {
+          await api.delete(`/packages/${id}`);
+        }
         // Cập nhật state
         setPackages(prev => prev.filter(p => p.id !== id));
         alert('✅ Xóa gói thành công!');
@@ -279,14 +277,13 @@ const Fees = () => {
   const toggleActive = async (id) => {
     try {
       setLoading(true);
-      
       // Tìm package hiện tại
       const pkg = packages.find(p => p.id === id);
       if (!pkg) return;
-      
-      // GỌI API PATCH để cập nhật status
-      await api.patch(`/packages/${id}`, { active: !pkg.active });
-      console.log('✅ Trạng thái gói được cập nhật:', id);
+      const token = localStorage.getItem('token');
+      if (!(token && token.startsWith('demo'))) {
+        await api.patch(`/packages/${id}`, { active: !pkg.active });
+      }
       
       // Cập nhật state
       setPackages(prev => 
