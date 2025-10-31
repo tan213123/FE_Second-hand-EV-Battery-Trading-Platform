@@ -43,7 +43,14 @@ const AdminPage = () => {
           >
             ☰
           </button>
-          <h2>{getPageTitle()}</h2>
+          <button 
+            className="home-btn"
+            style={{ marginLeft: 12, background: '#3498db', color: 'white', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}
+            onClick={() => navigate('/', { replace: true })}
+          >
+            🏠 Home
+          </button>
+          <h2 style={{ marginLeft: 12 }}>{getPageTitle()}</h2>
         </div>
         <div className="header-right">
           <div className="search-box">

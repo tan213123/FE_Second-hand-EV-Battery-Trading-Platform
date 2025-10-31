@@ -340,7 +340,6 @@ const PostListing = () => {
   const conditions = ['Mới', 'Đã sử dụng (Còn mới)', 'Đã sử dụng (Tốt)', 'Đã sử dụng (Trung bình)']
   const bodyTypes = ['Sedan', 'SUV', 'Hatchback', 'MPV', 'Pickup', 'Coupe', 'Convertible']
   const seatOptions = ['2 chỗ', '4 chỗ', '5 chỗ', '7 chỗ', '9 chỗ', '16 chỗ']
-  const batteryTypes = ['Li-ion', 'Li-Po', 'LiFePO4', 'Ni-MH', 'Lead-acid']
   const origins = ['Nhập khẩu', 'Lắp ráp trong nước', 'Sản xuất trong nước']
   const regions = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
 
