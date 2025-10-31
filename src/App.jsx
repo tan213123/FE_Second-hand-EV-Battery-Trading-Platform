@@ -1,4 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import RequireAdmin from './components/RouteGuards/RequireAdmin';
+import RedirectAdminFromHome from './components/RouteGuards/RedirectAdminFromHome';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
@@ -29,12 +31,22 @@ function App() {
       path: "/",
       element: <Layout />,
       children: [
-        { path: "/", element: <HomePage /> },
+        { path: "/", element: (
+          <RedirectAdminFromHome>
+            <HomePage />
+          </RedirectAdminFromHome>
+        ) },
         { path: '/oto', element: <SellOtoPage /> },
         { path: '/bike', element: <SellBikePage /> },
         { path: '/battery', element: <SellBatteryPage /> },
         { path: '/saved', element: <SavedPage /> },
         { path: '/login', element: <LoginPage /> },
+        { path: '/login', element: (
+          <RedirectAdminFromHome>
+            <LoginPage />
+          </RedirectAdminFromHome>
+        ) },
+        { path: '/signup', element: <RegisterPage /> },
         { path: '/signup', element: <RegisterPage /> },
         { path: '/post', element: <PostListing /> },
         { path: '/auction', element: <AuctionPage /> },
@@ -52,7 +64,11 @@ function App() {
     },
     {
       path: "/admin",
-      element: <AdminPage />,
+      element: (
+        <RequireAdmin>
+          <AdminPage />
+        </RequireAdmin>
+      ),
     },
   ]);
   

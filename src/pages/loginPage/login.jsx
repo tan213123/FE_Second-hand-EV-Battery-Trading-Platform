@@ -116,6 +116,7 @@ const LoginPage = () => {
           email: formData.email,
           password: formData.password
         });
+        console.log('RESPONSE FROM BACKEND:', response.data); // Thêm để kiểm tra response thực tế
 
         // Sử dụng AuthContext để lưu user data
         const userData = {
@@ -140,7 +141,7 @@ const LoginPage = () => {
         if (userData.role === 'admin') {
           navigate('/admin', { replace: true });
         } else {
-          navigate('/', { replace: true });
+          navigate('/account', { replace: true }); // Khôi phục: chuyển về account thay vì home
         }
         
       } catch (error) {
@@ -231,17 +232,6 @@ const LoginPage = () => {
             <p className="signup-text">
               Chưa có tài khoản? <a href="/signup">Đăng ký ngay</a>
             </p>
-
-            <div className="demo-credentials-box">
-              <div className="demo-header">
-                <span className="demo-icon">🔑</span>
-                <strong>Tài khoản demo Admin:</strong>
-              </div>
-              <div className="demo-info">
-                <p>📧 Email: <code>admin@admin.com</code></p>
-                <p>🔒 Password: <code>admin123</code></p>
-              </div>
-            </div>
 
             <div className="card-footer">
               <a href="/terms">Điều khoản</a>
