@@ -1,4 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import RequireAdmin from './components/RouteGuards/RequireAdmin';
+import RedirectAdminFromHome from './components/RouteGuards/RedirectAdminFromHome';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
@@ -20,6 +22,8 @@ import AuctionRegisterPage from './pages/auctionRegisterPage';
 import AccountPage from './pages/accountPage';
 import PostDetailPage from './pages/postDetailPage';
 import AdminPage from './pages/adminPage';
+import PaymentPage from './pages/paymentPage';
+import PaymentResultPage from './pages/paymentResultPage';
   
 function App() {
   const router = createBrowserRouter([
@@ -27,12 +31,22 @@ function App() {
       path: "/",
       element: <Layout />,
       children: [
-        { path: "/", element: <HomePage /> },
+        { path: "/", element: (
+          <RedirectAdminFromHome>
+            <HomePage />
+          </RedirectAdminFromHome>
+        ) },
         { path: '/oto', element: <SellOtoPage /> },
         { path: '/bike', element: <SellBikePage /> },
         { path: '/battery', element: <SellBatteryPage /> },
         { path: '/saved', element: <SavedPage /> },
         { path: '/login', element: <LoginPage /> },
+        { path: '/login', element: (
+          <RedirectAdminFromHome>
+            <LoginPage />
+          </RedirectAdminFromHome>
+        ) },
+        { path: '/signup', element: <RegisterPage /> },
         { path: '/signup', element: <RegisterPage /> },
         { path: '/post', element: <PostListing /> },
         { path: '/auction', element: <AuctionPage /> },
@@ -44,11 +58,17 @@ function App() {
         { path: '/packages', element: <PackagePage /> },
         { path: '/auction-register', element: <AuctionRegisterPage /> },
         { path: '/post-detail/:id', element: <PostDetailPage /> },
+        { path: '/payment', element: <PaymentPage /> },
+        { path: '/payment/result', element: <PaymentResultPage /> },
       ],
     },
     {
       path: "/admin",
-      element: <AdminPage />,
+      element: (
+        <RequireAdmin>
+          <AdminPage />
+        </RequireAdmin>
+      ),
     },
   ]);
   

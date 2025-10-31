@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './index.scss'
 
 // Icons
@@ -28,6 +29,7 @@ const StarIcon = () => (
 )
 
 function PackagePage() {
+  const navigate = useNavigate()
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
@@ -98,6 +100,20 @@ function PackagePage() {
   const handleSelectPackage = (pkg) => {
     setSelectedPackage(pkg)
     setShowPaymentModal(true)
+  }
+
+  const handleVnpayPayment = (pkg) => {
+    const paymentData = {
+      orderId: `ECO${Date.now()}`,
+      amount: pkg.price,
+      description: pkg.name,
+      packageName: pkg.name,
+      customerName: 'Nguyễn Văn A', // Trong thực tế sẽ lấy từ user context
+      customerEmail: 'nguyenvana@email.com',
+      customerPhone: '0901234567'
+    }
+    
+    navigate('/payment', { state: { paymentData } })
   }
 
   const formatPrice = (price) => {
@@ -258,6 +274,12 @@ function PackagePage() {
                     onClick={() => setShowPaymentModal(false)}
                   >
                     Hủy
+                  </button>
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => handleVnpayPayment(selectedPackage)}
+                  >
+                    💳 Thanh toán VNPAY
                   </button>
                   <button className="btn btn-primary">
                     Tôi đã thanh toán

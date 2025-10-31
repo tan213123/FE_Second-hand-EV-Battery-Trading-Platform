@@ -4,6 +4,8 @@ import Users from './users';
 import Reports from './reports';
 import Fees from './fees';
 import Posts from './posts';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // Icons
 const Icons = {
@@ -18,6 +20,8 @@ const Icons = {
 const AdminPage = () => {
   const [active, setActive] = useState('reports');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const getPageTitle = () => {
     switch(active) {
@@ -50,6 +54,16 @@ const AdminPage = () => {
           <div className="admin-profile">
             <img src="https://via.placeholder.com/32" alt="Admin" />
             <span>Quản trị viên</span>
+            <button 
+              className="logout-btn"
+              style={{ marginLeft: 12, background: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}
+              onClick={() => {
+                logout();
+                navigate('/login', { replace: true });
+              }}
+            >
+              Đăng xuất
+            </button>
           </div>
         </div>
       </header>

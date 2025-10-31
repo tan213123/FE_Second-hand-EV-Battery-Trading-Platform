@@ -121,6 +121,20 @@ const AuctionPage = () => {
     navigate(`/auction/${itemId}/bid`)
   }
 
+  const handleAuctionPayment = () => {
+    const paymentData = {
+      orderId: `AUCTION${Date.now()}`,
+      amount: 500000,
+      description: 'Phí tham gia đấu giá',
+      packageName: 'Phí tham gia đấu giá',
+      customerName: 'Nguyễn Văn A', // Trong thực tế sẽ lấy từ user context
+      customerEmail: 'nguyenvana@email.com',
+      customerPhone: '0901234567'
+    }
+    
+    navigate('/payment', { state: { paymentData } })
+  }
+
   const renderAuctionCard = (item) => (
     <div key={item.id} className="auction-card">
       <div className="auction-image">
@@ -278,6 +292,12 @@ const AuctionPage = () => {
                 <div className="step-number">2</div>
                 <h3>Đóng phí</h3>
                 <p>Người tham gia cần đóng phí tham gia đấu giá (500,000đ)</p>
+                <button 
+                  className="payment-btn"
+                  onClick={handleAuctionPayment}
+                >
+                  💳 Thanh toán VNPAY
+                </button>
               </div>
               <div className="step">
                 <div className="step-number">3</div>
