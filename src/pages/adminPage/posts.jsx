@@ -1,48 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './posts.scss';
+import { adminService } from '../../services/adminService';
 
-const samplePosts = [
-  {
-    id: 'POST001',
-    title: 'Xe điện cũ - Like new',
-    provinceCity: 'Hà Nội',
-    postType: 'Bán',
-    createdAt: '2025-09-20',
-    memberId: 'MBR1001',
-    price: 12500000,
-    status: 'pending' // pending, approved, rejected
-  },
-  {
-    id: 'POST002',
-    title: 'Bán pin EV 48V',
-    provinceCity: 'TP. Hồ Chí Minh',
-    postType: 'Bán',
-    createdAt: '2025-09-22',
-    memberId: 'MBR1002',
-    price: 3200000,
-    status: 'pending'
-  },
-  {
-    id: 'POST003',
-    title: 'Trao đổi 60Ah',
-    provinceCity: 'Đà Nẵng',
-    postType: 'Trao đổi',
-    createdAt: '2025-09-25',
-    memberId: 'MBR1003',
-    price: 0,
-    status: 'approved'
-  },
-  {
-    id: 'POST004',
-    title: 'Pin lithium 72V mới 95%',
-    provinceCity: 'Hải Phòng',
-    postType: 'Bán',
-    createdAt: '2025-09-26',
-    memberId: 'MBR1004',
-    price: 5800000,
-    status: 'rejected'
-  }
-];
+const samplePosts = [];
 
 const Posts = () => {
   const [posts, setPosts] = useState([]);
@@ -53,9 +13,40 @@ const Posts = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved, rejected
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    setPosts(samplePosts);
-  }, []);
+    const fetchPosts = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await adminService.getPosts({
+          page: currentPage,
+          size: itemsPerPage,
+          status: filterStatus === 'all' ? undefined : filterStatus,
+          search: searchTerm || undefined,
+          sort: sortConfig.key ? `${sortConfig.key},${sortConfig.direction}` : undefined,
+        });
+        const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+        setPosts(list.map(p => ({
+          id: p.id || p.postId,
+          title: p.title,
+          provinceCity: p.provinceCity || p.location,
+          postType: p.postType || p.type,
+          createdAt: p.createdAt,
+          memberId: p.memberId,
+          price: p.price,
+          status: p.status || 'pending',
+        })));
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Không thể tải danh sách bài đăng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, [currentPage, itemsPerPage, filterStatus, searchTerm, sortConfig]);
 
   const handleSort = (key) => {
     setSortConfig({ key, direction: sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc' });
@@ -113,26 +104,46 @@ const Posts = () => {
     }
   };
 
-  const handleApprove = (id) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'approved' } : p));
+  const handleApprove = async (id) => {
+    try {
+      await adminService.approvePost(id);
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'approved' } : p));
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Duyệt bài thất bại');
+    }
   };
 
-  const handleReject = (id) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
+  const handleReject = async (id) => {
+    try {
+      await adminService.rejectPost(id);
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Từ chối bài thất bại');
+    }
   };
 
-  const handleBulkApprove = () => {
-    setPosts(prev => prev.map(p => 
-      selectedPosts.includes(p.id) ? { ...p, status: 'approved' } : p
-    ));
-    setSelectedPosts([]);
+  const handleBulkApprove = async () => {
+    try {
+      await Promise.all(selectedPosts.map(id => adminService.approvePost(id)));
+      setPosts(prev => prev.map(p => 
+        selectedPosts.includes(p.id) ? { ...p, status: 'approved' } : p
+      ));
+      setSelectedPosts([]);
+    } catch (e) {
+      alert('Duyệt hàng loạt thất bại');
+    }
   };
 
-  const handleBulkReject = () => {
-    setPosts(prev => prev.map(p => 
-      selectedPosts.includes(p.id) ? { ...p, status: 'rejected' } : p
-    ));
-    setSelectedPosts([]);
+  const handleBulkReject = async () => {
+    try {
+      await Promise.all(selectedPosts.map(id => adminService.rejectPost(id)));
+      setPosts(prev => prev.map(p => 
+        selectedPosts.includes(p.id) ? { ...p, status: 'rejected' } : p
+      ));
+      setSelectedPosts([]);
+    } catch (e) {
+      alert('Từ chối hàng loạt thất bại');
+    }
   };
 
   const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
@@ -208,6 +219,8 @@ const Posts = () => {
           </button>
         </div>
 
+        {loading && <div className="loading">Đang tải...</div>}
+        {error && <div className="error-message">{error}</div>}
         <div className="table-responsive">
           <table>
             <thead>

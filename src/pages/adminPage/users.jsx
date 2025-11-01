@@ -1,49 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './users.scss';
+import { adminService } from '../../services/adminService';
 
 const Users = () => {
-  // Mock data - replace with actual API data
-  const [users, setUsers] = useState([
-    {
-      nameId: 'USER001',
-      fullName: 'Nguyễn Văn An',
-      address: '123 Nguyễn Huệ, Q1, TP.HCM',
-      dateOfBirth: '1990-05-15',
-      phoneNumber: '0901234567',
-      email: 'nguyenvanan@email.com',
-      gender: 'Nam',
-      dateSignup: '2023-01-15',
-      status: 'active', // active, blocked
-      postsCount: 12,
-      violationsCount: 0
-    },
-    {
-      nameId: 'USER002',
-      fullName: 'Trần Thị Bình',
-      address: '456 Lê Lợi, Q5, TP.HCM',
-      dateOfBirth: '1995-08-22',
-      phoneNumber: '0907654321',
-      email: 'tranthibinh@email.com',
-      gender: 'Nữ',
-      dateSignup: '2023-02-20',
-      status: 'active',
-      postsCount: 8,
-      violationsCount: 0
-    },
-    {
-      nameId: 'USER003',
-      fullName: 'Lê Minh Tuấn',
-      address: '789 Trần Hưng Đạo, Q10, TP.HCM',
-      dateOfBirth: '1988-12-10',
-      phoneNumber: '0909876543',
-      email: 'leminhtuan@email.com',
-      gender: 'Nam',
-      dateSignup: '2023-03-12',
-      status: 'blocked',
-      postsCount: 5,
-      violationsCount: 3
-    },
-  ]);
+  // API state
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -51,6 +14,44 @@ const Users = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, blocked
+  // Fetch users
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await adminService.getUsers({
+          page: currentPage,
+          size: itemsPerPage,
+          status: filterStatus === 'all' ? undefined : filterStatus,
+          search: searchTerm || undefined,
+          sort: sortConfig.key ? `${sortConfig.key},${sortConfig.direction}` : undefined,
+        });
+        // Expecting data.items and data.total; fallback for array
+        const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+        setUsers(list.map(u => ({
+          nameId: u.nameId || u.memberId || u.id,
+          fullName: u.fullName || u.name,
+          address: u.address,
+          dateOfBirth: u.dateOfBirth,
+          phoneNumber: u.phoneNumber || u.phone,
+          email: u.email,
+          gender: u.gender || u.sex,
+          dateSignup: u.dateSignup || u.createdAt,
+          status: u.status || (u.blocked ? 'blocked' : 'active'),
+          postsCount: u.postsCount ?? u.numPosts ?? 0,
+          violationsCount: u.violationsCount ?? u.numViolations ?? 0,
+        })));
+      } catch (e) {
+        setError(e?.response?.data?.message || 'Không thể tải danh sách người dùng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+    return () => controller.abort();
+  }, [currentPage, itemsPerPage, filterStatus, searchTerm, sortConfig]);
 
   // Sorting function
   const handleSort = (key) => {
@@ -69,9 +70,8 @@ const Users = () => {
     
     // Filter by search term
     if (searchTerm) {
-      return Object.values(user).some(value => 
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const term = searchTerm.toLowerCase();
+      return Object.values(user).some(value => String(value ?? '').toLowerCase().includes(term));
     }
     
     return true;
@@ -80,9 +80,10 @@ const Users = () => {
   // Sort users
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     if (!sortConfig.key) return 0;
-    
     const direction = sortConfig.direction === 'asc' ? 1 : -1;
-    return a[sortConfig.key].toString().localeCompare(b[sortConfig.key].toString()) * direction;
+    const aVal = String(a[sortConfig.key] ?? '');
+    const bVal = String(b[sortConfig.key] ?? '');
+    return aVal.localeCompare(bVal) * direction;
   });
 
   // Pagination
@@ -122,27 +123,37 @@ const Users = () => {
     }
   };
 
-  const handleBlock = (nameId, reason = '') => {
+  const handleBlock = async (nameId, reason = '') => {
     const user = users.find(u => u.nameId === nameId);
     if (user?.status === 'active') {
       const confirmReason = reason || prompt('Lý do khóa tài khoản:');
       if (confirmReason) {
-        setUsers(prev => prev.map(u => 
-          u.nameId === nameId 
-            ? { ...u, status: 'blocked', blockReason: confirmReason, violationsCount: u.violationsCount + 1 }
-            : u
-        ));
+        try {
+          await adminService.blockUser(nameId, confirmReason);
+          setUsers(prev => prev.map(u => 
+            u.nameId === nameId 
+              ? { ...u, status: 'blocked', blockReason: confirmReason, violationsCount: (u.violationsCount || 0) + 1 }
+              : u
+          ));
+        } catch (e) {
+          alert(e?.response?.data?.message || 'Khóa tài khoản thất bại');
+        }
       }
     }
   };
 
-  const handleUnblock = (nameId) => {
+  const handleUnblock = async (nameId) => {
     if (window.confirm('Bạn có chắc muốn mở khóa tài khoản này?')) {
-      setUsers(prev => prev.map(u => 
-        u.nameId === nameId 
-          ? { ...u, status: 'active', blockReason: undefined }
-          : u
-      ));
+      try {
+        await adminService.unblockUser(nameId);
+        setUsers(prev => prev.map(u => 
+          u.nameId === nameId 
+            ? { ...u, status: 'active', blockReason: undefined }
+            : u
+        ));
+      } catch (e) {
+        alert(e?.response?.data?.message || 'Mở khóa tài khoản thất bại');
+      }
     }
   };
 
@@ -170,7 +181,9 @@ const Users = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
+    if (!dateString) return '—';
+    const d = new Date(dateString);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('vi-VN');
   };
 
   const getStatusBadge = (status) => {
@@ -233,6 +246,8 @@ const Users = () => {
           </button>
         </div>
 
+        {loading && <div className="loading">Đang tải...</div>}
+        {error && <div className="error-message">{error}</div>}
         <div className="table-responsive">
           <table>
             <thead>

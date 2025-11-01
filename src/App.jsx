@@ -11,6 +11,7 @@ import SavedPage from './pages/savedPage';
 import SellBikePage from './pages/sellPage/sellBikePage';
 import LoginPage from './pages/loginPage/login';
 import RegisterPage from './pages/loginPage/signup';
+import ForgotPasswordPage from './pages/loginPage/forgot';
 import PostListing from './pages/postListing';
 import AuctionPage from './pages/auction';
 import AuctionDetailPage from './pages/auction/AuctionDetail';
@@ -41,13 +42,8 @@ function App() {
         { path: '/battery', element: <SellBatteryPage /> },
         { path: '/saved', element: <SavedPage /> },
         { path: '/login', element: <LoginPage /> },
-        { path: '/login', element: (
-          <RedirectAdminFromHome>
-            <LoginPage />
-          </RedirectAdminFromHome>
-        ) },
         { path: '/signup', element: <RegisterPage /> },
-        { path: '/signup', element: <RegisterPage /> },
+        { path: '/forgot', element: <ForgotPasswordPage /> },
         { path: '/post', element: <PostListing /> },
         { path: '/auction', element: <AuctionPage /> },
         { path: '/auction/:id', element: <AuctionDetailPage /> },

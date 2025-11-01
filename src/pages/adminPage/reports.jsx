@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './reports.scss';
+import { adminService } from '../../services/adminService';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,7 +11,8 @@ import {
   Legend,
   ArcElement,
   PointElement,
-  LineElement
+  LineElement,
+  Filler
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 
@@ -24,7 +26,8 @@ ChartJS.register(
   Legend,
   ArcElement,
   PointElement,
-  LineElement
+  LineElement,
+  Filler
 );
 
 const Reports = () => {
@@ -53,29 +56,32 @@ const Reports = () => {
   ];
 
   // Mock data - replace with actual data from your backend
-  const allData = {
-    subscriptionData: {
-      basic: 45,
-      premium: 28,
-      enterprise: 15
-    },
-    monthlyData: {
-      labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
-      basic: [10, 12, 15, 18, 20, 22, 25, 28, 32, 35, 40, 45],
-      premium: [5, 7, 8, 10, 12, 15, 18, 20, 22, 24, 26, 28],
-      enterprise: [2, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15]
-    },
-    revenueData: {
-      labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
-      data: [15, 20, 25, 30, 35, 45, 50, 60, 70, 80, 90, 100].map(x => x * 1000000)
-    },
-    // Daily data for when viewing a specific month
-    dailyData: {
-      // Example for a month with 30 days
-      labels: Array.from({ length: 30 }, (_, i) => `${i + 1}`),
-      revenue: Array.from({ length: 30 }, () => Math.random() * 5000000 + 1000000)
-    }
-  };
+  const [allData, setAllData] = useState({
+    subscriptionData: { basic: 0, premium: 0, enterprise: 0 },
+    postsCount: 0,
+    monthlyData: { labels: [], basic: [], premium: [], enterprise: [] },
+    revenueData: { labels: [], data: [] },
+    dailyData: { labels: [], revenue: [] }
+  });
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const data = await adminService.getReports({ year: selectedYear, month: selectedMonth, viewMode });
+        setAllData({
+          subscriptionData: data.subscriptionData || { basic: 0, premium: 0, enterprise: 0 },
+          postsCount: data.postsCount ?? 0,
+          monthlyData: data.monthlyData || { labels: [], basic: [], premium: [], enterprise: [] },
+          revenueData: data.revenueData || { labels: [], data: [] },
+          dailyData: data.dailyData || { labels: [], revenue: [] },
+        });
+      } catch (e) {
+        // Keep defaults; optionally show minimal console
+        console.warn('Không thể tải thống kê admin:', e?.response?.data || e?.message);
+      }
+    };
+    fetchReports();
+  }, [selectedYear, selectedMonth, viewMode]);
 
   // Filter data based on selected year/month
   const filteredData = useMemo(() => {
@@ -269,8 +275,8 @@ const Reports = () => {
           </p>
         </div>
         <div className="stats-card active-subscriptions">
-          <h3>Gói phổ biến nhất</h3>
-          <p className="stats-number">Cơ bản ({filteredData.subscriptionData.basic} người dùng)</p>
+          <h3>Số lượng bài đăng</h3>
+          <p className="stats-number">{allData.postsCount}</p>
         </div>
       </div>
 
