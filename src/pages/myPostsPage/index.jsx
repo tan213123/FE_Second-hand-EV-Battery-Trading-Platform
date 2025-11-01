@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../config/api';
 import './index.scss'
 
+  // Format ngày về dd/MM/yyyy
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
 // Icons
 const SearchIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -54,24 +65,33 @@ function MyPostsPage() {
     const fetchPosts = async () => {
       try {
         const response = await api.get('/article');
-        const data = Array.isArray(response.data) ? response.data : [];
+        let data = response.data;
+        // Nếu API trả về object, chuyển thành mảng
+        if (data && !Array.isArray(data)) {
+          data = [data];
+        }
+        if (!Array.isArray(data)) data = [];
         // Lấy user hiện tại từ localStorage
         const user = JSON.parse(localStorage.getItem('user'));
-        // Lọc bài đăng theo memberId
-        const myPosts = user ? data.filter(post => post.memberId === user.memberId) : [];
+        console.log('User from localStorage:', user);
+        console.log('API data:', data);
+        // Lọc bài đăng theo memberId, ép kiểu về cùng kiểu (string)
+        const myPosts = user ? data.filter(post => String(post.memberId) === String(user.memberId)) : [];
+        console.log('Filtered myPosts:', myPosts);
         setPosts(myPosts.map(post => ({
-          id: post.id,
-          title: post.title,
-          price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-          location: post.location?.city || 'N/A',
+          id: post.articleId,
+          title: post.title || post.content || '',
+          price: post.price ? post.price : 0,
+          location: post.location || post.region || 'N/A',
           status: post.status || 'active',
           views: post.views || 0,
           likes: post.saves || 0,
-          postedDate: new Date(post.createdAt).toISOString().split('T')[0],
-          images: post.images?.length || 0,
-          category: getCategoryName(post.category),
-          imageUrl: post.images?.[0] || null,
-          description: post.description,
+          postedDate: post.createAt ? formatDate(post.createAt) : '',
+          updatedAt: post.updateAt ? formatDate(post.updateAt) : (post.createAt ? formatDate(post.createAt) : ''),
+          images: Array.isArray(post.images) ? post.images.length : (post.images ? 1 : 0),
+          category: getCategoryName(post.articleType),
+          imageUrl: post.mainImageUrl || (Array.isArray(post.images) && post.images.length > 0 ? post.images[0].url : null),
+          description: post.content || '',
           originalData: post
         })));
       } catch (e) {
@@ -129,18 +149,19 @@ function MyPostsPage() {
         const response = await api.get('/article');
         const data = Array.isArray(response.data) ? response.data : [];
         setPosts(data.map(post => ({
-          id: post.id,
-          title: post.title,
-          price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-          location: post.location?.city || 'N/A',
+          id: post.articleId,
+          title: post.title || post.content || '',
+          price: post.price ? post.price : 0,
+          location: post.location || post.region || 'N/A',
           status: post.status || 'active',
           views: post.views || 0,
           likes: post.saves || 0,
-          postedDate: new Date(post.createdAt).toISOString().split('T')[0],
-          images: post.images?.length || 0,
-          category: getCategoryName(post.category),
-          imageUrl: post.images?.[0] || null,
-          description: post.description,
+          postedDate: post.createAt ? formatDate(post.createAt) : '',
+          updatedAt: post.updateAt ? formatDate(post.updateAt) : (post.createAt ? formatDate(post.createAt) : ''),
+          images: Array.isArray(post.images) ? post.images.length : (post.images ? 1 : 0),
+          category: getCategoryName(post.articleType),
+          imageUrl: post.mainImageUrl || (Array.isArray(post.images) && post.images.length > 0 ? post.images[0].url : null),
+          description: post.content || '',
           originalData: post
         })));
         window.dispatchEvent(new CustomEvent('postUpdated'));
@@ -152,46 +173,87 @@ function MyPostsPage() {
   }
 
   const handleEditPost = async (post) => {
-    // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang edit
-    sessionStorage.setItem('editingPost', JSON.stringify(post.originalData));
-    // Gọi API PUT để cập nhật bài đăng
-    let endpoint = '';
-    if (post.category === 'car') endpoint = `/article/car/${post.id}`;
-    else if (post.category === 'battery') endpoint = `/article/battery/${post.id}`;
-    else endpoint = `/article/motor/${post.id}`;
     try {
-      await api.put(endpoint, post.originalData);
-      alert('Cập nhật bài đăng thành công!');
-      // Reload lại danh sách bài đăng từ API
+      let endpoint = '';
+      const data = post.originalData || post;
+      const id = data.articleId || data.id;
+      const type = data.category || data.articleType;
+      if (type === 'car' || type === 'CAR_ARTICLE') {
+        endpoint = `/article/car/${id}`;
+      } else if (type === 'battery' || type === 'BATTERY_ARTICLE') {
+        endpoint = `/article/battery/${id}`;
+      } else {
+        endpoint = `/article/motor/${id}`;
+      }
+      // Format lại ngày tháng trước khi gửi lên API
+      const base = post.originalData || post;
+      // Lấy user hiện tại từ localStorage để lấy memberId nếu thiếu
+      const user = JSON.parse(localStorage.getItem('user'));
+      const updatedData = {
+        ...base,
+        publicDate: formatDate(base.publicDate),
+        createAt: formatDate(base.createAt),
+        updateAt: formatDate(base.updateAt),
+        origin: base.origin || 'Không xác định',
+        milesTraveled: base.milesTraveled != null ? base.milesTraveled : 0,
+        licensesPlate: base.licensesPlate || 'Chưa có',
+        year: base.year != null ? base.year : new Date().getFullYear(),
+        brand: base.brand || 'Không xác định',
+        warrantyMonths: base.warrantyMonths != null ? base.warrantyMonths : 1,
+        vehicleCapacity: base.vehicleCapacity != null ? base.vehicleCapacity : 1,
+        model: base.model || base.title || base.content || 'Không xác định',
+        numberOfSeat: base.numberOfSeat != null ? base.numberOfSeat : 1,
+        type: base.type || base.articleType || 'Khác',
+        price: base.price != null ? base.price : 0,
+        title: base.title || base.content || base.model || 'Không có tiêu đề',
+        location: base.location || base.region || 'Không xác định',
+        status: base.status || 'active',
+        memberId: base.memberId || (user ? user.memberId : ''),
+        images: Array.isArray(base.images) ? base.images : [],
+        views: base.views != null ? base.views : 0,
+        saves: base.saves != null ? base.saves : 0,
+        description: base.content || '',
+        // Thêm các trường khác nếu backend yêu cầu
+      };
+      await api.put(endpoint, updatedData);
+      // Sau khi cập nhật thành công, reload lại danh sách bài đăng từ API
       const response = await api.get('/article');
-      const data = Array.isArray(response.data) ? response.data : [];
-      setPosts(data.map(post => ({
-        id: post.id,
-        title: post.title,
-        price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-        location: post.location?.city || 'N/A',
-        status: post.status || 'active',
-        views: post.views || 0,
-        likes: post.saves || 0,
-        postedDate: new Date(post.createdAt).toISOString().split('T')[0],
-        images: post.images?.length || 0,
-        category: getCategoryName(post.category),
-        imageUrl: post.images?.[0] || null,
-        description: post.description,
-        originalData: post
+      let articlesData = response.data;
+      if (articlesData && !Array.isArray(articlesData)) {
+        articlesData = [articlesData];
+      }
+      if (!Array.isArray(articlesData)) articlesData = [];
+  // Lấy user hiện tại từ localStorage
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const myPosts = currentUser ? articlesData.filter(p => String(p.memberId) === String(currentUser.memberId)) : [];
+  setPosts(myPosts.map(p => ({
+        id: p.articleId,
+        title: p.title || p.content || '',
+        price: p.price ? p.price : 0,
+        location: p.location || p.region || 'N/A',
+        status: p.status || 'active',
+        views: p.views || 0,
+        likes: p.saves || 0,
+        postedDate: p.createAt ? formatDate(p.createAt) : '',
+        updatedAt: p.updateAt ? formatDate(p.updateAt) : (p.createAt ? formatDate(p.createAt) : ''),
+        images: Array.isArray(p.images) ? p.images.length : (p.images ? 1 : 0),
+        category: getCategoryName(p.articleType),
+        imageUrl: p.mainImageUrl || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0].url : null),
+        description: p.content || '',
+        originalData: p
       })));
+      window.dispatchEvent(new CustomEvent('postUpdated'));
+      alert('Cập nhật bài đăng thành công!');
     } catch (e) {
       alert('Có lỗi xảy ra khi cập nhật bài đăng!');
     }
-    // Chuyển đến trang đăng tin với mode edit
-    navigate('/post?mode=edit&id=' + post.id);
   }
 
   const handleViewDetail = (post) => {
     // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang detail
     sessionStorage.setItem('viewingPost', JSON.stringify(post.originalData))
     // Chuyển đến trang chi tiết bài đăng
-    navigate('/post-detail/' + post.id);
+    navigate('/post-detail/' + post.id)
   }
 
 
@@ -207,7 +269,22 @@ function MyPostsPage() {
 
   const filteredPosts = posts.filter(post => {
     // Filter theo tab
-    if (activeTab !== 'all' && post.status !== activeTab) return false
+    if (activeTab === 'all') {
+      // Hiển thị tất cả bài đăng của user
+      return true;
+    }
+    if (activeTab === 'active') {
+      // Hiển thị bài đăng đang bán và cả bài đăng vừa tạo (DRAFT)
+      if (post.status === 'active' || post.status === 'DRAFT') {
+        // ...filter tiếp theo
+        return true; // Allow active and DRAFT posts
+      } else {
+        return false;
+      }
+    } else {
+      // Các tab khác vẫn filter như cũ
+      if (post.status !== activeTab) return false;
+    }
     
     // Filter theo search query
     if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
@@ -222,8 +299,8 @@ function MyPostsPage() {
   }).sort((a, b) => {
     if (sortBy === 'newest') return new Date(b.updatedAt) - new Date(a.updatedAt)
     if (sortBy === 'oldest') return new Date(a.updatedAt) - new Date(b.updatedAt)
-    if (sortBy === 'price-high') return parseInt(b.price) - parseInt(a.price)
-    if (sortBy === 'price-low') return parseInt(a.price) - parseInt(b.price)
+    if (sortBy === 'price-high') return Number(b.price) - Number(a.price)
+    if (sortBy === 'price-low') return Number(a.price) - Number(b.price)
     return 0
   })
 
@@ -356,10 +433,10 @@ function MyPostsPage() {
             <div key={post.id} className="post-card">
               <div className="post-image">
                 <img 
-                  src={post.imageUrl || "/api/placeholder/300/200"} 
+                  src={post.imageUrl || "https://via.placeholder.com/300x200"} 
                   alt={post.title}
                   onError={(e) => {
-                    e.target.src = "/api/placeholder/300/200"
+                    e.target.src = "https://via.placeholder.com/300x200"
                   }}
                 />
                 <div className="image-overlay">
