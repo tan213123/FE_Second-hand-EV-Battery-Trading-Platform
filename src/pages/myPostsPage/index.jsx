@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import localStorageService from '../../services/localStorageService'
+import api from '../../config/api';
 import './index.scss'
 
 // Icons
@@ -49,41 +49,46 @@ function MyPostsPage() {
   const [selectedCities, setSelectedCities] = useState([])
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
 
-  // Load posts from localStorage khi component mount
+  // Load posts từ API khi component mount
   useEffect(() => {
-    const loadPosts = () => {
-      const myPosts = localStorageService.getMyPosts()
-      
-      // Format lại data để phù hợp với giao diện
-      const formattedPosts = myPosts.map(post => ({
-        id: post.id,
-        title: post.title,
-        price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-        location: post.location?.district && post.location?.city 
-          ? `${post.location.district}, ${post.location.city}`
-          : post.location?.city || post.location?.district || 'N/A',
-        status: post.status || 'active',
-        views: post.views || 0,
-        likes: post.saves || 0,
-        postedDate: new Date(post.createdAt).toISOString().split('T')[0],
-        images: post.images?.length || 0,
-        category: getCategoryName(post.category),
-        imageUrl: post.images?.[0] || null,
-        description: post.description,
-        originalData: post // Lưu data gốc để dùng khi cần
-      }))
-      
-      setPosts(formattedPosts)
-    }
-    
-    loadPosts()
-    
-    // Reload khi có thay đổi trong localStorage
-    const handleStorageChange = () => loadPosts()
-    window.addEventListener('storage', handleStorageChange)
-    
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
+    const fetchPosts = async () => {
+      try {
+        const response = await api.get('/article');
+        let data = response.data;
+        // Nếu API trả về object, chuyển thành mảng
+        if (data && !Array.isArray(data)) {
+          data = [data];
+        }
+        if (!Array.isArray(data)) data = [];
+        // Lấy user hiện tại từ localStorage
+        const user = JSON.parse(localStorage.getItem('user'));
+        console.log('User from localStorage:', user);
+        console.log('API data:', data);
+        // Lọc bài đăng theo memberId, ép kiểu về cùng kiểu (string)
+        const myPosts = user ? data.filter(post => String(post.memberId) === String(user.memberId)) : [];
+        console.log('Filtered myPosts:', myPosts);
+        setPosts(myPosts.map(post => ({
+          id: post.articleId,
+          title: post.title || post.content || '',
+          price: post.price ? new Intl.NumberFormat('vi-VN').format(post.price) + ' đ' : '',
+          location: post.location || post.region || 'N/A',
+          status: post.status || 'active',
+          views: post.views || 0,
+          likes: post.saves || 0,
+          postedDate: post.createAt ? new Date(post.createAt).toISOString().split('T')[0] : '',
+          updatedAt: post.updateAt || post.createAt || '',
+          images: Array.isArray(post.images) ? post.images.length : (post.images ? 1 : 0),
+          category: getCategoryName(post.articleType),
+          imageUrl: post.mainImageUrl || (Array.isArray(post.images) && post.images.length > 0 ? post.images[0].url : null),
+          description: post.content || '',
+          originalData: post
+        })));
+      } catch (e) {
+        setPosts([]);
+      }
+    };
+    fetchPosts();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -125,17 +130,18 @@ function MyPostsPage() {
     return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
   }
 
-  const handleDeletePost = (postId) => {
+  const handleDeletePost = async (postId) => {
     if (window.confirm('Bạn có chắc muốn xóa tin đăng này?')) {
-      const success = localStorageService.deletePost(postId)
-      if (success) {
-        // Reload posts sau khi xóa
-        const myPosts = localStorageService.getMyPosts()
-        const formattedPosts = myPosts.map(post => ({
+      try {
+        await api.delete(`/article/${postId}`);
+        // Sau khi xóa thành công, reload lại danh sách bài đăng từ API
+        const response = await api.get('/article');
+        const data = Array.isArray(response.data) ? response.data : [];
+        setPosts(data.map(post => ({
           id: post.id,
           title: post.title,
           price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-          location: `${post.location?.district || 'N/A'}, ${post.location?.city || 'N/A'}`,
+          location: post.location?.city || 'N/A',
           status: post.status || 'active',
           views: post.views || 0,
           likes: post.saves || 0,
@@ -145,24 +151,49 @@ function MyPostsPage() {
           imageUrl: post.images?.[0] || null,
           description: post.description,
           originalData: post
-        }))
-        setPosts(formattedPosts)
-        
-        // Dispatch event để cập nhật HomePage
-        window.dispatchEvent(new CustomEvent('postUpdated'))
-        
-        alert('Xóa tin đăng thành công!')
-      } else {
-        alert('Có lỗi xảy ra khi xóa tin đăng!')
+        })));
+        window.dispatchEvent(new CustomEvent('postUpdated'));
+        alert('Xóa tin đăng thành công!');
+      } catch (e) {
+        alert('Có lỗi xảy ra khi xóa tin đăng!');
       }
     }
   }
 
-  const handleEditPost = (post) => {
+  const handleEditPost = async (post) => {
     // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang edit
-    sessionStorage.setItem('editingPost', JSON.stringify(post.originalData))
+    sessionStorage.setItem('editingPost', JSON.stringify(post.originalData));
+    // Gọi API PUT để cập nhật bài đăng
+    let endpoint = '';
+    if (post.category === 'car') endpoint = `/article/car/${post.id}`;
+    else if (post.category === 'battery') endpoint = `/article/battery/${post.id}`;
+    else endpoint = `/article/motor/${post.id}`;
+    try {
+      await api.put(endpoint, post.originalData);
+      alert('Cập nhật bài đăng thành công!');
+      // Reload lại danh sách bài đăng từ API
+      const response = await api.get('/article');
+      const data = Array.isArray(response.data) ? response.data : [];
+      setPosts(data.map(post => ({
+        id: post.id,
+        title: post.title,
+        price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+        location: post.location?.city || 'N/A',
+        status: post.status || 'active',
+        views: post.views || 0,
+        likes: post.saves || 0,
+        postedDate: new Date(post.createdAt).toISOString().split('T')[0],
+        images: post.images?.length || 0,
+        category: getCategoryName(post.category),
+        imageUrl: post.images?.[0] || null,
+        description: post.description,
+        originalData: post
+      })));
+    } catch (e) {
+      alert('Có lỗi xảy ra khi cập nhật bài đăng!');
+    }
     // Chuyển đến trang đăng tin với mode edit
-    navigate('/post?mode=edit&id=' + post.id)
+    navigate('/post?mode=edit&id=' + post.id);
   }
 
   const handleViewDetail = (post) => {
@@ -185,7 +216,22 @@ function MyPostsPage() {
 
   const filteredPosts = posts.filter(post => {
     // Filter theo tab
-    if (activeTab !== 'all' && post.status !== activeTab) return false
+    if (activeTab === 'all') {
+      // Hiển thị tất cả bài đăng của user
+      return true;
+    }
+    if (activeTab === 'active') {
+      // Hiển thị bài đăng đang bán và cả bài đăng vừa tạo (DRAFT)
+      if (post.status === 'active' || post.status === 'DRAFT') {
+        // ...filter tiếp theo
+        return true; // Allow active and DRAFT posts
+      } else {
+        return false;
+      }
+    } else {
+      // Các tab khác vẫn filter như cũ
+      if (post.status !== activeTab) return false;
+    }
     
     // Filter theo search query
     if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
@@ -334,10 +380,10 @@ function MyPostsPage() {
             <div key={post.id} className="post-card">
               <div className="post-image">
                 <img 
-                  src={post.imageUrl || "/api/placeholder/300/200"} 
+                  src={post.imageUrl || "https://via.placeholder.com/300x200"} 
                   alt={post.title}
                   onError={(e) => {
-                    e.target.src = "/api/placeholder/300/200"
+                    e.target.src = "https://via.placeholder.com/300x200"
                   }}
                 />
                 <div className="image-overlay">

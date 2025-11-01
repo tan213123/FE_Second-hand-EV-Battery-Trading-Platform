@@ -789,10 +789,13 @@ const PostListing = () => {
               <div className={`form-group ${fieldStatus.price ? 'completed' : ''}`}>
                 <label>Giá tiền *</label>
                 <input
-                  type="text"
-                  placeholder="VD: 500000000"
+                  type="number"
+                  min="0"
+                  max="9999999999"
+                  step="1000"
+                  placeholder="VD: 50000000"
                   value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => handleInputChange('price', e.target.value)}
                 />
                 {formData.price && (
                   <small className="price-display">
@@ -1087,10 +1090,13 @@ const PostListing = () => {
               <div className={`form-group ${fieldStatus.price ? 'completed' : ''}`}>
                 <label>Giá tiền *</label>
                 <input
-                  type="text"
+                  type="number"
+                  min="0"
+                  max="99999999"
+                  step="1000"
                   placeholder="VD: 5000000"
                   value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => handleInputChange('price', e.target.value)}
                 />
                 {formData.price && (
                   <small className="price-display">
