@@ -54,33 +54,24 @@ function MyPostsPage() {
     const fetchPosts = async () => {
       try {
         const response = await api.get('/article');
-        let data = response.data;
-        // Nếu API trả về object, chuyển thành mảng
-        if (data && !Array.isArray(data)) {
-          data = [data];
-        }
-        if (!Array.isArray(data)) data = [];
+        const data = Array.isArray(response.data) ? response.data : [];
         // Lấy user hiện tại từ localStorage
         const user = JSON.parse(localStorage.getItem('user'));
-        console.log('User from localStorage:', user);
-        console.log('API data:', data);
-        // Lọc bài đăng theo memberId, ép kiểu về cùng kiểu (string)
-        const myPosts = user ? data.filter(post => String(post.memberId) === String(user.memberId)) : [];
-        console.log('Filtered myPosts:', myPosts);
+        // Lọc bài đăng theo memberId
+        const myPosts = user ? data.filter(post => post.memberId === user.memberId) : [];
         setPosts(myPosts.map(post => ({
-          id: post.articleId,
-          title: post.title || post.content || '',
-          price: post.price ? new Intl.NumberFormat('vi-VN').format(post.price) + ' đ' : '',
-          location: post.location || post.region || 'N/A',
+          id: post.id,
+          title: post.title,
+          price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
+          location: post.location?.city || 'N/A',
           status: post.status || 'active',
           views: post.views || 0,
           likes: post.saves || 0,
-          postedDate: post.createAt ? new Date(post.createAt).toISOString().split('T')[0] : '',
-          updatedAt: post.updateAt || post.createAt || '',
-          images: Array.isArray(post.images) ? post.images.length : (post.images ? 1 : 0),
-          category: getCategoryName(post.articleType),
-          imageUrl: post.mainImageUrl || (Array.isArray(post.images) && post.images.length > 0 ? post.images[0].url : null),
-          description: post.content || '',
+          postedDate: new Date(post.createdAt).toISOString().split('T')[0],
+          images: post.images?.length || 0,
+          category: getCategoryName(post.category),
+          imageUrl: post.images?.[0] || null,
+          description: post.description,
           originalData: post
         })));
       } catch (e) {
@@ -200,7 +191,7 @@ function MyPostsPage() {
     // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang detail
     sessionStorage.setItem('viewingPost', JSON.stringify(post.originalData))
     // Chuyển đến trang chi tiết bài đăng
-    navigate('/post-detail/' + post.id)
+    navigate('/post-detail/' + post.id);
   }
 
 
@@ -216,22 +207,7 @@ function MyPostsPage() {
 
   const filteredPosts = posts.filter(post => {
     // Filter theo tab
-    if (activeTab === 'all') {
-      // Hiển thị tất cả bài đăng của user
-      return true;
-    }
-    if (activeTab === 'active') {
-      // Hiển thị bài đăng đang bán và cả bài đăng vừa tạo (DRAFT)
-      if (post.status === 'active' || post.status === 'DRAFT') {
-        // ...filter tiếp theo
-        return true; // Allow active and DRAFT posts
-      } else {
-        return false;
-      }
-    } else {
-      // Các tab khác vẫn filter như cũ
-      if (post.status !== activeTab) return false;
-    }
+    if (activeTab !== 'all' && post.status !== activeTab) return false
     
     // Filter theo search query
     if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
@@ -380,10 +356,10 @@ function MyPostsPage() {
             <div key={post.id} className="post-card">
               <div className="post-image">
                 <img 
-                  src={post.imageUrl || "https://via.placeholder.com/300x200"} 
+                  src={post.imageUrl || "/api/placeholder/300/200"} 
                   alt={post.title}
                   onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/300x200"
+                    e.target.src = "/api/placeholder/300/200"
                   }}
                 />
                 <div className="image-overlay">
