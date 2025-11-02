@@ -2,6 +2,7 @@ import api from '../config/api'
 
 // Centralize endpoints for easy adjustment
 const ADMIN_ENDPOINTS = {
+  CHECK_ROLE: '/admin/check-role',
   REPORTS: '/admin/reports',
   USERS: '/admin/users',
   USER_BLOCK: (userId) => `/admin/users/${userId}/block`,
@@ -12,6 +13,11 @@ const ADMIN_ENDPOINTS = {
 }
 
 export const adminService = {
+  async checkRole() {
+    const { data } = await api.get(ADMIN_ENDPOINTS.CHECK_ROLE)
+    return data
+  },
+
   async getReports(params) {
     // params: { year?, month?, viewMode? }
     const token = localStorage.getItem('token')

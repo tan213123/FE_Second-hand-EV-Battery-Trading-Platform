@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import api from '../../config/api';
 import './signup.scss';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error, autoComplete }) => {
@@ -117,26 +118,40 @@ const SignUpPage = () => {
   }, [formData]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-    
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
-      try {
-        console.log('Đăng ký với:', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Redirect to login after successful signup
-        window.location.href = '/login';
-      } catch (error) {
-        setErrors({
-          submit: 'Đăng ký thất bại. Vui lòng thử lại.'
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
-      setErrors(newErrors);
-    }
+    e.preventDefault();
+    const newErrors = validateForm();
+    
+    if (Object.keys(newErrors).length === 0) {
+      setIsSubmitting(true);
+      try {
+        // Lấy tất cả dữ liệu trừ 'confirmPassword'
+        // Bạn cũng có thể bỏ 'status' nếu không muốn gửi nó
+        const { confirmPassword, ...payload } = formData;
+
+        console.log('Đang gửi dữ liệu đăng ký:', payload);
+
+        // Gọi API đăng ký của backend
+        // (Hãy đảm bảo đường dẫn '/api/members/register' là đúng)
+        const response = await api.post('/api/members/register', payload);
+
+        console.log('Đăng ký thành công:', response.data);
+        
+        // Chuyển đến trang login sau khi thành công
+        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        window.location.href = '/login';
+
+      } catch (error) {
+        // Hiển thị lỗi từ server (ví dụ: Email đã tồn tại)
+        console.error('Lỗi đăng ký:', error.response);
+        setErrors({
+          submit: error.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.'
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+     setErrors(newErrors);
+    }
   };
 
   const handleSocialLogin = useCallback((provider) => {

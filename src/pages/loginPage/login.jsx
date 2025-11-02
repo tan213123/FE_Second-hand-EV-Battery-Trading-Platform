@@ -90,64 +90,90 @@ const LoginPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        // Demo Admin Account - kiểm tra trước khi call API
-        if (formData.email === 'admin@admin.com' && formData.password === 'admin123') {
-          const adminData = {
-            memberId: 'ADMIN001',
-            name: 'Administrator',
-            email: 'admin@admin.com',
-            role: 'admin',
-            status: 'active'
-          };
-          
-          // Lưu vào AuthContext
-          login(adminData, 'demo-admin-token');
-          
-          console.log('Admin logged in successfully');
-          
-          // Redirect về trang admin
-          navigate('/admin', { replace: true });
-          setIsSubmitting(false);
-          return;
-        }
-
         // Call API login với endpoint /members/login
-        const response = await api.post('/members/login', {
+        const response = await api.post('/api/members/login', {
           email: formData.email,
           password: formData.password
         });
-        console.log('RESPONSE FROM BACKEND:', response.data); // Thêm để kiểm tra response thực tế
 
-        // Sử dụng AuthContext để lưu user data
+        // Debug: log full response to help troubleshoot shape differences
+        // (some backends nest the useful payload under `data`)
+        console.log('Login response full:', response)
+
+        // Extract payload safely whether backend returns fields at top-level
+        // or nested under `data` (e.g. response.data or response.data.data).
+        const payload = response.data?.data ? response.data.data : response.data || {};
+
+        // Lưu token (defensive: try both locations)
+        const token = payload.token || response.data?.token || '';
+        if (!token) {
+          console.warn('No token found on login response:', payload)
+        } else {
+          localStorage.setItem('token', token);
+        }
+        // Sử dụng AuthContext để lưu user data (guard against missing fields)
+        // After storing token, try to fetch the authoritative current user from
+        // the backend. This helps avoid relying on inconsistent login payloads
+        // and ensures we get the correct role for redirect.
+        let fetchedUser = null;
+        try {
+          const currentRes = await api.get('/api/members/current');
+          fetchedUser = currentRes.data?.data ? currentRes.data.data : currentRes.data;
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Fetched current user after login:', fetchedUser);
+          }
+        } catch (fetchErr) {
+          // If fetching current fails, fall back to payload from login response.
+          console.warn('Could not fetch current user after login, falling back to login payload', fetchErr);
+        }
+
+        const source = payload || fetchedUser || {};
+
+        // Normalize role from several possible backend shapes: string, number, boolean or nested fields.
+        const roleRaw = source.role ?? source.roleId ?? source.isAdmin ?? '';
+        let normalizedRole = 'member';
+        if (typeof roleRaw === 'number') {
+          if (roleRaw === 1) normalizedRole = 'admin';
+        } else {
+          const roleStr = String(roleRaw).toLowerCase();
+          if (['admin', 'administrator', '1', 'true'].includes(roleStr)) normalizedRole = 'admin';
+        }
+
         const userData = {
-          memberId: response.data.memberId,
-          name: response.data.name,
-          email: response.data.email,
-          address: response.data.address,
-          phone: response.data.phone,
-          yearOfBirth: response.data.yearOfBirth,
-          sex: response.data.sex,
-          status: response.data.status,
-          role: response.data.role || 'member' // Lấy role từ API response
+          memberId: source.memberId || source.id || null,
+          name: source.name || payload.name || '',
+          email: source.email || payload.email || formData.email,
+          address: source.address || payload.address || '',
+          phone: source.phone || payload.phone || '',
+          yearOfBirth: source.yearOfBirth || source.year || payload.yearOfBirth || null,
+          sex: source.sex || payload.sex || '',
+          status: source.status || payload.status || '',
+          role: normalizedRole
         };
 
         // Gọi hàm login từ AuthContext
-        login(userData, response.data.token);
-
-        // Thông báo thành công
-        console.log('User logged in successfully:', userData.name);
+        login(userData, token);
 
         // Redirect dựa trên role
         if (userData.role === 'admin') {
           navigate('/admin', { replace: true });
         } else {
-          navigate('/account', { replace: true }); // Khôi phục: chuyển về account thay vì home
+          navigate('/', { replace: true }); // Chuyển member về trang home
         }
         
       } catch (error) {
-        console.error('Login error:', error);
+        // Thêm logging chi tiết để chẩn đoán lỗi đăng nhập (ví dụ: CORS / proxy / response shape)
+        console.error('Login error full:', error);
+        console.error('Login error response:', error.response);
+
+        // Hiển thị thông báo lỗi rõ ràng cho người dùng: ưu tiên message trả về từ backend,
+        // nếu không có thì hiển thị status + body để dễ debug.
+        const backendMessage = error.response?.data?.message;
+        const backendBody = error.response?.data ? JSON.stringify(error.response.data) : null;
+        const statusInfo = error.response?.status ? ` (${error.response.status})` : '';
+
         setErrors({
-          submit: error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.'
+          submit: backendMessage || (backendBody ? `Đăng nhập thất bại${statusInfo}: ${backendBody}` : `Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.`)
         });
       } finally {
         setIsSubmitting(false);
