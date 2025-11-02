@@ -2,8 +2,8 @@ import api from '../config/api'
 
 // API endpoints for profile management
 const PROFILE_ENDPOINTS = {
-  GET_PROFILE: '/profile',
-  UPDATE_PROFILE: '/profile',
+  GET_PROFILE: '/members/current',
+  UPDATE_PROFILE: (id) => `/members/${id}`,
   UPLOAD_AVATAR: '/profile/avatar',
   GET_USER_STATS: '/profile/stats',
   GET_USER_POSTS: '/profile/posts',
@@ -30,19 +30,18 @@ export const profileService = {
   },
 
   // Cập nhật thông tin profile
-  async updateProfile(profileData) {
+  async updateProfile(id, profileData) {
     try {
-      const response = await api.put(PROFILE_ENDPOINTS.UPDATE_PROFILE, profileData)
+      const response = await api.put(PROFILE_ENDPOINTS.UPDATE_PROFILE(id), profileData)
       return {
         success: true,
         data: response.data,
         message: 'Cập nhật profile thành công'
       }
     } catch (error) {
-      console.error('Error updating profile:', error)
       return {
         success: false,
-        error: error.response?.data?.message || 'Không thể cập nhật profile'
+        error: error.response?.data?.message || 'Cập nhật profile thất bại'
       }
     }
   },

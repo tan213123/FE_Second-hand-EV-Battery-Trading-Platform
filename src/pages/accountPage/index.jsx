@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { profileService, mockProfileData, mockUserStats, mockUserPosts, mockUserReviews } from '../../services/profileService'
+import { profileService } from '../../services/profileService'
 import './index.scss'
 
 function AccountPage() {
@@ -20,17 +20,18 @@ function AccountPage() {
     address: '',
     yearOfBirth: '',
     sex: '',
-    bio: 'Người đam mê xe điện và công nghệ.'
+    bio: 'Người đam mê xe điện và công nghệ.',
+    avatar: ''
   })
-  const [userStats, setUserStats] = useState({
+  const [userStats] = useState({
     totalPosts: 0,
     activePosts: 0,
     soldItems: 0,
     rating: 0,
     totalReviews: 0
   })
-  const [userPosts, setUserPosts] = useState([])
-  const [userReviews, setUserReviews] = useState([])
+  const [userPosts] = useState([])
+  const [userReviews] = useState([])
 
   // Load profile data when component mounts
   useEffect(() => {
@@ -46,43 +47,22 @@ function AccountPage() {
   const loadProfileData = async () => {
     setLoading(true)
     setError(null)
-    
     try {
-      // In development, use mock data
-      const isDevelopment = process.env.NODE_ENV === 'development'
-      
-      if (isDevelopment) {
-        // Use mock data for development
-        setProfile(mockProfileData)
-        setUserStats(mockUserStats)
-        setUserPosts(mockUserPosts)
-        setUserReviews(mockUserReviews)
+      const result = await profileService.getProfile()
+      if (result.success) {
+        const data = result.data
+        setProfile({
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          address: data.address || '',
+          yearOfBirth: data.yearOfBirth || '',
+          sex: data.sex || '',
+          bio: data.bio || 'Người đam mê xe điện và công nghệ.',
+          avatar: data.avatar || '',
+        })
       } else {
-        // Use real API calls
-        const [profileResult, statsResult, postsResult, reviewsResult] = await Promise.all([
-          profileService.getProfile(),
-          profileService.getUserStats(),
-          profileService.getUserPosts(),
-          profileService.getUserReviews()
-        ])
-
-        if (profileResult.success) {
-          setProfile(profileResult.data)
-        } else {
-          setError(profileResult.error)
-        }
-
-        if (statsResult.success) {
-          setUserStats(statsResult.data)
-        }
-
-        if (postsResult.success) {
-          setUserPosts(postsResult.data)
-        }
-
-        if (reviewsResult.success) {
-          setUserReviews(reviewsResult.data)
-        }
+        setError(result.error)
       }
     } catch (error) {
       console.error('Error loading profile data:', error)
@@ -101,39 +81,33 @@ function AccountPage() {
     setSaving(true)
     setError(null)
     setSuccess(null)
-    
     try {
-      const isDevelopment = process.env.NODE_ENV === 'development'
-      
-      if (isDevelopment) {
-        // Simulate API call in development
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setSuccess('Cập nhật profile thành công!')
-        setIsEditing(false)
+      const userId = user?.memberId || user?.id || profile?.id
+      if (!userId) {
+        setError('Không tìm thấy ID người dùng để cập nhật')
+        setSaving(false)
+        return
+      }
+      // Gửi nguyên giá trị ngày sinh yyyy-MM-dd lên API
+      const result = await profileService.updateProfile(userId, profile);
+      if (result.success) {
+        setSuccess(result.message);
+        setIsEditing(false);
+        await loadProfileData();
       } else {
-        // Use real API call
-        const result = await profileService.updateProfile(profile)
-        
-        if (result.success) {
-          setSuccess(result.message)
-          setIsEditing(false)
-          // Reload profile data to get updated info
-          await loadProfileData()
-        } else {
-          setError(result.error)
-        }
+        setError(result.error);
       }
     } catch (error) {
-      console.error('Error saving profile:', error)
-      setError('Không thể cập nhật profile')
+      console.error('Error saving profile:', error);
+      setError('Không thể cập nhật profile');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   const handleCancel = () => {
-    // Reset to original profile data
-    setProfile(mockProfileData) // In development, reset to mock data
+    // Reload profile from API
+    loadProfileData()
     setIsEditing(false)
     setError(null)
     setSuccess(null)
@@ -148,24 +122,13 @@ function AccountPage() {
     setError(null)
     
     try {
-      const isDevelopment = process.env.NODE_ENV === 'development'
-      
-      if (isDevelopment) {
-        // Simulate upload in development
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setSuccess('Cập nhật ảnh đại diện thành công!')
-        // Update profile with new avatar URL
-        setProfile(prev => ({ ...prev, avatar: URL.createObjectURL(file) }))
+      // Use real API call
+      const result = await profileService.uploadAvatar(file)
+      if (result.success) {
+        setSuccess(result.message)
+        setProfile(prev => ({ ...prev, avatar: result.data.avatarUrl }))
       } else {
-        // Use real API call
-        const result = await profileService.uploadAvatar(file)
-        
-        if (result.success) {
-          setSuccess(result.message)
-          setProfile(prev => ({ ...prev, avatar: result.data.avatarUrl }))
-        } else {
-          setError(result.error)
-        }
+        setError(result.error)
       }
     } catch (error) {
       console.error('Error uploading avatar:', error)
@@ -396,15 +359,13 @@ function AccountPage() {
                         />
                       </div>
                       <div className="field">
-                        <label>Năm sinh</label>
+                        <label>Ngày sinh</label>
                         <input 
-                          type="number" 
+                          type="date" 
                           name="yearOfBirth" 
                           value={profile.yearOfBirth} 
                           onChange={handleChange} 
-                          placeholder="1990" 
-                          min="1950"
-                          max="2010"
+                          required
                         />
                       </div>
                       <div className="field full">
