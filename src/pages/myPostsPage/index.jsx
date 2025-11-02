@@ -59,6 +59,10 @@ function MyPostsPage() {
   const [posts, setPosts] = useState([])
   const [selectedCities, setSelectedCities] = useState([])
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
+  // Thêm state cho modal và form chỉnh sửa
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPost, setEditPost] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', price: '', location: '', description: '' });
 
   // Load posts từ API khi component mount
   useEffect(() => {
@@ -86,7 +90,7 @@ function MyPostsPage() {
           status: post.status || 'active',
           views: post.views || 0,
           likes: post.saves || 0,
-          postedDate: post.createAt ? formatDate(post.createAt) : '',
+          postedDate: post.publicDate ? formatDate(post.publicDate) : (post.createAt ? formatDate(post.createAt) : ''),
           updatedAt: post.updateAt ? formatDate(post.updateAt) : (post.createAt ? formatDate(post.createAt) : ''),
           images: Array.isArray(post.images) ? post.images.length : (post.images ? 1 : 0),
           category: getCategoryName(post.articleType),
@@ -172,10 +176,24 @@ function MyPostsPage() {
     }
   }
 
-  const handleEditPost = async (post) => {
+  // Khi ấn nút Sửa, chỉ mở modal và set dữ liệu form
+  const handleEditPost = (post) => {
+    setEditPost(post);
+    setEditForm({
+      title: post.title || '',
+      price: post.price || '',
+      location: post.location || '',
+      description: post.description || post.content || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Khi ấn nút cập nhật trong modal mới gọi API PUT
+  const handleUpdatePost = async () => {
+    if (!editPost) return;
     try {
       let endpoint = '';
-      const data = post.originalData || post;
+      const data = editPost.originalData || editPost;
       const id = data.articleId || data.id;
       const type = data.category || data.articleType;
       if (type === 'car' || type === 'CAR_ARTICLE') {
@@ -185,48 +203,25 @@ function MyPostsPage() {
       } else {
         endpoint = `/article/motor/${id}`;
       }
-      // Format lại ngày tháng trước khi gửi lên API
-      const base = post.originalData || post;
-      // Lấy user hiện tại từ localStorage để lấy memberId nếu thiếu
       const user = JSON.parse(localStorage.getItem('user'));
       const updatedData = {
-        ...base,
-        publicDate: formatDate(base.publicDate),
-        createAt: formatDate(base.createAt),
-        updateAt: formatDate(base.updateAt),
-        origin: base.origin || 'Không xác định',
-        milesTraveled: base.milesTraveled != null ? base.milesTraveled : 0,
-        licensesPlate: base.licensesPlate || 'Chưa có',
-        year: base.year != null ? base.year : new Date().getFullYear(),
-        brand: base.brand || 'Không xác định',
-        warrantyMonths: base.warrantyMonths != null ? base.warrantyMonths : 1,
-        vehicleCapacity: base.vehicleCapacity != null ? base.vehicleCapacity : 1,
-        model: base.model || base.title || base.content || 'Không xác định',
-        numberOfSeat: base.numberOfSeat != null ? base.numberOfSeat : 1,
-        type: base.type || base.articleType || 'Khác',
-        price: base.price != null ? base.price : 0,
-        title: base.title || base.content || base.model || 'Không có tiêu đề',
-        location: base.location || base.region || 'Không xác định',
-        status: base.status || 'active',
-        memberId: base.memberId || (user ? user.memberId : ''),
-        images: Array.isArray(base.images) ? base.images : [],
-        views: base.views != null ? base.views : 0,
-        saves: base.saves != null ? base.saves : 0,
-        description: base.content || '',
-        // Thêm các trường khác nếu backend yêu cầu
+        title: editForm.title,
+        price: Number(editForm.price),
+        location: editForm.location,
+        content: editForm.description,
+        memberId: data.memberId || (user ? user.memberId : '')
       };
       await api.put(endpoint, updatedData);
-      // Sau khi cập nhật thành công, reload lại danh sách bài đăng từ API
+      // Reload lại danh sách bài đăng
       const response = await api.get('/article');
       let articlesData = response.data;
       if (articlesData && !Array.isArray(articlesData)) {
         articlesData = [articlesData];
       }
       if (!Array.isArray(articlesData)) articlesData = [];
-  // Lấy user hiện tại từ localStorage
-  const currentUser = JSON.parse(localStorage.getItem('user'));
-  const myPosts = currentUser ? articlesData.filter(p => String(p.memberId) === String(currentUser.memberId)) : [];
-  setPosts(myPosts.map(p => ({
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      const myPosts = currentUser ? articlesData.filter(p => String(p.memberId) === String(currentUser.memberId)) : [];
+      setPosts(myPosts.map(p => ({
         id: p.articleId,
         title: p.title || p.content || '',
         price: p.price ? p.price : 0,
@@ -234,7 +229,7 @@ function MyPostsPage() {
         status: p.status || 'active',
         views: p.views || 0,
         likes: p.saves || 0,
-        postedDate: p.createAt ? formatDate(p.createAt) : '',
+        postedDate: p.publicDate ? formatDate(p.publicDate) : (p.createAt ? formatDate(p.createAt) : ''),
         updatedAt: p.updateAt ? formatDate(p.updateAt) : (p.createAt ? formatDate(p.createAt) : ''),
         images: Array.isArray(p.images) ? p.images.length : (p.images ? 1 : 0),
         category: getCategoryName(p.articleType),
@@ -242,12 +237,13 @@ function MyPostsPage() {
         description: p.content || '',
         originalData: p
       })));
-      window.dispatchEvent(new CustomEvent('postUpdated'));
+      setShowEditModal(false);
+      setEditPost(null);
       alert('Cập nhật bài đăng thành công!');
     } catch (e) {
       alert('Có lỗi xảy ra khi cập nhật bài đăng!');
     }
-  }
+  };
 
   const handleViewDetail = (post) => {
     // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang detail
@@ -276,33 +272,22 @@ function MyPostsPage() {
     if (activeTab === 'active') {
       // Hiển thị bài đăng đang bán và cả bài đăng vừa tạo (DRAFT)
       if (post.status === 'active' || post.status === 'DRAFT') {
-        // ...filter tiếp theo
         return true; // Allow active and DRAFT posts
       } else {
         return false;
       }
-    } else {
-      // Các tab khác vẫn filter như cũ
-      if (post.status !== activeTab) return false;
     }
-    
-    // Filter theo search query
-    if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
-    
-    // Filter theo location
-    if (selectedCities.length > 0) {
-      const postCity = getCityFromLocation(post.location);
-      if (!selectedCities.some(city => postCity.includes(city))) return false
+    if (activeTab === 'sold') {
+      return post.status === 'sold';
     }
-    
-    return true
-  }).sort((a, b) => {
-    if (sortBy === 'newest') return new Date(b.updatedAt) - new Date(a.updatedAt)
-    if (sortBy === 'oldest') return new Date(a.updatedAt) - new Date(b.updatedAt)
-    if (sortBy === 'price-high') return Number(b.price) - Number(a.price)
-    if (sortBy === 'price-low') return Number(a.price) - Number(b.price)
-    return 0
-  })
+    if (activeTab === 'pending') {
+      return post.status === 'pending';
+    }
+    if (activeTab === 'expired') {
+      return post.status === 'expired';
+    }
+    return true;
+  });
 
   return (
     <div className="my-posts-page">
@@ -532,8 +517,5 @@ function MyPostsPage() {
     </div>
   )
 }
-
-export default MyPostsPage
-
-
-
+  
+export default MyPostsPage;

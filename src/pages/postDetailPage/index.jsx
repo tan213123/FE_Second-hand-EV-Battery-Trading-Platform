@@ -40,7 +40,32 @@ function PostDetailPage() {
     // Lấy dữ liệu từ sessionStorage
     const postData = sessionStorage.getItem('viewingPost')
     if (postData) {
-      setPost(JSON.parse(postData))
+      const raw = JSON.parse(postData);
+      setPost({
+        ...raw,
+        title: raw.title || raw.content || '',
+        price: raw.price || 0,
+        location: typeof raw.location === 'string' ? raw.location : (raw.location?.address || raw.region || ''),
+        description: raw.description || raw.content || '',
+        category: raw.category || raw.articleType || '',
+        status: raw.status || '',
+        images: Array.isArray(raw.images) ? raw.images.map(img => img.url || img) : (raw.mainImageUrl ? [raw.mainImageUrl] : []),
+        views: raw.views || 0,
+        likes: raw.saves || 0,
+        postedDate: raw.publicDate || raw.createAt || raw.createdAt || '',
+        updatedAt: raw.updateAt || raw.updatedAt || '',
+        contactName: raw.contactName || raw.sellerName || raw.memberName || '',
+        contactPhone: raw.contactPhone || raw.sellerPhone || raw.phone || '',
+        // Mapping cho bài đăng pin
+        brand: raw.brand || '',
+        year: raw.year || '',
+        origin: raw.origin || '',
+        capacity: raw.capacity || '',
+        volt: raw.volt || '',
+        size: raw.size || '',
+        weight: raw.weight || '',
+        warrantyMonths: raw.warrantyMonths || '',
+      });
     } else {
       // Nếu không có data trong sessionStorage, redirect về trang my-posts
       navigate('/my-posts')
@@ -171,75 +196,88 @@ function PostDetailPage() {
             <div className="post-meta">
               <div className="meta-item">
                 <LocationIcon />
-                <span>{post.location?.district}, {post.location?.city}</span>
+                <span>{typeof post.location === 'string' ? post.location : `${post.location?.district || ''}${post.location?.city ? ', ' + post.location.city : ''}`}</span>
               </div>
               <div className="meta-item">
                 <ClockIcon />
-                <span>Đăng ngày {formatDate(post.createdAt)}</span>
+                <span>Đăng ngày {formatDate(post.postedDate)}</span>
+              </div>
+              <div className="meta-item">
+                <span>Lượt xem: {post.views}</span>
+              </div>
+              <div className="meta-item">
+                <span>Lượt thích: {post.likes}</span>
+              </div>
+              <div className="meta-item">
+                <span>Trạng thái: {post.status}</span>
               </div>
             </div>
 
             <div className="post-details">
               <h2>Thông tin chi tiết</h2>
               <div className="details-grid">
-                <div className="detail-item">
-                  <span className="label">Loại sản phẩm:</span>
-                  <span className="value">{getCategoryName(post.category)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Tình trạng:</span>
-                  <span className="value">{getConditionName(post.condition)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Hãng:</span>
-                  <span className="value">{post.brand}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Năm sản xuất:</span>
-                  <span className="value">{post.year}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Màu sắc:</span>
-                  <span className="value">{post.color}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Xuất xứ:</span>
-                  <span className="value">{post.origin}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Số km đã đi:</span>
-                  <span className="value">{post.mileage ? `${post.mileage} km` : 'Chưa cập nhật'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Pin:</span>
-                  <span className="value">{post.batteryInfo ? `${post.batteryInfo}%` : 'Chưa cập nhật'}</span>
-                </div>
-
-                {/* Category specific fields */}
-                {post.category === 'car' && (
-                  <>
-                    <div className="detail-item">
-                      <span className="label">Kiểu dáng:</span>
-                      <span className="value">{post.bodyType}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Số chỗ ngồi:</span>
-                      <span className="value">{post.seats}</span>
-                    </div>
-                  </>
+                {/* Các trường đặc biệt, chỉ hiển thị nếu có dữ liệu */}
+                {post.origin && (
+                  <div className="detail-item">
+                    <span className="label">Xuất xứ:</span>
+                    <span className="value">{post.origin}</span>
+                  </div>
                 )}
-
-                {post.category === 'battery' && (
-                  <>
-                    <div className="detail-item">
-                      <span className="label">Loại pin:</span>
-                      <span className="value">{post.batteryType}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Công suất:</span>
-                      <span className="value">{post.capacity}</span>
-                    </div>
-                  </>
+                {post.volt && (
+                  <div className="detail-item">
+                    <span className="label">Hiệu điện thế (Volt):</span>
+                    <span className="value">{post.volt}</span>
+                  </div>
+                )}
+                {post.brand && (
+                  <div className="detail-item">
+                    <span className="label">Hãng Pin/Hãng Xe:</span>
+                    <span className="value">{post.brand}</span>
+                  </div>
+                )}
+                {post.size && (
+                  <div className="detail-item">
+                    <span className="label">Kích thước (cm):</span>
+                    <span className="value">{post.size}</span>
+                  </div>
+                )}
+                {post.seats && (
+                  <div className="detail-item">
+                    <span className="label">Số chỗ ngồi:</span>
+                    <span className="value">{post.seats}</span>
+                  </div>
+                )}
+                {/* Hiển thị tất cả các trường có trong object bài đăng */}
+                <div className="detail-item">
+                  <span className="label">Loại bài đăng:</span>
+                  <span className="value">{post.articleType}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Giá:</span>
+                  <span className="value">{post.price}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Vị trí:</span>
+                  <span className="value">{post.location}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Trạng thái:</span>
+                  <span className="value">{post.status}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Ngày đăng:</span>
+                  <span className="value">{post.publicDate}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Ngày cập nhật:</span>
+                  <span className="value">{post.updateAt ? new Date(post.updateAt).toLocaleDateString('vi-VN') : ''}</span>
+                </div>
+                {/* Nếu có images thì hiển thị số lượng ảnh */}
+                {post.images && (
+                  <div className="detail-item">
+                    <span className="label">Số lượng ảnh:</span>
+                    <span className="value">{Array.isArray(post.images) ? post.images.length : 0}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -247,28 +285,34 @@ function PostDetailPage() {
             <div className="post-description">
               <h2>Mô tả</h2>
               <p>{post.description}</p>
+              {/* Nếu có content mà không có description thì hiển thị content */}
+              {!post.description && post.content && <p>{post.content}</p>}
             </div>
 
             <div className="contact-info">
               <h2>Thông tin liên hệ</h2>
               <div className="contact-details">
-                <div className="contact-item">
-                  <span className="label">Tên người bán:</span>
-                  <span className="value">{post.contactName}</span>
-                </div>
-                <div className="contact-item">
-                  <span className="label">Số điện thoại:</span>
-                  <span className="value">{post.contactPhone}</span>
-                </div>
-                <div className="contact-item">
-                  <span className="label">Địa chỉ:</span>
-                  <span className="value">
-                    {post.location?.address && `${post.location.address}, `}
-                    {post.location?.ward && `${post.location.ward}, `}
-                    {post.location?.district && `${post.location.district}, `}
-                    {post.location?.city}
-                  </span>
-                </div>
+                {post.contactName && (
+                  <div className="contact-item">
+                    <span className="label">Tên người bán:</span>
+                    <span className="value">{post.contactName}</span>
+                  </div>
+                )}
+                {post.contactPhone && (
+                  <div className="contact-item">
+                    <span className="label">Số điện thoại:</span>
+                    <span className="value">{post.contactPhone}</span>
+                  </div>
+                )}
+                {/* Địa chỉ: nếu là object location thì hiển thị các trường, nếu là string thì hiển thị luôn */}
+                {(typeof post.location === 'string' && post.location) || (post.location?.address || post.location?.ward || post.location?.district || post.location?.city) ? (
+                  <div className="contact-item">
+                    <span className="label">Địa chỉ:</span>
+                    <span className="value">
+                      {typeof post.location === 'string' ? post.location : `${post.location?.address ? post.location.address + ', ' : ''}${post.location?.ward ? post.location.ward + ', ' : ''}${post.location?.district ? post.location.district + ', ' : ''}${post.location?.city || ''}`}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
