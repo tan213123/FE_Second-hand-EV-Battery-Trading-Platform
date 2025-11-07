@@ -1,8 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../config/api';
-import { useAuth } from '../../contexts/AuthContext';
-import './login.scss';
+import React, { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../config/api";
+import { Form, message } from "antd";
+import { toast } from "react-toastify";
+import "./login.scss";
+import { useDispatch } from "react-redux";
+import { login } from "../../redux/memberSlice";
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
   return (
@@ -14,15 +17,22 @@ const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={error ? 'error' : ''}
+        className={error ? "error" : ""}
       />
       {error && <span className="error-text">{error}</span>}
     </div>
   );
 };
 
-const Button = ({ children, type = 'button', onClick, variant = 'primary', fullWidth = false, disabled }) => {
-  const buttonClasses = `button ${variant} ${fullWidth ? 'full-width' : ''}`;
+const Button = ({
+  children,
+  type = "button",
+  onClick,
+  variant = "primary",
+  fullWidth = false,
+  disabled,
+}) => {
+  const buttonClasses = `button ${variant} ${fullWidth ? "full-width" : ""}`;
   return (
     <button
       type={type}
@@ -46,114 +56,36 @@ const SocialLogin = ({ onGoogleLogin }) => {
 };
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  }, [errors]);
+  const onFinish = async (values) => {
+    setIsLoading(true);
+    try {
+      const response = await api.post("/members/login", values);
+      toast.success("Login successfully!");
+      console.log(response);
+      const { token, role } = response.data;
+      localStorage.setItem("token", token);
 
-  const validateForm = useCallback(() => {
-    const newErrors = {};
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    return newErrors;
-  }, [formData]);
+      //luu state
+      dispatch(login(response.data));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-    
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
-      try {
-        // Demo Admin Account - kiểm tra trước khi call API
-        if (formData.email === 'admin@admin.com' && formData.password === 'admin123') {
-          const adminData = {
-            memberId: '10',
-            name: 'Administrator',
-            email: 'admin@admin.com',
-            role: 'admin',
-            status: 'active'
-          };
-          
-          // Lưu vào AuthContext
-          login(adminData, 'demo-admin-token');
-          
-          console.log('Admin logged in successfully');
-          
-          // Redirect về trang admin
-          navigate('/admin', { replace: true });
-          setIsSubmitting(false);
-          return;
-        }
-
-        // Call API login với endpoint /members/login
-        const response = await api.post('/members/login', {
-          email: formData.email,
-          password: formData.password
-        });
-        console.log('RESPONSE FROM BACKEND:', response.data); // Thêm để kiểm tra response thực tế
-
-        // Sử dụng AuthContext để lưu user data
-        const userData = {
-          memberId: response.data.memberId,
-          name: response.data.name,
-          email: response.data.email,
-          address: response.data.address,
-          phone: response.data.phone,
-          yearOfBirth: response.data.yearOfBirth,
-          sex: response.data.sex,
-          status: response.data.status,
-          role: response.data.role || 'member' // Lấy role từ API response
-        };
-
-        // Gọi hàm login từ AuthContext
-        login(userData, response.data.token);
-
-        // Thông báo thành công
-        console.log('User logged in successfully:', userData.name);
-
-        // Redirect dựa trên role
-        if (userData.role === 'admin') {
-          navigate('/admin', { replace: true });
-        } else {
-          navigate('/account', { replace: true }); // Khôi phục: chuyển về account thay vì home
-        }
-        
-      } catch (error) {
-        console.error('Login error:', error);
-        setErrors({
-          submit: error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.'
-        });
-      } finally {
-        setIsSubmitting(false);
+      if (role === "ADMIN") {
+        navigate("/admin");
+      } else {
+        navigate("/");
       }
-    } else {
-      setErrors(newErrors);
+      console.log("RESPONSE FROM BACKEND:", response.data);
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -169,65 +101,93 @@ const LoginPage = () => {
             <h2>EcoXe</h2>
             <p>Mua bán pin & xe điện - an toàn, nhanh chóng</p>
             <div className="hero-cta">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M3 11h18M12 3v18" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path
+                  d="M3 11h18M12 3v18"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
           </div>
         </aside>
 
         <main className="login-card-wrapper">
-          <form className="login-card" onSubmit={handleSubmit} noValidate>
+          <Form
+            className="login-card"
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            requiredMark={false}
+          >
             <div className="card-header">
               <h1>Đăng nhập</h1>
-              <p className="small">Chào mừng quay trở lại — đăng nhập để tiếp tục</p>
+              <p className="small">
+                Chào mừng quay trở lại — đăng nhập để tiếp tục
+              </p>
             </div>
 
-            {errors.submit && <div className="error-message" role="alert">{errors.submit}</div>}
-
-            <Input
+            <Form.Item
               label="Email"
-              type="email"
               name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-              error={errors.email}
-            />
+              rules={[
+                { required: true, message: "Email is required" },
+                {
+                  validator: (_, v) =>
+                    !v || /\S+@\S+\.\S+/.test(v)
+                      ? Promise.resolve()
+                      : Promise.reject(new Error("Please enter a valid email")),
+                },
+              ]}
+            >
+              <input type="email" placeholder="you@example.com" />
+            </Form.Item>
 
-            <Input
+            <Form.Item
               label="Mật khẩu"
-              type="password"
               name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Nhập mật khẩu"
-              error={errors.password}
-            />
+              rules={[
+                { required: true, message: "Password is required" },
+                { min: 6, message: "Password must be at least 6 characters" },
+              ]}
+              hasFeedback
+            >
+              <input type="password" placeholder="Nhập mật khẩu" />
+            </Form.Item>
 
             <div className="actions-row">
               <label className="remember">
-                <input type="checkbox" name="remember" /> Ghi nhớ đăng nhập
+                <Form.Item name="remember" valuePropName="checked" noStyle>
+                  <input type="checkbox" />
+                </Form.Item>
+                Ghi nhớ đăng nhập
               </label>
-              <a className="forgot" href="/forgot">Quên mật khẩu?</a>
+              <a className="forgot" href="/forgot">
+                Quên mật khẩu?
+              </a>
             </div>
 
-            <Button 
-              type="submit" 
-              variant="primary" 
-              fullWidth 
-              disabled={isSubmitting}
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              disabled={isLoading}
             >
-              {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
 
             <div className="divider">
               <span>hoặc</span>
             </div>
 
-            <SocialLogin 
-              onGoogleLogin={() => handleSocialLogin('Google')}
-            />
+            <SocialLogin onGoogleLogin={() => handleSocialLogin("Google")} />
 
             <p className="signup-text">
               Chưa có tài khoản? <a href="/signup">Đăng ký ngay</a>
@@ -237,7 +197,7 @@ const LoginPage = () => {
               <a href="/terms">Điều khoản</a>
               <a href="/privacy">Chính sách</a>
             </div>
-          </form>
+          </Form>
         </main>
       </div>
     </div>

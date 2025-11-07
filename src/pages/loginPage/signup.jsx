@@ -1,8 +1,20 @@
-import React, { useState, useCallback } from 'react';
-import './signup.scss';
-import {registerMember} from '../../services/authService';
+import React, { useState, useCallback } from "react";
+import "./signup.scss";
+import api from "../../config/api";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import { message, Form } from "antd";
 
-const Input = ({ label, type, name, value, onChange, placeholder, error, autoComplete }) => {
+const Input = ({
+  label,
+  type,
+  name,
+  value,
+  onChange,
+  placeholder,
+  error,
+  autoComplete,
+}) => {
   return (
     <div className="form-group">
       <label>{label}</label>
@@ -13,7 +25,7 @@ const Input = ({ label, type, name, value, onChange, placeholder, error, autoCom
         onChange={onChange}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className={error ? 'error' : ''}
+        className={error ? "error" : ""}
       />
       {error && <span className="error-text">{error}</span>}
     </div>
@@ -21,8 +33,15 @@ const Input = ({ label, type, name, value, onChange, placeholder, error, autoCom
 };
 
 // Button component
-const Button = ({ children, type = 'button', onClick, variant = 'primary', fullWidth = false, disabled }) => {
-  const buttonClasses = `button ${variant} ${fullWidth ? 'full-width' : ''}`;
+const Button = ({
+  children,
+  type = "button",
+  onClick,
+  variant = "primary",
+  fullWidth = false,
+  disabled,
+}) => {
+  const buttonClasses = `button ${variant} ${fullWidth ? "full-width" : ""}`;
   return (
     <button
       type={type}
@@ -47,115 +66,39 @@ const SocialLogin = ({ onGoogleLogin }) => {
 };
 
 const SignUpPage = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    yearOfBirth: '',
-    phone: '',
-    email: '',
-    role: 'MEMBER',
-    sex: '',
-    status: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serverError, setServerError] = useState(null);
-  const [registrationResult, setRegistrationResult] = useState(null);
+  const navigate = useNavigate();
+  const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const password = Form.useWatch("password", form);
 
-
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  }, [errors]);
-
-  const validateForm = useCallback(() => {
-    const newErrors = {};
-    
-    if (!formData.name) {
-      newErrors.name = 'Vui lòng nhập họ và tên';
-    }
-
-    if (!formData.address) {
-      newErrors.address = 'Vui lòng nhập địa chỉ';
-    }
-
-    if (!formData.yearOfBirth) {
-      newErrors.yearOfBirth = 'Vui lòng chọn ngày sinh';
-    }
-
-    if (!formData.phone) {
-      newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (!/^\d+$/.test(formData.phone)) {
-      newErrors.phone = 'Số điện thoại chỉ được chứa chữ số';
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Vui lòng nhập email';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Vui lòng nhập email hợp lệ';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu không khớp';
-    }
-
-    return newErrors;
-  }, [formData]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-
-    if (Object.keys(newErrors).length !== 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setServerError(null);
+  const onFinish = async (values) => {
+    setIsLoading(true);
     try {
-      // build payload expected by the API
       const payload = {
-        name: formData.name,
-        address: formData.address,
-        yearOfBirth: formData.yearOfBirth,
-        phone: formData.phone,
-        email: formData.email,
-        sex: formData.sex,
-        status: formData.status,
-        password: formData.password
+        ...values,
+        yearOfBirth: values?.yearOfBirth
+          ? (() => {
+              const parts = String(values.yearOfBirth).split('-');
+              if (parts.length === 3) {
+                const [y, m, d] = parts;
+                return `${d}/${m}/${y}`;
+              }
+              return values.yearOfBirth;
+            })()
+          : values?.yearOfBirth,
       };
 
-      const result = await registerMember(payload);
-      setRegistrationResult(result);
-      // on success navigate to login (or adjust as needed)
-      window.location.href = '/login';
+      const response = await api.post("/members/register", payload);
+      toast.success("Successfully create new account!");
+      navigate("/login");
+      console.log(response);
     } catch (err) {
       // show server error in form area
-      const msg = err?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
-      setErrors(prev => ({ ...prev, submit: msg }));
-      setServerError(msg);
+      console.error(err);
+      console.log(err.response);
+      toast.error("Registration failed. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -165,163 +108,220 @@ const SignUpPage = () => {
 
   return (
     <div className="signup-container">
-      <form className="signup-form" onSubmit={handleSubmit}>
+      <Form
+        form={form}
+        layout="vertical"
+        className="signup-form"
+        onFinish={onFinish}
+        initialValues={{ sex: "", status: "", role: "MEMBER" }}
+        requiredMark={false}
+      >
+        <Form.Item name="role" initialValue="MEMBER" hidden>
+          <input type="hidden" />
+        </Form.Item>
         <h1>Tạo tài khoản</h1>
         <p className="login-text">
           Đã có tài khoản? <a href="/login">Đăng nhập</a>
         </p>
-
-        {errors.submit && <div className="error-message">{errors.submit}</div>}
-
         <div className="form-grid">
-          <Input
-            label="Họ và tên*"
-            type="text"
+          <Form.Item
+            label="Họ và tên"
             name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Nhập họ và tên"
-            autoComplete="name"
-            error={errors.name}
-          />
+            rules={[
+              { required: true, message: "Vui lòng nhập họ và tên" },
+              {
+                validator: (_, v) =>
+                  v && v.trim()
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("Vui lòng nhập họ và tên")),
+              },
+            ]}
+          >
+            <input
+              type="text"
+              placeholder="Nhập họ và tên"
+              autoComplete="name"
+            />
+          </Form.Item>
 
-          <Input
-            label="Email*"
-            type="email"
+          <Form.Item
+            label="Email"
             name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="ban@vidu.com"
-            autoComplete="email"
-            error={errors.email}
-          />
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              {
+                validator: (_, v) =>
+                  !v || /\S+@\S+\.\S+/.test(v)
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("Vui lòng nhập email hợp lệ")),
+              },
+            ]}
+          >
+            <input
+              type="email"
+              placeholder="ban@vidu.com"
+              autoComplete="email"
+            />
+          </Form.Item>
 
-          <Input
-            label="Số điện thoại*"
-            type="tel"
+          <Form.Item
+            label="Số điện thoại"
             name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="Nhập số điện thoại"
-            autoComplete="tel"
-            error={errors.phone}
-          />
+            rules={[
+              { required: true, message: "Vui lòng nhập số điện thoại" },
+              {
+                validator: (_, v) =>
+                  !v || /^0\d{9,10}$/.test(v)
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error(
+                          "Số điện thoại phải bắt đầu bằng 0 và có 10–11 số"
+                        )
+                      ),
+              },
+            ]}
+          >
+            <input
+              type="tel"
+              placeholder="Nhập số điện thoại"
+              autoComplete="tel"
+              maxLength={11}
+            />
+          </Form.Item>
 
-          <Input
-            label="Ngày sinh*"
-            type="date"
+          <Form.Item
+            label="Ngày sinh"
             name="yearOfBirth"
-            value={formData.yearOfBirth}
-            onChange={handleChange}
-            autoComplete="bday"
-            error={errors.yearOfBirth}
-          />
+            rules={[{ required: true, message: "Vui lòng chọn ngày sinh" }]}
+          >
+            <input type="date" autoComplete="bday" />
+          </Form.Item>
 
-          <Input
-            label="Địa chỉ*"
-            type="text"
+          <Form.Item
+            label="Địa chỉ"
             name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="Nhập địa chỉ"
-            autoComplete="street-address"
-            error={errors.address}
-          />
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          >
+            <input
+              type="text"
+              placeholder="Nhập địa chỉ"
+              autoComplete="street-address"
+            />
+          </Form.Item>
         </div>
 
         <div className="form-group">
           <label>Giới tính</label>
-          <select
-            name="sex"
-            value={formData.sex}
-            onChange={handleChange}
-            className={errors.sex ? 'error' : ''}
-          >
-            <option value="">Chọn giới tính</option>
-            <option value="male">Nam</option>
-            <option value="female">Nữ</option>
-            <option value="other">Khác</option>
-          </select>
-          {errors.sex && <span className="error-text">{errors.sex}</span>}
+          <Form.Item name="sex" rules={[{ required: false }]}>
+            <select>
+              <option value="">Chọn giới tính</option>
+              <option value="male">Nam</option>
+              <option value="female">Nữ</option>
+              <option value="other">Khác</option>
+            </select>
+          </Form.Item>
         </div>
 
-        {/* <div className="form-group">
-          <label>Trạng thái</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className={errors.status ? 'error' : ''}
-          >
-            <option value="">Chọn trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="inactive">Không hoạt động</option>
-          </select>
-          {errors.status && <span className="error-text">{errors.status}</span>}
-        </div> */}
-
-        <Input
-          label="Mật khẩu*"
-          type="password"
+        <Form.Item
+          label="Mật khẩu"
           name="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Nhập mật khẩu"
-          autoComplete="new-password"
-          error={errors.password}
-        />
+          rules={[
+            { required: true, message: "Vui lòng nhập mật khẩu" },
+            { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" },
+          ]}
+          hasFeedback
+        >
+          <input
+            type="password"
+            placeholder="Nhập mật khẩu"
+            autoComplete="new-password"
+          />
+        </Form.Item>
 
-        <Input
-          label="Xác nhận mật khẩu*"
-          type="password"
+        <Form.Item
+          label="Xác nhận mật khẩu"
           name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          placeholder="Nhập lại mật khẩu"
-          autoComplete="new-password"
-          error={errors.confirmPassword}
-        />
+          dependencies={["password"]}
+          hasFeedback
+          rules={[
+            { required: true, message: "Vui lòng xác nhận mật khẩu" },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue("password") === value)
+                  return Promise.resolve();
+                return Promise.reject(new Error("Mật khẩu không khớp"));
+              },
+            }),
+          ]}
+        >
+          <input
+            type="password"
+            placeholder="Nhập lại mật khẩu"
+            autoComplete="new-password"
+          />
+        </Form.Item>
 
         <div className="password-requirements">
           <ul>
-            <li className={formData.password.length >= 6 ? 'valid' : ''}>Ít nhất 6 ký tự</li>
-            <li className={/[A-Z]/.test(formData.password) ? 'valid' : ''}>Ít nhất một chữ hoa</li>
-            <li className={/\d/.test(formData.password) ? 'valid' : ''}>Ít nhất một chữ số</li>
+            <li className={password && password.length >= 6 ? "valid" : ""}>
+              Ít nhất 6 ký tự
+            </li>
+            <li className={password && /[A-Z]/.test(password) ? "valid" : ""}>
+              Ít nhất một chữ hoa
+            </li>
+            <li className={password && /\d/.test(password) ? "valid" : ""}>
+              Ít nhất một chữ số
+            </li>
           </ul>
         </div>
 
         <div className="terms-checkbox">
           <label>
-            <input type="checkbox" required />
+            <Form.Item
+              name="agree"
+              valuePropName="checked"
+              rules={[
+                {
+                  validator: (_, v) =>
+                    v
+                      ? Promise.resolve()
+                      : Promise.reject(
+                          new Error("Bạn phải đồng ý với điều khoản")
+                        ),
+                },
+              ]}
+            >
+              <input type="checkbox" />
+            </Form.Item>
             <span>
-              Tôi đồng ý với <a href="/terms" target="_blank" rel="noreferrer">Điều khoản</a> và
-              <a href="/privacy" target="_blank" rel="noreferrer"> Chính sách quyền riêng tư</a>.
+              Tôi đồng ý với{" "}
+              <a href="/terms" target="_blank" rel="noreferrer">
+                Điều khoản
+              </a>{" "}
+              và
+              <a href="/privacy" target="_blank" rel="noreferrer">
+                {" "}
+                Chính sách quyền riêng tư
+              </a>
+              .
             </span>
           </label>
         </div>
 
-        <Button 
-          type="submit" 
-          variant="primary" 
-          fullWidth 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Đang tạo tài khoản...' : 'Đăng ký'}
+        <Button type="submit" variant="primary" fullWidth disabled={isLoading}>
+          {isLoading ? "Đang tạo tài khoản..." : "Đăng ký"}
         </Button>
 
         <div className="divider">
           <span>hoặc</span>
         </div>
 
-        <SocialLogin 
-          onGoogleLogin={() => handleSocialLogin('Google')}
-        />
-
+        <SocialLogin onGoogleLogin={() => handleSocialLogin("Google")} />
         <div className="footer-links">
           <a href="/terms">Điều khoản sử dụng</a>
           <a href="/privacy">Chính sách bảo mật</a>
         </div>
-      </form>
+      </Form>
     </div>
   );
 };
