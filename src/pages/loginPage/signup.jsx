@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import './signup.scss';
-import { registerMember } from '../../services/authService';
+import {registerMember} from '../../services/authService';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error, autoComplete }) => {
   return (
