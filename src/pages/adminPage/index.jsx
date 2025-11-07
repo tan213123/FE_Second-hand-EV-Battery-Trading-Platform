@@ -1,4 +1,17 @@
+import { Layout, Menu, Button, Input, Dropdown, Avatar, Space, Typography } from 'antd';
 import React, { useState } from 'react';
+import {
+  UserOutlined,
+  BarChartOutlined,
+  DollarCircleOutlined,
+  FileTextOutlined,
+  BellOutlined,
+  SearchOutlined,
+  MenuUnfoldOutlined,
+  MenuFoldOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+} from '@ant-design/icons'; 
 import './index.scss';
 import Users from './users';
 import Reports from './reports';
@@ -7,127 +20,153 @@ import Posts from './posts';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// Icons
-const Icons = {
-  users: '👤',
-  reports: '📊',
-  fees: '💰',
-  posts: '📝',
-  notification: '🔔',
-  search: '🔍'
-};
+const { Header, Sider, Content } = Layout;
+const { Text } = Typography;
 
 const AdminPage = () => {
-  const [active, setActive] = useState('reports');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeKey, setActiveKey] = useState('reports');
+  const [collapsed, setCollapsed] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
   const getPageTitle = () => {
-    switch(active) {
-      case 'posts': return 'Duyệt bài đăng';
-      case 'users': return 'Quản lý người dùng';
-      case 'reports': return 'Thống kê & Báo cáo';
-      case 'fees': return 'Quản lý gói dịch vụ';
-      default: return 'Bảng điều khiển';
+    switch (activeKey) {
+      case 'posts':
+        return 'Duyệt bài đăng';
+      case 'users':
+        return 'Quản lý người dùng';
+      case 'reports':
+        return 'Thống kê & Báo cáo';
+      case 'fees':
+        return 'Quản lý gói dịch vụ';
+      default:
+        return 'Bảng điều khiển';
     }
   };
 
+  const handleMenuClick = (e) => {
+    setActiveKey(e.key);
+  };
+
+  const userMenu = (
+    <Menu>
+      <Menu.Item key="profile" icon={<UserOutlined />}>
+        Thông tin cá nhân
+      </Menu.Item>
+      <Menu.Item key="settings" icon={<HomeOutlined />}>
+        Cài đặt
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item
+        key="logout"
+        icon={<LogoutOutlined />}
+        danger
+        onClick={() => {
+          logout();
+          navigate('/login', { replace: true });
+        }}
+      >
+        Đăng xuất
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
-    <div className="admin-layout">
-      <header className="admin-header">
-        <div className="header-left">
-          <button 
-            className="sidebar-toggle"
-            onClick={() => setSidebarCollapsed(prev => !prev)}
-          >
-            ☰
-          </button>
-          <button 
-            className="home-btn"
-            style={{ marginLeft: 12, background: '#3498db', color: 'white', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}
-            onClick={() => navigate('/', { replace: true })}
-          >
-            🏠 Home
-          </button>
-          <h2 style={{ marginLeft: 12 }}>{getPageTitle()}</h2>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
+        <div className="admin-logo">
+          {collapsed ? 'ADMIN' : 'Bảng quản trị'}
         </div>
-        <div className="header-right">
-          <div className="search-box">
-            {Icons.search}
-            <input type="text" placeholder="Tìm kiếm..." />
-          </div>
-          <button className="icon-button">{Icons.notification}</button>
-          <div className="admin-profile">
-            <img 
-              src={`data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs><rect width="32" height="32" rx="16" fill="url(#g)"/><text x="16" y="21" font-size="14" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif">A</text></svg>')}`}
-              alt="Admin" 
-            />
-            <span>Quản trị viên</span>
-            <button 
-              className="logout-btn"
-              style={{ marginLeft: 12, background: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer' }}
-              onClick={() => {
-                logout();
-                navigate('/login', { replace: true });
-              }}
-            >
-              Đăng xuất
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="admin-container">
-        <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="brand">
-            <h3>Bảng quản trị</h3>
-          </div>
-          <nav>
-            <ul>
-              <li 
-                className={active === 'reports' ? 'active' : ''} 
-                onClick={() => setActive('reports')}
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[activeKey]}
+          onClick={handleMenuClick}
+        >
+          <Menu.Item key="reports" icon={<BarChartOutlined />}>
+            Thống kê & Báo cáo
+          </Menu.Item>
+          <Menu.Item key="fees" icon={<DollarCircleOutlined />}>
+            Quản lý gói dịch vụ
+          </Menu.Item>
+          <Menu.Item key="posts" icon={<FileTextOutlined />}>
+            Duyệt bài đăng
+          </Menu.Item>
+          <Menu.Item key="users" icon={<UserOutlined />}>
+            Quản lý người dùng
+          </Menu.Item>
+        </Menu>
+      </Sider>
+      <Layout className="site-layout">
+        <Header className="site-layout-background" style={{ padding: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+                style={{
+                  fontSize: '16px',
+                  width: 64,
+                  height: 64,
+                  color: 'white'
+                }}
+              />
+              <Button
+                type="primary"
+                icon={<HomeOutlined />}
+                onClick={() => navigate('/', { replace: true })}
+                style={{ marginLeft: 12 }}
               >
-                <span className="icon">{Icons.reports}</span>
-                <span className="label">Thống kê & Báo cáo</span>
-              </li>
-              <li 
-                className={active === 'fees' ? 'active' : ''} 
-                onClick={() => setActive('fees')}
+                Home
+              </Button>
+              <Text strong style={{ marginLeft: 12, fontSize: '1.2em', color: 'white' }}>{getPageTitle()}</Text>
+            </div>
+            <Space size="large" style={{ marginRight: 24 }}>
+              <Input
+                placeholder="Tìm kiếm..."
+                prefix={<SearchOutlined />}
+                style={{ width: 200 }}
+                
+              />
+              <Button type="text" icon={<BellOutlined style={{ fontSize: '16px', color: 'white' }} />} />
+              <Dropdown overlay={userMenu} placement="bottomRight">
+                <Space style={{ cursor: 'pointer'}}>
+                  <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
+                  <Text style={{color: 'white'}}>Quản trị viên</Text>
+                </Space>
+              </Dropdown>
+              <Button
+                type="danger"
+                icon={<LogoutOutlined style={{color: 'white'}} />}
+                onClick={() => {
+                  logout();
+                  navigate('/login', { replace: true });
+                }}
               >
-                <span className="icon">{Icons.fees}</span>
-                <span className="label">Quản lý gói dịch vụ</span>
-              </li>
-              <li 
-                className={active === 'posts' ? 'active' : ''} 
-                onClick={() => setActive('posts')}
-              >
-                <span className="icon">{Icons.posts}</span>
-                <span className="label">Duyệt bài đăng</span>
-              </li>
-              <li 
-                className={active === 'users' ? 'active' : ''} 
-                onClick={() => setActive('users')}
-              >
-                <span className="icon">{Icons.users}</span>
-                <span className="label">Quản lý người dùng</span>
-              </li>
-            </ul>
-          </nav>
-        </aside>
-
-        <main className="content">
-          <div className="content-card">
-            {active === 'reports' && <Reports />}
-            {active === 'fees' && <Fees />}
-            {active === 'posts' && <Posts />}
-            {active === 'users' && <Users />}
+                <text style={{color: 'white'}}>Đăng xuất</text>
+              </Button>
+            </Space>
           </div>
-        </main>
-      </div>
-    </div>
+        </Header>
+        <Content
+          style={{
+            margin: '24px 16px',
+            padding: 24,
+            minHeight: 280,
+            background: '#fff',
+            borderRadius: 8,
+          }}
+        >
+          {activeKey === 'reports' && <Reports />}
+          {activeKey === 'fees' && <Fees />}
+          {activeKey === 'posts' && <Posts />}
+          {activeKey === 'users' && <Users />}
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 
 export default AdminPage;
+

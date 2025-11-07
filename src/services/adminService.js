@@ -1,4 +1,4 @@
-import api from '../config/api'
+import  api from '../config/api'
 
 // Centralize endpoints for easy adjustment
 const ADMIN_ENDPOINTS = {

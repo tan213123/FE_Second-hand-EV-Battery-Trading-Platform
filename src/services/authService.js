@@ -2,6 +2,7 @@ import api from '../config/api'
 
 const AUTH_ENDPOINTS = {
   FORGOT_PASSWORD: '/members/forgot-password',
+  REGISTER_MEMBER: '/members/register',
 }
 
 export const authService = {
@@ -14,7 +15,23 @@ export const authService = {
       return { success: false, error: message }
     }
   },
+
+
+    async registerMember(payload) {
+    try {
+      const response = await api.post(AUTH_ENDPOINTS.REGISTER_MEMBER, payload);
+      return response.data;
+    } catch (error) {
+
+      const message = error.response?.data?.message || 'Đăng ký thành viên thất bại';
+      const err = new Error(message);
+      err.response = error.response;
+      throw err; 
+    }
+  }
 }
+
+
 
 export default authService
 

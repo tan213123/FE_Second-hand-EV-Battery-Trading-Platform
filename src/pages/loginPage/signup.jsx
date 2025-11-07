@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import './signup.scss';
+import { registerMember } from '../../services/authService';
 
 const Input = ({ label, type, name, value, onChange, placeholder, error, autoComplete }) => {
   return (
@@ -52,6 +53,7 @@ const SignUpPage = () => {
     yearOfBirth: '',
     phone: '',
     email: '',
+    role: 'MEMBER',
     sex: '',
     status: '',
     password: '',
@@ -59,6 +61,9 @@ const SignUpPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState(null);
+  const [registrationResult, setRegistrationResult] = useState(null);
+
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -119,23 +124,38 @@ const SignUpPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
-    
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
-      try {
-        console.log('Đăng ký với:', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Redirect to login after successful signup
-        window.location.href = '/login';
-      } catch (error) {
-        setErrors({
-          submit: 'Đăng ký thất bại. Vui lòng thử lại.'
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
+
+    if (Object.keys(newErrors).length !== 0) {
       setErrors(newErrors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setServerError(null);
+    try {
+      // build payload expected by the API
+      const payload = {
+        name: formData.name,
+        address: formData.address,
+        yearOfBirth: formData.yearOfBirth,
+        phone: formData.phone,
+        email: formData.email,
+        sex: formData.sex,
+        status: formData.status,
+        password: formData.password
+      };
+
+      const result = await registerMember(payload);
+      setRegistrationResult(result);
+      // on success navigate to login (or adjust as needed)
+      window.location.href = '/login';
+    } catch (err) {
+      // show server error in form area
+      const msg = err?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+      setErrors(prev => ({ ...prev, submit: msg }));
+      setServerError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -225,7 +245,7 @@ const SignUpPage = () => {
           {errors.sex && <span className="error-text">{errors.sex}</span>}
         </div>
 
-        <div className="form-group">
+        {/* <div className="form-group">
           <label>Trạng thái</label>
           <select
             name="status"
@@ -238,7 +258,7 @@ const SignUpPage = () => {
             <option value="inactive">Không hoạt động</option>
           </select>
           {errors.status && <span className="error-text">{errors.status}</span>}
-        </div>
+        </div> */}
 
         <Input
           label="Mật khẩu*"

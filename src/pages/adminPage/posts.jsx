@@ -1,35 +1,90 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import './posts.scss';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Table,
+  Button,
+  Input,
+  Select,
+  Tag,
+  Space,
+  Card,
+  Typography,
+  Pagination,
+  Modal,
+  notification,
+  Spin,
+  Alert,
+} from 'antd';
+import {
+  SearchOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  EyeOutlined,
+} from '@ant-design/icons';
 import { adminService } from '../../services/adminService';
 
-const samplePosts = [];
+const { Option } = Select;
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const Posts = () => {
   const [posts, setPosts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPosts, setSelectedPosts] = useState([]);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved, rejected
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved, rejected
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [sortOrder, setSortOrder] = useState({}); // { field: 'id', order: 'ascend' }
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const data = await adminService.getPosts({
-          page: currentPage,
-          size: itemsPerPage,
-          status: filterStatus === 'all' ? undefined : filterStatus,
-          search: searchTerm || undefined,
-          sort: sortConfig.key ? `${sortConfig.key},${sortConfig.direction}` : undefined,
-        });
-        const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
-        setPosts(list.map(p => ({
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return dateString;
+    }
+  };
+
+  // 1. Refine dependencies for useCallback
+  const fetchPosts = useCallback(async (
+    page = pagination.current, // Use defaults from state if not provided
+    pageSize = pagination.pageSize,
+    status = filterStatus,
+    search = searchTerm,
+    sort = sortOrder
+  ) => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = {
+        page: page,
+        size: pageSize,
+        status: status === 'all' ? undefined : status,
+        search: search || undefined,
+      };
+
+      if (sort.field) {
+        params.sort = `${sort.field},${sort.order === 'ascend' ? 'asc' : 'desc'}`;
+      }
+
+      const response = await adminService.getPosts(params);
+      const data = Array.isArray(response?.items) ? response.items : Array.isArray(response) ? response : [];
+
+      setPosts(
+        data.map((p) => ({
+          key: p.id || p.postId,
           id: p.id || p.postId,
           title: p.title,
           provinceCity: p.provinceCity || p.location,
@@ -38,273 +93,383 @@ const Posts = () => {
           memberId: p.memberId,
           price: p.price,
           status: p.status || 'pending',
-        })));
-      } catch (e) {
-        setError(e?.response?.data?.message || 'Không thể tải danh sách bài đăng');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPosts();
-  }, [currentPage, itemsPerPage, filterStatus, searchTerm, sortConfig]);
-
-  const handleSort = (key) => {
-    setSortConfig({ key, direction: sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc' });
-  };
-
-  const filtered = useMemo(() => {
-    let result = posts;
-    
-    // Filter by status
-    if (filterStatus !== 'all') {
-      result = result.filter(p => p.status === filterStatus);
-    }
-    
-    // Filter by search term
-    if (searchTerm) {
-      result = result.filter(p =>
-        Object.values(p).some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase()))
+        }))
       );
+      // ONLY update total here. current and pageSize are managed by handleTableChange
+      setPagination((prev) => ({
+        ...prev,
+        total: response?.totalItems || 0,
+      }));
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Không thể tải danh sách bài đăng');
+      notification.error({
+        message: 'Lỗi tải dữ liệu',
+        description: e?.response?.data?.message || 'Không thể tải danh sách bài đăng',
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    return result;
-  }, [posts, searchTerm, filterStatus]);
+  }, [error]);
 
-  const sorted = useMemo(() => {
-    if (!sortConfig.key) return filtered;
-    const dir = sortConfig.direction === 'asc' ? 1 : -1;
-    return [...filtered].sort((a, b) => String(a[sortConfig.key]).localeCompare(String(b[sortConfig.key])) * dir);
-  }, [filtered, sortConfig]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / itemsPerPage));
-  const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
+  // 2. useEffect now explicitly calls fetchPosts with current state values
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [totalPages]);
+    fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+  }, [pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder, fetchPosts]);
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) setSelectedPosts(paginated.map(p => p.id));
-    else setSelectedPosts([]);
-  };
 
-  const handleSelect = (id) => {
-    setSelectedPosts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
+  const handleTableChange = (newPagination, filters, sorter) => {
+    // Only update pagination state here. useEffect will react to these changes.
+    setPagination(newPagination);
 
-  const handleDelete = (id) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
-    setSelectedPosts(prev => prev.filter(x => x !== id));
-  };
-
-  const handleBulkDelete = () => {
-    if (window.confirm(`Bạn có chắc muốn xóa ${selectedPosts.length} bài đăng?`)) {
-      setPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
-      setSelectedPosts([]);
+    // Update sortOrder state
+    if (sorter.field) {
+      setSortOrder({ field: sorter.field, order: sorter.order });
+    } else {
+      setSortOrder({});
     }
   };
 
+  // ... rest of the component remains the same ...
   const handleApprove = async (id) => {
     try {
       await adminService.approvePost(id);
-      setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'approved' } : p));
+      notification.success({ message: 'Duyệt bài đăng thành công' });
+      // After an action, we want to refetch the current page to reflect changes
+      fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
     } catch (e) {
-      alert(e?.response?.data?.message || 'Duyệt bài thất bại');
+      notification.error({
+        message: 'Duyệt bài thất bại',
+        description: e?.response?.data?.message || 'Có lỗi xảy ra khi duyệt bài.',
+      });
     }
   };
 
   const handleReject = async (id) => {
     try {
       await adminService.rejectPost(id);
-      setPosts(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
+      notification.success({ message: 'Từ chối bài đăng thành công' });
+      fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
     } catch (e) {
-      alert(e?.response?.data?.message || 'Từ chối bài thất bại');
+      notification.error({
+        message: 'Từ chối bài thất bại',
+        description: e?.response?.data?.message || 'Có lỗi xảy ra khi từ chối bài.',
+      });
     }
+  };
+
+  const handleDelete = (id) => {
+    confirm({
+      title: 'Bạn có chắc chắn muốn xóa bài đăng này?',
+      icon: <ExclamationCircleOutlined />,
+      content: `Mã bài đăng: ${id}`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          // await adminService.deletePost(id); // Uncomment when implemented
+          // For frontend simulation, filter posts directly.
+          // For real API, fetchPosts() would reflect the change from the backend.
+          setPosts(prev => prev.filter(p => p.id !== id));
+          notification.success({ message: 'Xóa bài đăng thành công' });
+          setSelectedRowKeys(prev => prev.filter(key => key !== id));
+          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder); // Refetch to get updated total/pages
+        } catch (e) {
+          notification.error({
+            message: 'Xóa bài thất bại',
+            description: e?.response?.data?.message || 'Có lỗi xảy ra khi xóa bài.',
+          });
+        }
+      },
+    });
   };
 
   const handleBulkApprove = async () => {
-    try {
-      await Promise.all(selectedPosts.map(id => adminService.approvePost(id)));
-      setPosts(prev => prev.map(p => 
-        selectedPosts.includes(p.id) ? { ...p, status: 'approved' } : p
-      ));
-      setSelectedPosts([]);
-    } catch (e) {
-      alert('Duyệt hàng loạt thất bại');
-    }
+    confirm({
+      title: `Bạn có chắc chắn muốn duyệt ${selectedRowKeys.length} bài đăng đã chọn?`,
+      icon: <ExclamationCircleOutlined />,
+      okText: 'Duyệt',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await Promise.all(selectedRowKeys.map((id) => adminService.approvePost(id)));
+          notification.success({ message: 'Duyệt hàng loạt thành công' });
+          setSelectedRowKeys([]);
+          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+        } catch (e) {
+          notification.error({
+            message: 'Duyệt hàng loạt thất bại',
+            description: e?.response?.data?.message || 'Có lỗi xảy ra khi duyệt hàng loạt.',
+          });
+        }
+      },
+    });
   };
 
   const handleBulkReject = async () => {
-    try {
-      await Promise.all(selectedPosts.map(id => adminService.rejectPost(id)));
-      setPosts(prev => prev.map(p => 
-        selectedPosts.includes(p.id) ? { ...p, status: 'rejected' } : p
-      ));
-      setSelectedPosts([]);
-    } catch (e) {
-      alert('Từ chối hàng loạt thất bại');
+    confirm({
+      title: `Bạn có chắc chắn muốn từ chối ${selectedRowKeys.length} bài đăng đã chọn?`,
+      icon: <ExclamationCircleOutlined />,
+      okText: 'Từ chối',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await Promise.all(selectedRowKeys.map((id) => adminService.rejectPost(id)));
+          notification.success({ message: 'Từ chối hàng loạt thành công' });
+          setSelectedRowKeys([]);
+          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+        } catch (e) {
+          notification.error({
+            message: 'Từ chối hàng loạt thất bại',
+            description: e?.response?.data?.message || 'Có lỗi xảy ra khi từ chối hàng loạt.',
+          });
+        }
+      },
+    });
+  };
+
+  const handleBulkDelete = () => {
+    confirm({
+      title: `Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} bài đăng đã chọn?`,
+      icon: <ExclamationCircleOutlined />,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          // await Promise.all(selectedRowKeys.map(id => adminService.deletePost(id))); // Uncomment when implemented
+          setPosts(prev => prev.filter(p => !selectedRowKeys.includes(p.id))); // For frontend simulation
+          notification.success({ message: 'Xóa hàng loạt thành công' });
+          setSelectedRowKeys([]);
+          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+        } catch (e) {
+          notification.error({
+            message: 'Xóa hàng loạt thất bại',
+            description: e?.response?.data?.message || 'Có lỗi xảy ra khi xóa hàng loạt.',
+          });
+        }
+      },
+    });
+  };
+
+  const getStatusTag = (status) => {
+    switch (status) {
+      case 'pending':
+        return <Tag color="gold">Chờ duyệt</Tag>;
+      case 'approved':
+        return <Tag color="green">Đã duyệt</Tag>;
+      case 'rejected':
+        return <Tag color="red">Từ chối</Tag>;
+      default:
+        return <Tag>Không rõ</Tag>;
     }
   };
 
-  const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
-  const formatPrice = (v) =>
-    Number(v || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+  const statusCounts = useMemo(() => {
+    // This should ideally reflect the backend counts, not just the currently fetched `posts` array.
+    // If your API provides total counts for each status, use that.
+    // For now, it reflects the `posts` in state.
+    const counts = { all: 0, pending: 0, approved: 0, rejected: 0 };
+    posts.forEach((p) => {
+      counts.all++;
+      if (p.status in counts) {
+        counts[p.status]++;
+      }
+    });
+    return counts;
+  }, [posts]); // Recalculate if `posts` changes
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      pending: { text: 'Chờ duyệt', class: 'status-pending' },
-      approved: { text: 'Đã duyệt', class: 'status-approved' },
-      rejected: { text: 'Từ chối', class: 'status-rejected' }
-    };
-    return badges[status] || badges.pending;
+  const columns = [
+    {
+      title: 'Mã bài đăng',
+      dataIndex: 'id',
+      key: 'id',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Tiêu đề',
+      dataIndex: 'title',
+      key: 'title',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Tỉnh/Thành phố',
+      dataIndex: 'provinceCity',
+      key: 'provinceCity',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Loại bài',
+      dataIndex: 'postType',
+      key: 'postType',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+      render: (text) => formatDisplayDate(text),
+    },
+    {
+      title: 'Mã thành viên',
+      dataIndex: 'memberId',
+      key: 'memberId',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Giá',
+      dataIndex: 'price',
+      key: 'price',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+      render: (text) =>
+        Number(text || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      sorter: true,
+      sortDirections: ['ascend', 'descend'],
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="small">
+          {record.status === 'pending' && (
+            <>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={() => handleApprove(record.id)}
+                title="Duyệt"
+              />
+              <Button
+                type="danger"
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleReject(record.id)}
+                title="Từ chối"
+              />
+            </>
+          )}
+          {record.status === 'approved' && (
+            <Button
+              type="danger"
+              icon={<CloseCircleOutlined />}
+              onClick={() => handleReject(record.id)}
+              title="Từ chối"
+            />
+          )}
+          {record.status === 'rejected' && (
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              onClick={() => handleApprove(record.id)}
+              title="Duyệt"
+            />
+          )}
+          <Button icon={<EyeOutlined />} title="Chi tiết" />
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+            title="Xóa"
+          />
+        </Space>
+      ),
+    },
+  ];
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys) => {
+      setSelectedRowKeys(newSelectedRowKeys);
+    },
   };
 
-  const statusCounts = useMemo(() => {
-    return {
-      all: posts.length,
-      pending: posts.filter(p => p.status === 'pending').length,
-      approved: posts.filter(p => p.status === 'approved').length,
-      rejected: posts.filter(p => p.status === 'rejected').length
-    };
-  }, [posts]);
-
   return (
-    <div className="users-management">
-      <div className="card">
-        <div className="card-header">
-          <h2>Duyệt bài đăng</h2>
-          <div className="header-actions">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Tìm kiếm Mã bài, Tiêu đề, Tỉnh/Thành phố, Loại bài, Mã thành viên, Giá..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <span className="search-icon">🔍</span>
-            </div>
-
-            <select value={itemsPerPage} onChange={(e) => setItemsPerPage(Number(e.target.value))} className="select-entries">
-              <option value={10}>10 dòng</option>
-              <option value={25}>25 dòng</option>
-              <option value={50}>50 dòng</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="status-filter">
-          <button 
-            className={filterStatus === 'all' ? 'active' : ''} 
-            onClick={() => setFilterStatus('all')}
+    <Card
+      title={<Title level={4}>Duyệt bài đăng</Title>}
+      extra={
+        <Space>
+          <Input
+            placeholder="Tìm kiếm..."
+            prefix={<SearchOutlined />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: 300 }}
+          />
+          <Select
+            value={pagination.pageSize}
+            onChange={(value) => setPagination((prev) => ({ ...prev, pageSize: value, current: 1 }))} // Reset current to 1 when page size changes
+            style={{ width: 120 }}
           >
-            Tất cả ({statusCounts.all})
-          </button>
-          <button 
-            className={filterStatus === 'pending' ? 'active' : ''} 
-            onClick={() => setFilterStatus('pending')}
-          >
-            Chờ duyệt ({statusCounts.pending})
-          </button>
-          <button 
-            className={filterStatus === 'approved' ? 'active' : ''} 
-            onClick={() => setFilterStatus('approved')}
-          >
-            Đã duyệt ({statusCounts.approved})
-          </button>
-          <button 
-            className={filterStatus === 'rejected' ? 'active' : ''} 
-            onClick={() => setFilterStatus('rejected')}
-          >
-            Từ chối ({statusCounts.rejected})
-          </button>
-        </div>
+            <Option value={10}>10 dòng</Option>
+            <Option value={25}>25 dòng</Option>
+            <Option value={50}>50 dòng</Option>
+          </Select>
+        </Space>
+      }
+    >
+      <Space style={{ marginBottom: 16 }}>
+        <Button onClick={() => setFilterStatus('all')} type={filterStatus === 'all' ? 'primary' : 'default'}>
+          Tất cả ({statusCounts.all})
+        </Button>
+        <Button onClick={() => setFilterStatus('pending')} type={filterStatus === 'pending' ? 'primary' : 'default'}>
+          Chờ duyệt ({statusCounts.pending})
+        </Button>
+        <Button onClick={() => setFilterStatus('approved')} type={filterStatus === 'approved' ? 'primary' : 'default'}>
+          Đã duyệt ({statusCounts.approved})
+        </Button>
+        <Button onClick={() => setFilterStatus('rejected')} type={filterStatus === 'rejected' ? 'primary' : 'default'}>
+          Từ chối ({statusCounts.rejected})
+        </Button>
+      </Space>
 
-        {loading && <div className="loading">Đang tải...</div>}
-        {error && <div className="error-message">{error}</div>}
-        <div className="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  <input type="checkbox" checked={selectedPosts.length === paginated.length && paginated.length > 0} onChange={handleSelectAll} />
-                </th>
-                <th onClick={() => handleSort('id')} className="sortable">Mã bài đăng {sortConfig.key === 'id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('title')} className="sortable">Tiêu đề {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('provinceCity')} className="sortable">Tỉnh/Thành phố {sortConfig.key === 'provinceCity' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('postType')} className="sortable">Loại bài {sortConfig.key === 'postType' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('createdAt')} className="sortable">Ngày {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('memberId')} className="sortable">Mã thành viên {sortConfig.key === 'memberId' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('price')} className="sortable">Giá {sortConfig.key === 'price' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th onClick={() => handleSort('status')} className="sortable">Trạng thái {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map(p => {
-                const statusBadge = getStatusBadge(p.status);
-                return (
-                  <tr key={p.id} className={selectedPosts.includes(p.id) ? 'selected' : ''}>
-                    <td>
-                      <input type="checkbox" checked={selectedPosts.includes(p.id)} onChange={() => handleSelect(p.id)} />
-                    </td>
-                    <td>{p.id}</td>
-                    <td>{p.title}</td>
-                    <td>{p.provinceCity}</td>
-                    <td>{p.postType}</td>
-                    <td>{formatDate(p.createdAt)}</td>
-                    <td>{p.memberId}</td>
-                    <td>{formatPrice(p.price)}</td>
-                    <td>
-                      <span className={`status-badge ${statusBadge.class}`}>
-                        {statusBadge.text}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        {p.status === 'pending' && (
-                          <>
-                            <button className="btn-icon approve" onClick={() => handleApprove(p.id)} title="Duyệt">✓</button>
-                            <button className="btn-icon reject" onClick={() => handleReject(p.id)} title="Từ chối">✗</button>
-                          </>
-                        )}
-                        {p.status === 'approved' && (
-                          <button className="btn-icon reject" onClick={() => handleReject(p.id)} title="Từ chối">✗</button>
-                        )}
-                        {p.status === 'rejected' && (
-                          <button className="btn-icon approve" onClick={() => handleApprove(p.id)} title="Duyệt">✓</button>
-                        )}
-                        <button className="btn-icon" title="Chi tiết">🔍</button>
-                        <button className="btn-icon delete" onClick={() => handleDelete(p.id)} title="Xóa">🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {error && <Alert message="Lỗi" description={error} type="error" showIcon style={{ marginBottom: 16 }} />}
 
-        <div className="table-footer">
-          <div className="bulk-actions">
-            {selectedPosts.length > 0 && (
-              <>
-                <button className="btn-success" onClick={handleBulkApprove}>Duyệt ({selectedPosts.length})</button>
-                <button className="btn-warning" onClick={handleBulkReject}>Từ chối ({selectedPosts.length})</button>
-                <button className="btn-danger" onClick={handleBulkDelete}>Xóa ({selectedPosts.length})</button>
-              </>
-            )}
-          </div>
+      <Table
+        columns={columns}
+        dataSource={posts}
+        loading={loading}
+        rowSelection={rowSelection}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} bài đăng`,
+        }}
+        onChange={handleTableChange}
+        scroll={{ x: 'max-content' }}
+      />
 
-          <div className="pagination">
-            <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>⟪</button>
-            <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>⟨</button>
-            <span>Trang {currentPage} / {totalPages}</span>
-            <button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>⟩</button>
-            <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>⟫</button>
-          </div>
+      {selectedRowKeys.length > 0 && (
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text>Đã chọn {selectedRowKeys.length} bài đăng</Text>
+          <Space>
+            <Button type="primary" onClick={handleBulkApprove}>
+              Duyệt hàng loạt ({selectedRowKeys.length})
+            </Button>
+            <Button type="warning" onClick={handleBulkReject}>
+              Từ chối hàng loạt ({selectedRowKeys.length})
+            </Button>
+            <Button type="danger" onClick={handleBulkDelete}>
+              Xóa hàng loạt ({selectedRowKeys.length})
+            </Button>
+          </Space>
         </div>
-      </div>
-    </div>
+      )}
+    </Card>
   );
 };
 

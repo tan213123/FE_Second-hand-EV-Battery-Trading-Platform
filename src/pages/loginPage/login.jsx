@@ -93,7 +93,7 @@ const LoginPage = () => {
         // Demo Admin Account - kiểm tra trước khi call API
         if (formData.email === 'admin@admin.com' && formData.password === 'admin123') {
           const adminData = {
-            memberId: 'ADMIN001',
+            memberId: '10',
             name: 'Administrator',
             email: 'admin@admin.com',
             role: 'admin',
