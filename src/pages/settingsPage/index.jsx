@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useDispatch, useSelector } from 'react-redux'
+import { logout } from '../../redux/memberSlice'
+import { toast } from 'react-toastify'
 import './index.scss'
 
 // Icon components
@@ -56,7 +58,9 @@ const ChevronRightIcon = () => (
 
 function SettingsPage() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const dispatch = useDispatch()
+  const member = useSelector((store) => store.member)
+  const isAuthenticated = !!member
   
   const [settings, setSettings] = useState({
     notifications: {
@@ -77,6 +81,12 @@ function SettingsPage() {
     twoFactorAuth: false
   })
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login')
+    }
+  }, [isAuthenticated, navigate])
+
   const handleSettingChange = (category, key, value) => {
     setSettings(prev => ({
       ...prev,
@@ -92,11 +102,14 @@ function SettingsPage() {
       console.log('🚪 Settings page - User confirmed logout')
       
       // Thực hiện logout
-      logout()
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      dispatch(logout())
       
       // Chuyển về trang home
       navigate('/', { replace: true })
       console.log('✅ Settings page - Đã đăng xuất và chuyển về trang chủ')
+      toast.success('Đăng xuất thành công')
     }
   }
 
@@ -113,7 +126,7 @@ function SettingsPage() {
         {
           title: 'Đổi mật khẩu',
           subtitle: 'Cập nhật mật khẩu bảo mật',
-          action: () => console.log('Change password')
+          action: () => navigate('/forgot')
         },
       ]
     },

@@ -4,6 +4,10 @@ import api from "../../config/api";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { message, Form } from "antd";
+import { useDispatch } from "react-redux";
+import { login as loginAction } from "../../redux/memberSlice";
+import { auth } from "../../config/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const Input = ({
   label,
@@ -67,6 +71,7 @@ const SocialLogin = ({ onGoogleLogin }) => {
 
 const SignUpPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const password = Form.useWatch("password", form);
@@ -102,9 +107,34 @@ const SignUpPage = () => {
     }
   };
 
-  const handleSocialLogin = useCallback((provider) => {
-    console.log(`Đăng ký với ${provider}`);
-  }, []);
+  const handleGoogleLogin = useCallback(async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+      const idToken = await firebaseUser.getIdToken();
+
+      // Exchange Firebase ID token for your backend JWT
+      // TODO: confirm the exact endpoint with backend
+      const resp = await api.post("/members/oauth/google", { idToken });
+      const { token, role } = resp.data || {};
+
+      if (!token) {
+        toast.error("Không nhận được token từ máy chủ");
+        return;
+      }
+
+      localStorage.setItem("token", token);
+      dispatch(loginAction(resp.data));
+      toast.success("Đăng nhập Google thành công!");
+      if (role === "ADMIN") navigate("/admin");
+      else navigate("/");
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      const msg = err?.response?.data?.message || err?.message || "Đăng nhập Google thất bại";
+      toast.error(msg);
+    }
+  }, [dispatch, navigate]);
 
   return (
     <div className="signup-container">
@@ -316,7 +346,7 @@ const SignUpPage = () => {
           <span>hoặc</span>
         </div>
 
-        <SocialLogin onGoogleLogin={() => handleSocialLogin("Google")} />
+        <SocialLogin onGoogleLogin={handleGoogleLogin} />
         <div className="footer-links">
           <a href="/terms">Điều khoản sử dụng</a>
           <a href="/privacy">Chính sách bảo mật</a>

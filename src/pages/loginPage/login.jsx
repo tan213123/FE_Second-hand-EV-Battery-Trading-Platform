@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 import "./login.scss";
 import { useDispatch } from "react-redux";
 import { login } from "../../redux/memberSlice";
+import { auth } from "../../config/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const Input = ({ label, type, name, value, onChange, placeholder, error }) => {
   return (
@@ -89,9 +91,31 @@ const LoginPage = () => {
     }
   };
 
-  const handleSocialLogin = useCallback((provider) => {
-    console.log(`Logging in with ${provider}`);
-  }, []);
+  const handleGoogleLogin = useCallback(async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+      const idToken = await firebaseUser.getIdToken();
+
+      // Exchange Firebase ID token for your backend JWT
+      const resp = await api.post("/members/oauth/google", { idToken });
+      const { token, role } = resp.data || {};
+      if (!token) {
+        toast.error("Không nhận được token từ máy chủ");
+        return;
+      }
+      localStorage.setItem("token", token);
+      dispatch(login(resp.data));
+      toast.success("Đăng nhập Google thành công!");
+      if (role === "ADMIN") navigate("/admin");
+      else navigate("/");
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      const msg = err?.response?.data?.message || err?.message || "Đăng nhập Google thất bại";
+      toast.error(msg);
+    }
+  }, [dispatch, navigate]);
 
   return (
     <div className="login-page">
@@ -187,7 +211,7 @@ const LoginPage = () => {
               <span>hoặc</span>
             </div>
 
-            <SocialLogin onGoogleLogin={() => handleSocialLogin("Google")} />
+            <SocialLogin onGoogleLogin={handleGoogleLogin} />
 
             <p className="signup-text">
               Chưa có tài khoản? <a href="/signup">Đăng ký ngay</a>

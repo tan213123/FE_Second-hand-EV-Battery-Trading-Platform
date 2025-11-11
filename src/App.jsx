@@ -27,6 +27,7 @@ import PaymentPage from "./pages/paymentPage";
 import PaymentResultPage from "./pages/paymentResultPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import ProtectedRoute from "./components/protected-route";
 
 function App() {
   const router = createBrowserRouter([

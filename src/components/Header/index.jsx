@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useSelector, useDispatch } from 'react-redux'
+import { logout as logoutAction } from '../../redux/memberSlice'
 import './index.scss'
 
 // Icon Components
@@ -46,7 +47,10 @@ const AuctionIcon = () => (
 
 function Header() {
   const navigate = useNavigate()
-  const { user, isAuthenticated, logout } = useAuth()
+  const dispatch = useDispatch()
+  const member = useSelector((store) => store.member)
+  const isAuthenticated = !!member
+  const user = member
   const [showMenuDropdown, setShowMenuDropdown] = useState(false)
   const [showSellerDropdown, setShowSellerDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
@@ -79,8 +83,10 @@ function Header() {
     setShowMenuDropdown(false)
     setShowSellerDropdown(false)
     
-    // Thực hiện logout
-    logout()
+    // Thực hiện logout (Redux + localStorage)
+    dispatch(logoutAction())
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     
     // Chuyển về trang home sau khi đăng xuất - sử dụng replace để không lưu history
     navigate('/', { replace: true })
@@ -464,14 +470,16 @@ function Header() {
                     <HeartIcon />
                     <span>Tin đã lưu</span>
                   </Link>
-                  <Link 
-                    to="/admin" 
-                    className="dropdown-item"
-                    onClick={() => setShowUserDropdown(false)}
-                  >
-                    <div className="item-icon">⚙️</div>
-                    <span>Quản trị Admin</span>
-                  </Link>
+                  {member?.role === 'ADMIN' && (
+                    <Link 
+                      to="/admin" 
+                      className="dropdown-item"
+                      onClick={() => setShowUserDropdown(false)}
+                    >
+                      <div className="item-icon">⚙️</div>
+                      <span>Quản trị Admin</span>
+                    </Link>
+                  )}
                   <Link 
                     to="/settings" 
                     className="dropdown-item"

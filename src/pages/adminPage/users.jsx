@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './users.scss';
-import { adminService } from '../../services/adminService';
+import { useDispatch } from 'react-redux';
+import { fetchUsers as fetchUsersThunk, blockUser as blockUserThunk, unblockUser as unblockUserThunk } from '../../redux/adminSlice';
 
 const Users = () => {
+  const dispatch = useDispatch();
   // API state
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,28 +23,33 @@ const Users = () => {
       setLoading(true);
       setError('');
       try {
-        const data = await adminService.getUsers({
+        const params = {
           page: currentPage,
           size: itemsPerPage,
           status: filterStatus === 'all' ? undefined : filterStatus,
           search: searchTerm || undefined,
           sort: sortConfig.key ? `${sortConfig.key},${sortConfig.direction}` : undefined,
-        });
-        // Expecting data.items and data.total; fallback for array
-        const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
-        setUsers(list.map(u => ({
-          nameId: u.nameId || u.memberId || u.id,
-          fullName: u.fullName || u.name,
-          address: u.address,
-          dateOfBirth: u.dateOfBirth,
-          phoneNumber: u.phoneNumber || u.phone,
-          email: u.email,
-          gender: u.gender || u.sex,
-          dateSignup: u.dateSignup || u.createdAt,
-          status: u.status || (u.blocked ? 'blocked' : 'active'),
-          postsCount: u.postsCount ?? u.numPosts ?? 0,
-          violationsCount: u.violationsCount ?? u.numViolations ?? 0,
-        })));
+        };
+        const action = await dispatch(fetchUsersThunk(params));
+        if (fetchUsersThunk.fulfilled.match(action)) {
+          const data = action.payload;
+          const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+          setUsers(list.map(u => ({
+            nameId: u.nameId || u.memberId || u.id,
+            fullName: u.fullName || u.name,
+            address: u.address,
+            dateOfBirth: u.dateOfBirth,
+            phoneNumber: u.phoneNumber || u.phone,
+            email: u.email,
+            gender: u.gender || u.sex,
+            dateSignup: u.dateSignup || u.createdAt,
+            status: u.status || (u.blocked ? 'blocked' : 'active'),
+            postsCount: u.postsCount ?? u.numPosts ?? 0,
+            violationsCount: u.violationsCount ?? u.numViolations ?? 0,
+          })));
+        } else {
+          throw new Error(action.payload || 'Không thể tải danh sách người dùng');
+        }
       } catch (e) {
         setError(e?.response?.data?.message || 'Không thể tải danh sách người dùng');
       } finally {
@@ -129,7 +136,8 @@ const Users = () => {
       const confirmReason = reason || prompt('Lý do khóa tài khoản:');
       if (confirmReason) {
         try {
-          await adminService.blockUser(nameId, confirmReason);
+          const action = await dispatch(blockUserThunk({ id: nameId, reason: confirmReason }));
+          if (blockUserThunk.rejected.match(action)) throw new Error(action.payload);
           setUsers(prev => prev.map(u => 
             u.nameId === nameId 
               ? { ...u, status: 'blocked', blockReason: confirmReason, violationsCount: (u.violationsCount || 0) + 1 }
@@ -145,7 +153,8 @@ const Users = () => {
   const handleUnblock = async (nameId) => {
     if (window.confirm('Bạn có chắc muốn mở khóa tài khoản này?')) {
       try {
-        await adminService.unblockUser(nameId);
+        const action = await dispatch(unblockUserThunk(nameId));
+        if (unblockUserThunk.rejected.match(action)) throw new Error(action.payload);
         setUsers(prev => prev.map(u => 
           u.nameId === nameId 
             ? { ...u, status: 'active', blockReason: undefined }
