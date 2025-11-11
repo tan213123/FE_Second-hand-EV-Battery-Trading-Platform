@@ -31,8 +31,7 @@ export const authService = {
   }
 }
 
-// Export registerMember as named export for convenience
-export const registerMember = authService.registerMember;
+
 
 export default authService
 

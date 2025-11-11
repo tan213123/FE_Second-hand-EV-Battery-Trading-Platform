@@ -62,9 +62,7 @@ function App() {
     {
       path: "/admin",
       element: (
-        <ProtectedRoute role={"ADMIN"}>
           <AdminPage />
-        </ProtectedRoute>
       ),
     },
   ]);
