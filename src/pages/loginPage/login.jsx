@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../config/api";
-import { Form, message } from "antd";
+import { Form } from "antd";
 import { toast } from "react-toastify";
 import "./login.scss";
 import { useDispatch } from "react-redux";
@@ -112,7 +112,10 @@ const LoginPage = () => {
       else navigate("/");
     } catch (err) {
       console.error("Google sign-in error:", err);
-      const msg = err?.response?.data?.message || err?.message || "Đăng nhập Google thất bại";
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Đăng nhập Google thất bại";
       toast.error(msg);
     }
   }, [dispatch, navigate]);
