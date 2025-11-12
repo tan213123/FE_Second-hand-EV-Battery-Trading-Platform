@@ -202,6 +202,6 @@ const AdminPage = () => {
       </Layout>
     </Layout>
   );
-}
+};
 
-export default AdminPage
+export default AdminPage;

@@ -134,67 +134,85 @@ const Reports = () => {
     ],
   };
 
-  const lineChartData =
-    viewMode === "year"
-      ? {
-          labels: filteredData.monthlyData.labels,
-          datasets: [
-            {
-              label: "Cơ bản",
-              data: filteredData.monthlyData.basic,
-              borderColor: "rgba(53, 162, 235, 0.8)",
-              backgroundColor: "rgba(53, 162, 235, 0.1)",
-              fill: true,
-            },
-            {
-              label: "Premium",
-              data: filteredData.monthlyData.premium,
-              borderColor: "rgba(75, 192, 192, 0.8)",
-              backgroundColor: "rgba(75, 192, 192, 0.1)",
-              fill: true,
-            },
-            {
-              label: "Doanh nghiệp",
-              data: filteredData.monthlyData.enterprise,
-              borderColor: "rgba(255, 159, 64, 0.8)",
-              backgroundColor: "rgba(255, 159, 64, 0.1)",
-              fill: true,
-            },
-          ],
-        }
-      : null;
+  const lineChartData = useMemo(
+    () =>
+      viewMode === "year"
+        ? {
+            labels: Array.isArray(filteredData.monthlyData.labels)
+              ? [...filteredData.monthlyData.labels]
+              : [],
+            datasets: [
+              {
+                label: "Cơ bản",
+                data: Array.isArray(filteredData.monthlyData.basic)
+                  ? [...filteredData.monthlyData.basic]
+                  : [],
+                borderColor: "rgba(53, 162, 235, 0.8)",
+                backgroundColor: "rgba(53, 162, 235, 0.1)",
+                fill: true,
+              },
+              {
+                label: "Premium",
+                data: Array.isArray(filteredData.monthlyData.premium)
+                  ? [...filteredData.monthlyData.premium]
+                  : [],
+                borderColor: "rgba(75, 192, 192, 0.8)",
+                backgroundColor: "rgba(75, 192, 192, 0.1)",
+                fill: true,
+              },
+              {
+                label: "Doanh nghiệp",
+                data: Array.isArray(filteredData.monthlyData.enterprise)
+                  ? [...filteredData.monthlyData.enterprise]
+                  : [],
+                borderColor: "rgba(255, 159, 64, 0.8)",
+                backgroundColor: "rgba(255, 159, 64, 0.1)",
+                fill: true,
+              },
+            ],
+          }
+        : null,
+    [viewMode, filteredData.monthlyData]
+  );
 
-  const revenueChartData =
-    viewMode === "year"
-      ? {
-          labels: filteredData.revenueData.labels,
-          datasets: [
-            {
-              label: "Doanh thu (VNĐ)",
-              data: filteredData.revenueData.data,
-              borderColor: "rgba(75, 192, 192, 1)",
-              backgroundColor: "rgba(75, 192, 192, 0.1)",
-              fill: true,
-            },
-          ],
-        }
-      : {
-          labels: filteredData.dailyData.labels,
-          datasets: [
-            {
-              label: "Doanh thu theo ngày (VNĐ)",
-              data: filteredData.dailyData.revenue,
-              borderColor: "rgba(75, 192, 192, 1)",
-              backgroundColor: "rgba(75, 192, 192, 0.1)",
-              fill: true,
-            },
-          ],
-        };
-
-  const totalRevenue =
-    viewMode === "year"
-      ? filteredData.revenueData.data.reduce((a, b) => a + b, 0)
-      : filteredData.dailyData.revenue.reduce((a, b) => a + b, 0);
+  const revenueChartData = useMemo(
+    () =>
+      viewMode === "year"
+        ? {
+            labels: Array.isArray(filteredData.revenueData.labels)
+              ? [...filteredData.revenueData.labels]
+              : [],
+            datasets: [
+              {
+                label: "Doanh thu (VNĐ)",
+                data: Array.isArray(filteredData.revenueData.data)
+                  ? [...filteredData.revenueData.data]
+                  : [],
+                borderColor: "rgba(75, 192, 192, 1)",
+                backgroundColor: "rgba(75, 192, 192, 0.1)",
+                fill: true,
+              },
+            ],
+          }
+        : {
+            labels: Array.isArray(filteredData.dailyData.labels)
+              ? [...filteredData.dailyData.labels]
+              : [],
+            datasets: [
+              {
+                label: "Doanh thu theo ngày (VNĐ)",
+                data: Array.isArray(filteredData.dailyData.revenue)
+                  ? [...filteredData.dailyData.revenue]
+                  : [],
+                borderColor: "rgba(75, 192, 192, 1)",
+                backgroundColor: "rgba(75, 192, 192, 0.1)",
+                fill: true,
+                key: "daily-revenue",
+              },
+            ],
+          },
+    [viewMode, filteredData.revenueData, filteredData.dailyData]
+  );
 
   const currentPeriodRevenue =
     viewMode === "year"
@@ -322,7 +340,11 @@ const Reports = () => {
         {viewMode === "year" && lineChartData && (
           <div className="chart-card full-width">
             <h3>Xu hướng đăng ký theo tháng - Năm {selectedYear}</h3>
-            <Line data={lineChartData} options={chartOptions} />
+            <Line
+              key={`subs-${selectedYear}`}
+              data={lineChartData}
+              options={chartOptions}
+            />
           </div>
         )}
 
@@ -332,7 +354,11 @@ const Reports = () => {
               ? `Doanh thu theo tháng - Năm ${selectedYear}`
               : `Doanh thu theo ngày - Tháng ${selectedMonth}/${selectedYear}`}
           </h3>
-          <Line data={revenueChartData} options={revenueOptions} />
+          <Line
+            key={`rev-${viewMode}-${selectedYear}-${selectedMonth}`}
+            data={revenueChartData}
+            options={revenueOptions}
+          />
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
-import { fetchAdminPosts, approvePost as approvePostThunk, rejectPost as rejectPostThunk } from '../../redux/adminSlice';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSelector } from "react-redux";
+import api from "../../config/api";
 
 import {
   Table,
@@ -11,12 +11,11 @@ import {
   Space,
   Card,
   Typography,
-  Pagination,
   Modal,
   notification,
-  Spin,
   Alert,
-} from 'antd';
+  Popconfirm,
+} from "antd";
 import {
   SearchOutlined,
   CheckCircleOutlined,
@@ -24,35 +23,44 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
-} from '@ant-design/icons';
+} from "@ant-design/icons";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { confirm } = Modal;
 
 const Posts = () => {
-  const dispatch = useDispatch();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved, rejected
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); // all, pending, approved, rejected
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [sortOrder, setSortOrder] = useState({}); // { field: 'id', order: 'ascend' }
+  const [approvingIds, setApprovingIds] = useState([]);
+  const [rejectingIds, setRejectingIds] = useState([]);
+  const [deletingIds, setDeletingIds] = useState([]);
+
+  const member = useSelector((state) => state.member);
+  const adminMemberId = useMemo(
+    () =>
+      (member && (member.id ?? member.memberId ?? member.accountId ?? member.userId)) || null,
+    [member]
+  );
 
   const formatDisplayDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
+      return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
       });
     } catch (e) {
       console.error("Error formatting date:", e);
@@ -61,68 +69,113 @@ const Posts = () => {
   };
 
   // 1. Refine dependencies for useCallback
-  const fetchPosts = useCallback(async (
-    page = pagination.current, // Use defaults from state if not provided
-    pageSize = pagination.pageSize,
-    status = filterStatus,
-    search = searchTerm,
-    sort = sortOrder
-  ) => {
-    setLoading(true);
-    setError('');
-    try {
-      const params = {
-        page: page,
-        size: pageSize,
-        status: status === 'all' ? undefined : status,
-        search: search || undefined,
-      };
+  const fetchPosts = useCallback(
+    async (page, pageSize, status, search, sort) => {
+      setLoading(true);
+      setError("");
+      try {
+        const params = {
+          page: page,
+          size: pageSize,
+          status: status === "all" ? undefined : status,
+          search: search || undefined,
+        };
 
-      if (sort.field) {
-        params.sort = `${sort.field},${sort.order === 'ascend' ? 'asc' : 'desc'}`;
-      }
+        if (sort.field) {
+          params.sort = `${sort.field},${
+            sort.order === "ascend" ? "asc" : "desc"
+          }`;
+        }
 
-      const action = await dispatch(fetchAdminPosts(params));
-      if (fetchAdminPosts.fulfilled.match(action)) {
-        const response = action.payload;
-        const data = Array.isArray(response?.items) ? response.items : Array.isArray(response) ? response : [];
+        const res = await api.get("/article", { params });
+        const response = res.data;
+        const data = Array.isArray(response?.items)
+          ? response.items
+          : Array.isArray(response)
+          ? response
+          : Array.isArray(response?.content)
+          ? response.content
+          : [];
 
         setPosts(
           data.map((p) => ({
-            key: p.id || p.postId,
-            id: p.id || p.postId,
+            key: p.articleId || p.id || p.postId,
+            id: p.articleId || p.id || p.postId,
             title: p.title,
             provinceCity: p.provinceCity || p.location,
-            postType: p.postType || p.type,
-            createdAt: p.createdAt,
+            postType: (() => {
+              const primary = p.articleType || p.postType || "";
+              const secondary = (p.type || "").toString();
+              const pick =
+                primary ||
+                (/(car|battery|motor)/i.test(secondary) ? secondary : "");
+              const norm = pick.toString().toUpperCase();
+              if (norm.includes("BATTERY")) return "battery";
+              if (norm.includes("CAR")) return "car";
+              if (norm.includes("MOTOR")) return "motor";
+              return "";
+            })(),
+            createdAt: p.createdAt || p.publicDate || p.postedDate,
             memberId: p.memberId,
             price: p.price,
-            status: p.status || 'pending',
+            status: (() => {
+              const raw = (p.status || p.articleStatus || "PENDING_APPROVAL")
+                .toString()
+                .trim()
+                .toUpperCase();
+              if (raw === "APPROVED") return "approved";
+              if (raw === "REJECTED") return "rejected";
+              if (raw.startsWith("PENDING")) return "pending";
+              return (p.status || "").toString().toLowerCase() || "pending";
+            })(),
           }))
         );
         // ONLY update total here. current and pageSize are managed by handleTableChange
         setPagination((prev) => ({
           ...prev,
-          total: response?.totalItems || 0,
+          total:
+            response?.totalItems || response?.totalElements || data.length || 0,
         }));
-      } else {
-        throw new Error(action.payload || 'Không thể tải danh sách bài đăng');
+      } catch (e) {
+        setError(
+          e?.response?.data?.message || "Không thể tải danh sách bài đăng"
+        );
+        notification.error({
+          message: "Lỗi tải dữ liệu",
+          description:
+            e?.response?.data?.message || "Không thể tải danh sách bài đăng",
+        });
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      setError(e?.response?.data?.message || 'Không thể tải danh sách bài đăng');
-      notification.error({
-        message: 'Lỗi tải dữ liệu',
-        description: e?.response?.data?.message || 'Không thể tải danh sách bài đăng',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch, error, filterStatus, searchTerm, sortOrder, pagination.current, pagination.pageSize]);
+    },
+    [
+      error,
+      filterStatus,
+      searchTerm,
+      sortOrder,
+      pagination.current,
+      pagination.pageSize,
+    ]
+  );
 
   // 2. useEffect now explicitly calls fetchPosts with current state values
   useEffect(() => {
-    fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
-  }, [pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder, fetchPosts]);
+    fetchPosts(
+      pagination.current,
+      pagination.pageSize,
+      filterStatus,
+      searchTerm,
+      sortOrder
+    );
+  }, [
+    pagination.current,
+    pagination.pageSize,
+    filterStatus,
+    searchTerm,
+    sortOrder,
+    fetchPosts,
+  ]);
 
   const handleTableChange = (newPagination, filters, sorter) => {
     // Only update pagination state here. useEffect will react to these changes.
@@ -139,78 +192,134 @@ const Posts = () => {
   // ... rest of the component remains the same ...
   const handleApprove = async (id) => {
     try {
-      const action = await dispatch(approvePostThunk(id));
-      if (approvePostThunk.rejected.match(action)) throw new Error(action.payload);
-      notification.success({ message: 'Duyệt bài đăng thành công' });
-      // After an action, we want to refetch the current page to reflect changes
-      fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
-    } catch (e) {
-      notification.error({
-        message: 'Duyệt bài thất bại',
-        description: e?.response?.data?.message || 'Có lỗi xảy ra khi duyệt bài.',
+      setApprovingIds((prev) => [...prev, id]);
+      if (!adminMemberId) {
+        notification.error({ message: "Không tìm thấy mã quản trị để duyệt" });
+        return;
+      }
+      const res = await api.post(`/article/${id}/approve`, {
+        articleId: id,
+        memberId: adminMemberId,
       });
+      console.log("Approve response:", { status: res.status, data: res.data, id });
+      notification.success({ message: "Duyệt bài đăng thành công" });
+      fetchPosts(
+        pagination.current,
+        pagination.pageSize,
+        filterStatus,
+        searchTerm,
+        sortOrder
+      );
+    } catch (e) {
+      console.error("Approve error:", e?.response || e);
+      notification.error({
+        message: "Duyệt bài thất bại",
+        description:
+          e?.response?.data?.message || "Có lỗi xảy ra khi duyệt bài.",
+      });
+    } finally {
+      setApprovingIds((prev) => prev.filter((x) => x !== id));
     }
   };
 
   const handleReject = async (id) => {
     try {
-      const action = await dispatch(rejectPostThunk(id));
-      if (rejectPostThunk.rejected.match(action)) throw new Error(action.payload);
-      notification.success({ message: 'Từ chối bài đăng thành công' });
-      fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
-    } catch (e) {
-      notification.error({
-        message: 'Từ chối bài thất bại',
-        description: e?.response?.data?.message || 'Có lỗi xảy ra khi từ chối bài.',
+      setRejectingIds((prev) => [...prev, id]);
+      if (!adminMemberId) {
+        notification.error({ message: "Không tìm thấy mã quản trị để từ chối" });
+        return;
+      }
+      const res = await api.post(`/article/${id}/reject`, {
+        articleId: id,
+        memberId: adminMemberId,
       });
+      console.log("Reject response:", { status: res.status, data: res.data, id });
+      notification.success({ message: "Từ chối bài đăng thành công" });
+      fetchPosts(
+        pagination.current,
+        pagination.pageSize,
+        filterStatus,
+        searchTerm,
+        sortOrder
+      );
+    } catch (e) {
+      console.error("Reject error:", e?.response || e);
+      notification.error({
+        message: "Từ chối bài thất bại",
+        description:
+          e?.response?.data?.message || "Có lỗi xảy ra khi từ chối bài.",
+      });
+    } finally {
+      setRejectingIds((prev) => prev.filter((x) => x !== id));
     }
   };
 
-  const handleDelete = (id) => {
-    confirm({
-      title: 'Bạn có chắc chắn muốn xóa bài đăng này?',
-      icon: <ExclamationCircleOutlined />,
-      content: `Mã bài đăng: ${id}`,
-      okText: 'Xóa',
-      okType: 'danger',
-      cancelText: 'Hủy',
-      onOk: async () => {
-        try {
-          // TODO: add deletePost thunk if backend supports
-          // For frontend simulation, filter posts directly.
-          // For real API, fetchPosts() would reflect the change from the backend.
-          setPosts(prev => prev.filter(p => p.id !== id));
-          notification.success({ message: 'Xóa bài đăng thành công' });
-          setSelectedRowKeys(prev => prev.filter(key => key !== id));
-          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder); // Refetch to get updated total/pages
-        } catch (e) {
-          notification.error({
-            message: 'Xóa bài thất bại',
-            description: e?.response?.data?.message || 'Có lỗi xảy ra khi xóa bài.',
-          });
-        }
-      },
-    });
+  const handleDelete = async (id) => {
+    try {
+      setDeletingIds((prev) => [...prev, id]);
+      const res = await api.delete(`/article/${id}`);
+      console.log("Delete response:", {
+        status: res.status,
+        data: res.data,
+        id,
+      });
+      notification.success({ message: "Xóa bài đăng thành công" });
+      setSelectedRowKeys((prev) => prev.filter((key) => key !== id));
+      fetchPosts(
+        pagination.current,
+        pagination.pageSize,
+        filterStatus,
+        searchTerm,
+        sortOrder
+      );
+    } catch (e) {
+      console.error("Delete error:", e?.response || e);
+      notification.error({
+        message: "Xóa bài thất bại",
+        description: e?.response?.data?.message || "Có lỗi xảy ra khi xóa bài.",
+      });
+    } finally {
+      setDeletingIds((prev) => prev.filter((x) => x !== id));
+    }
   };
 
   const handleBulkApprove = async () => {
     confirm({
       title: `Bạn có chắc chắn muốn duyệt ${selectedRowKeys.length} bài đăng đã chọn?`,
       icon: <ExclamationCircleOutlined />,
-      okText: 'Duyệt',
-      cancelText: 'Hủy',
+      okText: "Duyệt",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
-          const results = await Promise.all(selectedRowKeys.map((id) => dispatch(approvePostThunk(id))));
-          const anyRejected = results.some(r => approvePostThunk.rejected.match(r));
-          if (anyRejected) throw new Error('Một số bài duyệt thất bại');
-          notification.success({ message: 'Duyệt hàng loạt thành công' });
+          if (!adminMemberId) {
+            notification.error({ message: "Không tìm thấy mã quản trị để duyệt" });
+            return;
+          }
+          const results = await Promise.all(
+            selectedRowKeys.map((id) =>
+              api.post(`/article/${id}/approve`, { articleId: id, memberId: adminMemberId })
+            )
+          );
+          console.log(
+            "Bulk approve responses:",
+            results.map((r) => ({ status: r.status, data: r.data }))
+          );
+          notification.success({ message: "Duyệt hàng loạt thành công" });
           setSelectedRowKeys([]);
-          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+          fetchPosts(
+            pagination.current,
+            pagination.pageSize,
+            filterStatus,
+            searchTerm,
+            sortOrder
+          );
         } catch (e) {
+          console.error("Bulk approve error:", e?.response || e);
           notification.error({
-            message: 'Duyệt hàng loạt thất bại',
-            description: e?.response?.data?.message || 'Có lỗi xảy ra khi duyệt hàng loạt.',
+            message: "Duyệt hàng loạt thất bại",
+            description:
+              e?.response?.data?.message ||
+              "Có lỗi xảy ra khi duyệt hàng loạt.",
           });
         }
       },
@@ -221,20 +330,39 @@ const Posts = () => {
     confirm({
       title: `Bạn có chắc chắn muốn từ chối ${selectedRowKeys.length} bài đăng đã chọn?`,
       icon: <ExclamationCircleOutlined />,
-      okText: 'Từ chối',
-      cancelText: 'Hủy',
+      okText: "Từ chối",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
-          const results = await Promise.all(selectedRowKeys.map((id) => dispatch(rejectPostThunk(id))));
-          const anyRejected = results.some(r => rejectPostThunk.rejected.match(r));
-          if (anyRejected) throw new Error('Một số bài từ chối thất bại');
-          notification.success({ message: 'Từ chối hàng loạt thành công' });
+          if (!adminMemberId) {
+            notification.error({ message: "Không tìm thấy mã quản trị để từ chối" });
+            return;
+          }
+          const results = await Promise.all(
+            selectedRowKeys.map((id) =>
+              api.post(`/article/${id}/reject`, { articleId: id, memberId: adminMemberId })
+            )
+          );
+          console.log(
+            "Bulk reject responses:",
+            results.map((r) => ({ status: r.status, data: r.data }))
+          );
+          notification.success({ message: "Từ chối hàng loạt thành công" });
           setSelectedRowKeys([]);
-          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+          fetchPosts(
+            pagination.current,
+            pagination.pageSize,
+            filterStatus,
+            searchTerm,
+            sortOrder
+          );
         } catch (e) {
+          console.error("Bulk reject error:", e?.response || e);
           notification.error({
-            message: 'Từ chối hàng loạt thất bại',
-            description: e?.response?.data?.message || 'Có lỗi xảy ra khi từ chối hàng loạt.',
+            message: "Từ chối hàng loạt thất bại",
+            description:
+              e?.response?.data?.message ||
+              "Có lỗi xảy ra khi từ chối hàng loạt.",
           });
         }
       },
@@ -245,20 +373,28 @@ const Posts = () => {
     confirm({
       title: `Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} bài đăng đã chọn?`,
       icon: <ExclamationCircleOutlined />,
-      okText: 'Xóa',
-      okType: 'danger',
-      cancelText: 'Hủy',
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
-          // await Promise.all(selectedRowKeys.map(id => adminService.deletePost(id))); // Uncomment when implemented
-          setPosts(prev => prev.filter(p => !selectedRowKeys.includes(p.id))); // For frontend simulation
-          notification.success({ message: 'Xóa hàng loạt thành công' });
+          await Promise.all(
+            selectedRowKeys.map((id) => api.delete(`/article/${id}`))
+          );
+          notification.success({ message: "Xóa hàng loạt thành công" });
           setSelectedRowKeys([]);
-          fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
+          fetchPosts(
+            pagination.current,
+            pagination.pageSize,
+            filterStatus,
+            searchTerm,
+            sortOrder
+          );
         } catch (e) {
           notification.error({
-            message: 'Xóa hàng loạt thất bại',
-            description: e?.response?.data?.message || 'Có lỗi xảy ra khi xóa hàng loạt.',
+            message: "Xóa hàng loạt thất bại",
+            description:
+              e?.response?.data?.message || "Có lỗi xảy ra khi xóa hàng loạt.",
           });
         }
       },
@@ -267,11 +403,11 @@ const Posts = () => {
 
   const getStatusTag = (status) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return <Tag color="gold">Chờ duyệt</Tag>;
-      case 'approved':
+      case "approved":
         return <Tag color="green">Đã duyệt</Tag>;
-      case 'rejected':
+      case "rejected":
         return <Tag color="red">Từ chối</Tag>;
       default:
         return <Tag>Không rõ</Tag>;
@@ -294,110 +430,128 @@ const Posts = () => {
 
   const columns = [
     {
-      title: 'Mã bài đăng',
-      dataIndex: 'id',
-      key: 'id',
+      title: "Mã bài đăng",
+      dataIndex: "id",
+      key: "id",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
     },
     {
-      title: 'Tiêu đề',
-      dataIndex: 'title',
-      key: 'title',
+      title: "Tiêu đề",
+      dataIndex: "title",
+      key: "title",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
     },
     {
-      title: 'Tỉnh/Thành phố',
-      dataIndex: 'provinceCity',
-      key: 'provinceCity',
+      title: "Tỉnh/Thành phố",
+      dataIndex: "provinceCity",
+      key: "provinceCity",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
     },
     {
-      title: 'Loại bài',
-      dataIndex: 'postType',
-      key: 'postType',
+      title: "Loại bài",
+      dataIndex: "postType",
+      key: "postType",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
+      render: (text) =>
+        text ? text.charAt(0).toUpperCase() + text.slice(1) : "—",
     },
     {
-      title: 'Ngày tạo',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
       render: (text) => formatDisplayDate(text),
     },
     {
-      title: 'Mã thành viên',
-      dataIndex: 'memberId',
-      key: 'memberId',
+      title: "Mã thành viên",
+      dataIndex: "memberId",
+      key: "memberId",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
     },
     {
-      title: 'Giá',
-      dataIndex: 'price',
-      key: 'price',
+      title: "Giá",
+      dataIndex: "price",
+      key: "price",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
       render: (text) =>
-        Number(text || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }),
+        Number(text || 0).toLocaleString("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        }),
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
       sorter: true,
-      sortDirections: ['ascend', 'descend'],
+      sortDirections: ["ascend", "descend"],
       render: (status) => getStatusTag(status),
     },
     {
-      title: 'Thao tác',
-      key: 'actions',
+      title: "Thao tác",
+      key: "actions",
       render: (_, record) => (
         <Space size="small">
-          {record.status === 'pending' && (
+          {record.status === "pending" && (
             <>
               <Button
                 type="primary"
                 icon={<CheckCircleOutlined />}
                 onClick={() => handleApprove(record.id)}
+                loading={approvingIds.includes(record.id)}
                 title="Duyệt"
               />
               <Button
                 type="danger"
                 icon={<CloseCircleOutlined />}
                 onClick={() => handleReject(record.id)}
+                loading={rejectingIds.includes(record.id)}
                 title="Từ chối"
               />
             </>
           )}
-          {record.status === 'approved' && (
+          {record.status === "approved" && (
             <Button
               type="danger"
               icon={<CloseCircleOutlined />}
               onClick={() => handleReject(record.id)}
+              loading={rejectingIds.includes(record.id)}
               title="Từ chối"
             />
           )}
-          {record.status === 'rejected' && (
+          {record.status === "rejected" && (
             <Button
               type="primary"
               icon={<CheckCircleOutlined />}
               onClick={() => handleApprove(record.id)}
+              loading={approvingIds.includes(record.id)}
               title="Duyệt"
             />
           )}
           <Button icon={<EyeOutlined />} title="Chi tiết" />
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-            title="Xóa"
-          />
+          <Popconfirm
+            title="Xóa bài đăng?"
+            description={`Mã bài đăng: ${record.id}`}
+            okText="Xóa"
+            okType="danger"
+            cancelText="Hủy"
+            onConfirm={() => handleDelete(record.id)}
+          >
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deletingIds.includes(record.id)}
+              title="Xóa"
+            />
+          </Popconfirm>
         </Space>
       ),
     },
@@ -424,7 +578,13 @@ const Posts = () => {
           />
           <Select
             value={pagination.pageSize}
-            onChange={(value) => setPagination((prev) => ({ ...prev, pageSize: value, current: 1 }))} // Reset current to 1 when page size changes
+            onChange={(value) =>
+              setPagination((prev) => ({
+                ...prev,
+                pageSize: value,
+                current: 1,
+              }))
+            } // Reset current to 1 when page size changes
             style={{ width: 120 }}
           >
             <Option value={10}>10 dòng</Option>
@@ -435,21 +595,41 @@ const Posts = () => {
       }
     >
       <Space style={{ marginBottom: 16 }}>
-        <Button onClick={() => setFilterStatus('all')} type={filterStatus === 'all' ? 'primary' : 'default'}>
+        <Button
+          onClick={() => setFilterStatus("all")}
+          type={filterStatus === "all" ? "primary" : "default"}
+        >
           Tất cả ({statusCounts.all})
         </Button>
-        <Button onClick={() => setFilterStatus('pending')} type={filterStatus === 'pending' ? 'primary' : 'default'}>
+        <Button
+          onClick={() => setFilterStatus("pending")}
+          type={filterStatus === "pending" ? "primary" : "default"}
+        >
           Chờ duyệt ({statusCounts.pending})
         </Button>
-        <Button onClick={() => setFilterStatus('approved')} type={filterStatus === 'approved' ? 'primary' : 'default'}>
+        <Button
+          onClick={() => setFilterStatus("approved")}
+          type={filterStatus === "approved" ? "primary" : "default"}
+        >
           Đã duyệt ({statusCounts.approved})
         </Button>
-        <Button onClick={() => setFilterStatus('rejected')} type={filterStatus === 'rejected' ? 'primary' : 'default'}>
+        <Button
+          onClick={() => setFilterStatus("rejected")}
+          type={filterStatus === "rejected" ? "primary" : "default"}
+        >
           Từ chối ({statusCounts.rejected})
         </Button>
       </Space>
 
-      {error && <Alert message="Lỗi" description={error} type="error" showIcon style={{ marginBottom: 16 }} />}
+      {error && (
+        <Alert
+          message="Lỗi"
+          description={error}
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       <Table
         columns={columns}
@@ -459,14 +639,22 @@ const Posts = () => {
         pagination={{
           ...pagination,
           showSizeChanger: true,
-          showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} bài đăng`,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} / ${total} bài đăng`,
         }}
         onChange={handleTableChange}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: "max-content" }}
       />
 
       {selectedRowKeys.length > 0 && (
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Text>Đã chọn {selectedRowKeys.length} bài đăng</Text>
           <Space>
             <Button type="primary" onClick={handleBulkApprove}>
