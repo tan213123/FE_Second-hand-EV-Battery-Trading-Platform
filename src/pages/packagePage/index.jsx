@@ -1,5 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchActivePackages, clearError } from '../../redux/packageSlice'
+import { createOrder } from '../../redux/orderSlice'
+import { createVnpayPaymentUrl, clearVnpayUrl } from '../../redux/paymentSlice'
 import './index.scss'
 
 // Icons
@@ -30,90 +34,136 @@ const StarIcon = () => (
 
 function PackagePage() {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
-  const packages = [
+  // Redux state
+  const { activePackages, loading: packagesLoading, error: packagesError } = 
+    useSelector((state) => state.package)
+  const { loading: orderLoading } = useSelector((state) => state.order)
+  const { vnpayUrl, loading: paymentLoading } = useSelector((state) => state.payment)
+  const member = useSelector((state) => state.member)
 
-    {
-      id: 2,
-      name: 'Gói Tiêu chuẩn',
-      type: 'standard',
-      price: 50000,
-      duration: '15 ngày',
-      icon: '⭐',
-      color: '#10b981',
-      features: [
-        { text: 'Đăng 3 tin', included: true },
-        { text: 'Hiển thị trong 15 ngày', included: true },
-        { text: 'Được đẩy tin 3 lần', included: true },
-        { text: 'Hỗ trợ ưu tiên', included: true },
-        { text: 'Hiển thị trên trang chủ', included: true },
-        { text: 'Nhãn "Tin nổi bật"', included: true },
-        { text: 'Ưu tiên hiển thị', included: false },
-        { text: 'Hỗ trợ 24/7', included: false }
-      ],
-      popular: false
-    },
-    {
-      id: 3,
-      name: 'Gói Pro',
-      type: 'pro',
-      price: 150000,
-      duration: '30 ngày',
-      icon: '👑',
-      color: '#f59e0b',
-      features: [
+  // Fetch packages từ backend
+  useEffect(() => {
+    dispatch(fetchActivePackages())
+  }, [dispatch])
+
+  // Redirect khi có VNPAY URL
+  useEffect(() => {
+    if (vnpayUrl) {
+      window.location.href = vnpayUrl
+      dispatch(clearVnpayUrl())
+    }
+  }, [vnpayUrl, dispatch])
+
+  // Clear error khi unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError())
+    }
+  }, [dispatch])
+
+  // Map backend data to UI format (hoặc có thể cập nhật UI để match backend)
+  const packages = activePackages.map((pkg) => {
+    // Map package từ backend về format UI hiện tại
+    const iconMap = {
+      'Gói Tiêu chuẩn': '⭐',
+      'Gói Pro': '👑',
+      'Gói Đấu giá': '💼',
+    }
+    const colorMap = {
+      'Gói Tiêu chuẩn': '#10b981',
+      'Gói Pro': '#f59e0b',
+      'Gói Đấu giá': '#8b5cf6',
+    }
+    
+    return {
+      id: pkg.packageId,
+      packageId: pkg.packageId, // Giữ để dùng khi tạo order
+      name: pkg.name,
+      price: pkg.price,
+      duration: `${pkg.durationDays} ngày`,
+      durationDays: pkg.durationDays,
+      numberOfPost: pkg.numberOfPost,
+      icon: iconMap[pkg.name] || '📦',
+      color: colorMap[pkg.name] || '#6366f1',
+      description: pkg.description,
+      // Features có thể lấy từ description hoặc hardcode theo name
+      features: generateFeatures(pkg),
+      popular: pkg.name.includes('Pro') || pkg.name.includes('Pro'),
+    }
+  })
+
+  // Helper để generate features từ package data
+  function generateFeatures(pkg) {
+    const baseFeatures = [
+      { text: `Đăng ${pkg.numberOfPost} tin`, included: true },
+      { text: `Hiển thị trong ${pkg.durationDays} ngày`, included: true },
+      { text: 'Được đẩy tin', included: true },
+      { text: 'Hiển thị trên trang chủ', included: true },
+    ]
+    
+    if (pkg.name.includes('Pro') || pkg.name.includes('Đấu giá')) {
+      return [
+        ...baseFeatures,
         { text: 'Đăng không giới hạn', included: true },
-        { text: 'Hiển thị trong 30 ngày', included: true },
-        { text: 'Được đẩy tin không giới hạn', included: true },
         { text: 'Hỗ trợ VIP', included: true },
-        { text: 'Hiển thị trên trang chủ', included: true },
         { text: 'Nhãn "Tin nổi bật"', included: true },
         { text: 'Ưu tiên hiển thị hàng đầu', included: true },
-        { text: 'Hỗ trợ 24/7', included: true }
-      ],
-      popular: true
-    },
-    {
-      id: 4,
-      name: 'Gói Đấu giá',
-      type: 'enterprise',
-      price: 500000,
-      duration: '90 ngày',
-      icon: '💼',
-      color: '#8b5cf6',
-      features: [
-        { text: 'Đăng không giới hạn', included: true },
-        { text: 'Hiển thị trong 90 ngày', included: true },
-        { text: 'Được đẩy tin không giới hạn', included: true },
-        { text: 'Hỗ trợ VIP đặc biệt', included: true },
-        { text: 'Luôn hiển thị trên trang chủ', included: true },
-        { text: 'Nhãn "Đối tác ưu tiên"', included: true },
-        { text: 'Ưu tiên hiển thị cao nhất', included: true },
-        { text: 'Hỗ trợ 24/7 + Auction Account', included: true }
-      ],
-      popular: false
+        { text: 'Hỗ trợ 24/7', included: true },
+      ]
     }
-  ]
+    
+    return [
+      ...baseFeatures,
+      { text: 'Nhãn "Tin nổi bật"', included: true },
+      { text: 'Ưu tiên hiển thị', included: false },
+      { text: 'Hỗ trợ 24/7', included: false },
+    ]
+  }
 
   const handleSelectPackage = (pkg) => {
     setSelectedPackage(pkg)
     setShowPaymentModal(true)
   }
 
-  const handleVnpayPayment = (pkg) => {
-    const paymentData = {
-      orderId: `ECO${Date.now()}`,
-      amount: pkg.price,
-      description: pkg.name,
-      packageName: pkg.name,
-      customerName: 'Nguyễn Văn A', // Trong thực tế sẽ lấy từ user context
-      customerEmail: 'nguyenvana@email.com',
-      customerPhone: '0901234567'
+  const handleVnpayPayment = async (pkg) => {
+    // Kiểm tra đăng nhập
+    if (!member?.memberId) {
+      alert('Vui lòng đăng nhập để tiếp tục')
+      navigate('/login')
+      return
     }
-    
-    navigate('/payment', { state: { paymentData } })
+
+    try {
+      // 1. Tạo Order
+      const orderResult = await dispatch(createOrder({
+        memberId: member.memberId,
+        packageId: pkg.packageId,
+      }))
+
+      if (createOrder.fulfilled.match(orderResult)) {
+        const orderId = orderResult.payload.orderId
+
+        // 2. Tạo VNPAY Payment URL
+        const paymentResult = await dispatch(createVnpayPaymentUrl(orderId))
+
+        if (createVnpayPaymentUrl.fulfilled.match(paymentResult)) {
+          // URL sẽ được lưu trong state.payment.vnpayUrl
+          // useEffect sẽ tự động redirect
+          setShowPaymentModal(false)
+        } else {
+          alert('Lỗi tạo liên kết thanh toán: ' + paymentResult.payload)
+        }
+      } else {
+        alert('Lỗi tạo đơn hàng: ' + orderResult.payload)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Có lỗi xảy ra, vui lòng thử lại')
+    }
   }
 
   const formatPrice = (price) => {
@@ -121,6 +171,36 @@ function PackagePage() {
       style: 'currency',
       currency: 'VND'
     }).format(price)
+  }
+
+  // Loading state
+  if (packagesLoading) {
+    return (
+      <div className="package-page">
+        <div className="package-container">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Đang tải danh sách gói dịch vụ...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (packagesError) {
+    return (
+      <div className="package-page">
+        <div className="package-container">
+          <div className="error-container">
+            <p>Lỗi: {packagesError}</p>
+            <button onClick={() => dispatch(fetchActivePackages())}>
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -278,8 +358,9 @@ function PackagePage() {
                   <button 
                     className="btn btn-secondary"
                     onClick={() => handleVnpayPayment(selectedPackage)}
+                    disabled={orderLoading || paymentLoading}
                   >
-                    💳 Thanh toán VNPAY
+                    {orderLoading || paymentLoading ? 'Đang xử lý...' : '💳 Thanh toán VNPAY'}
                   </button>
                   <button className="btn btn-primary">
                     Tôi đã thanh toán

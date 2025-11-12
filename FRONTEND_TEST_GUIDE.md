@@ -128,3 +128,30 @@ if (MOCK_MODE) {
 2. Kiểm tra required fields
 3. Verify image upload status
 4. Test với dữ liệu minimal
+
+### 6. Payment, Order & Package API Calls
+
+Sử dụng các service mới để thao tác với backend:
+
+```javascript
+import { packageService } from '../services/packageService'
+import { orderService } from '../services/orderService'
+import { paymentService } from '../services/paymentService'
+
+// 1. Lấy danh sách gói
+const { data: packages } = await packageService.getActivePackages()
+
+// 2. Tạo đơn hàng cho thành viên + gói đã chọn
+const orderPayload = { memberId: 1, packageId: packages[0].packageId }
+const { data: order } = await orderService.createOrder(orderPayload)
+
+// 3. Gọi API tạo thanh toán VNPAY cho đơn hàng
+const { data: paymentUrl } = await paymentService.createVnpayPaymentUrl(order.orderId)
+window.location.href = paymentUrl
+```
+
+Các helper phổ biến:
+
+- `packageService.createPackage(payload)` để admin tạo gói mới
+- `orderService.updatePaymentStatus(orderId, 'PAID')` khi cần đồng bộ trạng thái
+- `paymentService.processPayment(paymentId)` hoặc `paymentService.failPayment(paymentId, reason)` để cập nhật kết quả thanh toán
