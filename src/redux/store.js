@@ -4,12 +4,18 @@ import { configureStore } from "@reduxjs/toolkit";
 // import rootReducer from "./rootReducer";
 // import persistStore from "redux-persist/es/persistStore";
 import memberReducer from "./memberSlice";
+import packageReducer from "./packageSlice";
+import orderReducer from "./orderSlice";
+import paymentReducer from "./paymentSlice";
 
 
 
 export const store = configureStore({
   reducer: {
     member: memberReducer,
+    package: packageReducer,
+    order: orderReducer,
+    payment: paymentReducer,
   },
 });
 
