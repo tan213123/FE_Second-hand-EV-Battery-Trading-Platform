@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+import { fetchAdminPosts, approvePost as approvePostThunk, rejectPost as rejectPostThunk } from '../../redux/adminSlice';
+
 import {
   Table,
   Button,
@@ -22,13 +25,13 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { adminService } from '../../services/adminService';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { confirm } = Modal;
 
 const Posts = () => {
+  const dispatch = useDispatch();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,27 +82,32 @@ const Posts = () => {
         params.sort = `${sort.field},${sort.order === 'ascend' ? 'asc' : 'desc'}`;
       }
 
-      const response = await adminService.getPosts(params);
-      const data = Array.isArray(response?.items) ? response.items : Array.isArray(response) ? response : [];
+      const action = await dispatch(fetchAdminPosts(params));
+      if (fetchAdminPosts.fulfilled.match(action)) {
+        const response = action.payload;
+        const data = Array.isArray(response?.items) ? response.items : Array.isArray(response) ? response : [];
 
-      setPosts(
-        data.map((p) => ({
-          key: p.id || p.postId,
-          id: p.id || p.postId,
-          title: p.title,
-          provinceCity: p.provinceCity || p.location,
-          postType: p.postType || p.type,
-          createdAt: p.createdAt,
-          memberId: p.memberId,
-          price: p.price,
-          status: p.status || 'pending',
-        }))
-      );
-      // ONLY update total here. current and pageSize are managed by handleTableChange
-      setPagination((prev) => ({
-        ...prev,
-        total: response?.totalItems || 0,
-      }));
+        setPosts(
+          data.map((p) => ({
+            key: p.id || p.postId,
+            id: p.id || p.postId,
+            title: p.title,
+            provinceCity: p.provinceCity || p.location,
+            postType: p.postType || p.type,
+            createdAt: p.createdAt,
+            memberId: p.memberId,
+            price: p.price,
+            status: p.status || 'pending',
+          }))
+        );
+        // ONLY update total here. current and pageSize are managed by handleTableChange
+        setPagination((prev) => ({
+          ...prev,
+          total: response?.totalItems || 0,
+        }));
+      } else {
+        throw new Error(action.payload || 'Không thể tải danh sách bài đăng');
+      }
     } catch (e) {
       setError(e?.response?.data?.message || 'Không thể tải danh sách bài đăng');
       notification.error({
@@ -109,14 +117,12 @@ const Posts = () => {
     } finally {
       setLoading(false);
     }
-  }, [error]);
-
+  }, [dispatch, error, filterStatus, searchTerm, sortOrder, pagination.current, pagination.pageSize]);
 
   // 2. useEffect now explicitly calls fetchPosts with current state values
   useEffect(() => {
     fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
   }, [pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder, fetchPosts]);
-
 
   const handleTableChange = (newPagination, filters, sorter) => {
     // Only update pagination state here. useEffect will react to these changes.
@@ -133,7 +139,8 @@ const Posts = () => {
   // ... rest of the component remains the same ...
   const handleApprove = async (id) => {
     try {
-      await adminService.approvePost(id);
+      const action = await dispatch(approvePostThunk(id));
+      if (approvePostThunk.rejected.match(action)) throw new Error(action.payload);
       notification.success({ message: 'Duyệt bài đăng thành công' });
       // After an action, we want to refetch the current page to reflect changes
       fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
@@ -147,7 +154,8 @@ const Posts = () => {
 
   const handleReject = async (id) => {
     try {
-      await adminService.rejectPost(id);
+      const action = await dispatch(rejectPostThunk(id));
+      if (rejectPostThunk.rejected.match(action)) throw new Error(action.payload);
       notification.success({ message: 'Từ chối bài đăng thành công' });
       fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
     } catch (e) {
@@ -168,7 +176,7 @@ const Posts = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          // await adminService.deletePost(id); // Uncomment when implemented
+          // TODO: add deletePost thunk if backend supports
           // For frontend simulation, filter posts directly.
           // For real API, fetchPosts() would reflect the change from the backend.
           setPosts(prev => prev.filter(p => p.id !== id));
@@ -193,7 +201,9 @@ const Posts = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await Promise.all(selectedRowKeys.map((id) => adminService.approvePost(id)));
+          const results = await Promise.all(selectedRowKeys.map((id) => dispatch(approvePostThunk(id))));
+          const anyRejected = results.some(r => approvePostThunk.rejected.match(r));
+          if (anyRejected) throw new Error('Một số bài duyệt thất bại');
           notification.success({ message: 'Duyệt hàng loạt thành công' });
           setSelectedRowKeys([]);
           fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);
@@ -215,7 +225,9 @@ const Posts = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await Promise.all(selectedRowKeys.map((id) => adminService.rejectPost(id)));
+          const results = await Promise.all(selectedRowKeys.map((id) => dispatch(rejectPostThunk(id))));
+          const anyRejected = results.some(r => rejectPostThunk.rejected.match(r));
+          if (anyRejected) throw new Error('Một số bài từ chối thất bại');
           notification.success({ message: 'Từ chối hàng loạt thành công' });
           setSelectedRowKeys([]);
           fetchPosts(pagination.current, pagination.pageSize, filterStatus, searchTerm, sortOrder);

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authService } from '../../services/authService'
+import { useDispatch, useSelector } from 'react-redux'
+import { forgotPassword } from '../../redux/authSlice'
 import './forgot.scss'
 
 function ForgotPasswordPage() {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const forgot = useSelector((s) => s.auth.forgot)
   const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -20,14 +22,11 @@ function ForgotPasswordPage() {
       return
     }
 
-    setSubmitting(true)
-    const result = await authService.forgotPassword(email)
-    setSubmitting(false)
-
-    if (result.success) {
+    const action = await dispatch(forgotPassword(email))
+    if (forgotPassword.fulfilled.match(action)) {
       setMessage('Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.')
     } else {
-      setError(result.error)
+      setError(action.payload || 'Không thể gửi liên kết đặt lại mật khẩu')
     }
   }
 
@@ -48,11 +47,11 @@ function ForgotPasswordPage() {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={submitting}
+            disabled={forgot.status === 'loading'}
           />
 
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}
+          <button type="submit" disabled={forgot.status === 'loading'}>
+            {forgot.status === 'loading' ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}
           </button>
         </form>
 

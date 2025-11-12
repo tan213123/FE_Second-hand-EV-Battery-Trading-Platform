@@ -1,146 +1,180 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
-import { profileService } from '../../services/profileService'
-import './index.scss'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  getProfile,
+  uploadAvatar as uploadAvatarThunk,
+} from "../../redux/profileSlice";
+import "./index.scss";
+import api from "../../config/api";
+import { toast } from "react-toastify";
+
+function isoToDDMMYYYY(value) {
+  if (!value) return "";
+  if (typeof value === "string" && value.includes("/")) return value;
+  if (typeof value === "string" && value.includes("-")) {
+    const parts = value.split("-");
+    if (parts.length === 3) {
+      const [yyyy, mm, dd] = parts;
+      return `${dd.padStart(2, "0")}/${mm.padStart(2, "0")}/${yyyy}`;
+    }
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
 
 function AccountPage() {
-  const navigate = useNavigate()
-  const { user, isAuthenticated } = useAuth()
-  const [activeTab, setActiveTab] = useState('overview')
-  const [isEditing, setIsEditing] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const member = useSelector((store) => store.member);
+  const isAuthenticated = !!member;
+  const user = member;
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [profile, setProfile] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    yearOfBirth: '',
-    sex: '',
-    bio: 'Người đam mê xe điện và công nghệ.',
-    avatar: ''
-  })
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    yearOfBirth: "",
+    sex: "",
+    bio: "Người đam mê xe điện và công nghệ.",
+    password: "",
+    currentPassword: "",
+    avatar: "",
+  });
   const [userStats] = useState({
     totalPosts: 0,
     activePosts: 0,
     soldItems: 0,
     rating: 0,
-    totalReviews: 0
-  })
-  const [userPosts] = useState([])
-  const [userReviews] = useState([])
+    totalReviews: 0,
+  });
+  const [userPosts] = useState([]);
+  const [userReviews] = useState([]);
 
-  // Load profile data when component mounts
+  // Load profile via Redux when authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login')
-      return
+      navigate("/login");
+      return;
     }
-
-    loadProfileData()
-  }, [isAuthenticated, navigate])
-
-  // Load profile data from API
-  const loadProfileData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await profileService.getProfile()
-      if (result.success) {
-        const data = result.data
-        setProfile({
-          name: data.name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          address: data.address || '',
-          yearOfBirth: data.yearOfBirth || '',
-          sex: data.sex || '',
-          bio: data.bio || 'Người đam mê xe điện và công nghệ.',
-          avatar: data.avatar || '',
-        })
-      } else {
-        setError(result.error)
-      }
-    } catch (error) {
-      console.error('Error loading profile data:', error)
-      setError('Không thể tải dữ liệu profile')
-    } finally {
-      setLoading(false)
-    }
-  }
+    setLoading(true);
+    setError(null);
+    dispatch(getProfile())
+      .unwrap()
+      .then((data) => {
+        if (data) {
+          setProfile({
+            name: data.name || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            address: data.address || "",
+            yearOfBirth: isoToDDMMYYYY(data.yearOfBirth) || "",
+            sex: data.sex || "",
+            bio: data.bio || "Người đam mê xe điện và công nghệ.",
+            password: "",
+            currentPassword: "",
+            avatar: data.avatar || "",
+          });
+        }
+      })
+      .catch((e) => setError(e || "Không thể tải dữ liệu profile"))
+      .finally(() => setLoading(false));
+  }, [isAuthenticated, navigate, dispatch]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setProfile((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setProfile((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSave = async () => {
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
     try {
-      const userId = user?.memberId || user?.id || profile?.id
+      const userId = user?.memberId || user?.id || profile?.id;
       if (!userId) {
-        setError('Không tìm thấy ID người dùng để cập nhật')
-        setSaving(false)
-        return
+        setError("Không tìm thấy ID người dùng để cập nhật");
+        setSaving(false);
+        return;
       }
-      // Gửi nguyên giá trị ngày sinh yyyy-MM-dd lên API
-      const result = await profileService.updateProfile(userId, profile);
-      if (result.success) {
-        setSuccess(result.message);
-        setIsEditing(false);
-        await loadProfileData();
-      } else {
-        setError(result.error);
+      // If user wants to change password, require current password
+      if (profile.password && !profile.currentPassword) {
+        setError("Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu");
+        setSaving(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      setError('Không thể cập nhật profile');
+      const payload = {
+        name: profile.name,
+        address: profile.address,
+        yearOfBirth: profile.yearOfBirth, // dd/MM/yyyy as requested
+        phone: profile.phone,
+        email: profile.email,
+        role: user?.role || "MEMBER",
+        sex: profile.sex,
+        password: profile.password || undefined,
+        oldPassword: profile.currentPassword || undefined,
+      };
+      // Redact sensitive fields in logs
+      const logPayload = { ...payload };
+      if (logPayload.password) logPayload.password = "[REDACTED]";
+      if (logPayload.oldPassword) logPayload.oldPassword = "[REDACTED]";
+      console.log("UPDATE PROFILE REQUEST -> /members/" + userId, logPayload);
+      await api.put(`/members/${userId}`, payload);
+      setSuccess("Cập nhật profile thành công");
+      setIsEditing(false);
+      // refresh from server to ensure latest
+      await dispatch(getProfile()).unwrap();
+    } catch (err) {
+      console.error(err);
+      console.log(err.response);
+      toast.error("Registration failed. Please try again.");
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   const handleCancel = () => {
-    // Reload profile from API
-    loadProfileData()
-    setIsEditing(false)
-    setError(null)
-    setSuccess(null)
-  }
+    // Reload profile from server
+    dispatch(getProfile());
+    setIsEditing(false);
+    setError(null);
+    setSuccess(null);
+  };
 
   // Handle avatar upload
   const handleAvatarUpload = async (event) => {
-    const file = event.target.files[0]
-    if (!file) return
+    const file = event.target.files[0];
+    if (!file) return;
 
-    setSaving(true)
-    setError(null)
-    
+    setSaving(true);
+    setError(null);
+
     try {
-      // Use real API call
-      const result = await profileService.uploadAvatar(file)
-      if (result.success) {
-        setSuccess(result.message)
-        setProfile(prev => ({ ...prev, avatar: result.data.avatarUrl }))
-      } else {
-        setError(result.error)
-      }
+      await dispatch(uploadAvatarThunk(file)).unwrap();
+      setSuccess("Cập nhật ảnh đại diện thành công");
+      // After upload, reload profile from server
+      await dispatch(getProfile()).unwrap();
     } catch (error) {
-      console.error('Error uploading avatar:', error)
-      setError('Không thể cập nhật ảnh đại diện')
+      console.error("Error uploading avatar:", error);
+      setError(error || "Không thể cập nhật ảnh đại diện");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   // Show loading or redirect if not authenticated
   if (!isAuthenticated) {
-    return <div>Đang chuyển hướng...</div>
+    return <div>Đang chuyển hướng...</div>;
   }
 
   // Show loading state
@@ -152,12 +186,11 @@ function AccountPage() {
           <p>Đang tải thông tin profile...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="account-page">
-
       <div className="profile">
         <div className="profile-cover">
           <div className="cover-overlay" />
@@ -165,30 +198,56 @@ function AccountPage() {
 
         <div className="profile-header container">
           <div className="avatar-wrap">
-            <img className="avatar" src={profile.avatar || "https://via.placeholder.com/120x120/4ECDC4/FFFFFF?text=Avatar"} alt="avatar" />
-            <input 
-              type="file" 
-              id="avatar-upload" 
-              accept="image/*" 
+            <img
+              className="avatar"
+              src={
+                profile.avatar ||
+                "https://via.placeholder.com/120x120/4ECDC4/FFFFFF?text=Avatar"
+              }
+              alt="avatar"
+            />
+            <input
+              type="file"
+              id="avatar-upload"
+              accept="image/*"
               onChange={handleAvatarUpload}
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
             />
             <label htmlFor="avatar-upload" className="btn small secondary">
-              {saving ? 'Đang tải...' : 'Đổi ảnh'}
+              {saving ? "Đang tải..." : "Đổi ảnh"}
             </label>
           </div>
           <div className="identity">
-            <h1 className="name">{profile.name || 'Chưa cập nhật tên'}</h1>
+            <h1 className="name">{profile.name || "Chưa cập nhật tên"}</h1>
             <div className="meta">
-              <span className="email">📧 {profile.email || 'Chưa có email'}</span>
+              <span className="email">
+                📧 {profile.email || "Chưa có email"}
+              </span>
               <span className="dot">•</span>
-              <span className="location">📍 {profile.address || 'Chưa có địa chỉ'}</span>
+              <span className="location">
+                📍 {profile.address || "Chưa có địa chỉ"}
+              </span>
             </div>
             <p className="bio">{profile.bio}</p>
             <div className="quick-actions">
-              <button className="btn primary" onClick={() => navigate('/my-posts')}>Tin đăng của tôi</button>
-              <button className="btn outline" onClick={() => navigate('/saved')}>Tin đã lưu</button>
-              <button className="btn outline" onClick={() => navigate('/settings')}>Cài đặt</button>
+              <button
+                className="btn primary"
+                onClick={() => navigate("/my-posts")}
+              >
+                Tin đăng của tôi
+              </button>
+              <button
+                className="btn outline"
+                onClick={() => navigate("/saved")}
+              >
+                Tin đã lưu
+              </button>
+              <button
+                className="btn outline"
+                onClick={() => navigate("/settings")}
+              >
+                Cài đặt
+              </button>
             </div>
           </div>
           <div className="stats">
@@ -209,10 +268,30 @@ function AccountPage() {
 
         <div className="container">
           <div className="tabs">
-            <button className={`tab-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Tổng quan</button>
-            <button className={`tab-link ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>Tin đăng</button>
-            <button className={`tab-link ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>Đánh giá</button>
-            <button className={`tab-link ${activeTab === 'about' ? 'active' : ''}`} onClick={() => setActiveTab('about')}>Giới thiệu</button>
+            <button
+              className={`tab-link ${activeTab === "overview" ? "active" : ""}`}
+              onClick={() => setActiveTab("overview")}
+            >
+              Tổng quan
+            </button>
+            <button
+              className={`tab-link ${activeTab === "posts" ? "active" : ""}`}
+              onClick={() => setActiveTab("posts")}
+            >
+              Tin đăng
+            </button>
+            <button
+              className={`tab-link ${activeTab === "reviews" ? "active" : ""}`}
+              onClick={() => setActiveTab("reviews")}
+            >
+              Đánh giá
+            </button>
+            <button
+              className={`tab-link ${activeTab === "about" ? "active" : ""}`}
+              onClick={() => setActiveTab("about")}
+            >
+              Mật khẩu
+            </button>
           </div>
         </div>
 
@@ -225,7 +304,7 @@ function AccountPage() {
             </div>
           </div>
         )}
-        
+
         {success && (
           <div className="container">
             <div className="alert alert-success">
@@ -239,149 +318,194 @@ function AccountPage() {
           <aside className="sidebar">
             <nav className="side-nav">
               <button className="side-link active">Hồ sơ</button>
-              <button className="side-link" onClick={() => navigate('/my-posts')}>Tin đăng</button>
-              <button className="side-link" onClick={() => navigate('/saved')}>Tin đã lưu</button>
-              <button className="side-link" onClick={() => navigate('/settings')}>Cài đặt</button>
+              <button
+                className="side-link"
+                onClick={() => navigate("/my-posts")}
+              >
+                Tin đăng
+              </button>
+              <button className="side-link" onClick={() => navigate("/saved")}>
+                Tin đã lưu
+              </button>
+              <button
+                className="side-link"
+                onClick={() => navigate("/settings")}
+              >
+                Cài đặt
+              </button>
             </nav>
 
             <div className="info-card">
               <h3>Thông tin cá nhân</h3>
               <div className="info-row">
                 <span>Họ và tên</span>
-                <strong>{profile.name || 'Chưa cập nhật'}</strong>
+                <strong>{profile.name || "Chưa cập nhật"}</strong>
               </div>
               <div className="info-row">
                 <span>Email</span>
-                <strong>{profile.email || 'Chưa cập nhật'}</strong>
+                <strong>{profile.email || "Chưa cập nhật"}</strong>
               </div>
               <div className="info-row">
                 <span>Số điện thoại</span>
-                <strong>{profile.phone || 'Chưa cập nhật'}</strong>
+                <strong>{profile.phone || "Chưa cập nhật"}</strong>
               </div>
               <div className="info-row">
                 <span>Địa chỉ</span>
-                <strong>{profile.address || 'Chưa cập nhật'}</strong>
+                <strong>{profile.address || "Chưa cập nhật"}</strong>
               </div>
               <div className="info-row">
                 <span>Năm sinh</span>
-                <strong>{profile.yearOfBirth || 'Chưa cập nhật'}</strong>
+                <strong>{profile.yearOfBirth || "Chưa cập nhật"}</strong>
               </div>
               <div className="info-row">
                 <span>Giới tính</span>
-                <strong>{profile.sex === 'male' ? 'Nam' : profile.sex === 'female' ? 'Nữ' : profile.sex || 'Chưa cập nhật'}</strong>
+                <strong>
+                  {profile.sex === "male"
+                    ? "Nam"
+                    : profile.sex === "female"
+                    ? "Nữ"
+                    : profile.sex || "Chưa cập nhật"}
+                </strong>
               </div>
             </div>
           </aside>
 
           <main className="main">
-            {activeTab === 'overview' && (
+            {activeTab === "overview" && (
               <>
                 <div className="card">
                   <div className="card-header">
                     <h2>Thông tin tài khoản</h2>
                     <p>Quản lý thông tin cá nhân của bạn</p>
-                    <button 
+                    <button
                       className="btn primary"
                       onClick={() => setIsEditing(!isEditing)}
                     >
-                      {isEditing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa thông tin'}
+                      {isEditing ? "Hủy chỉnh sửa" : "Chỉnh sửa thông tin"}
                     </button>
                   </div>
-                  
+
                   {!isEditing ? (
                     // View Mode - Hiển thị thông tin
                     <div className="profile-info">
                       <div className="info-grid">
                         <div className="info-item">
                           <label>Họ và tên</label>
-                          <div className="value">{profile.name || 'Chưa cập nhật'}</div>
+                          <div className="value">
+                            {profile.name || "Chưa cập nhật"}
+                          </div>
                         </div>
                         <div className="info-item">
                           <label>Email</label>
-                          <div className="value">{profile.email || 'Chưa cập nhật'}</div>
+                          <div className="value">
+                            {profile.email || "Chưa cập nhật"}
+                          </div>
                         </div>
                         <div className="info-item">
                           <label>Số điện thoại</label>
-                          <div className="value">{profile.phone || 'Chưa cập nhật'}</div>
+                          <div className="value">
+                            {profile.phone || "Chưa cập nhật"}
+                          </div>
                         </div>
                         <div className="info-item">
                           <label>Địa chỉ</label>
-                          <div className="value">{profile.address || 'Chưa cập nhật'}</div>
+                          <div className="value">
+                            {profile.address || "Chưa cập nhật"}
+                          </div>
                         </div>
                         <div className="info-item">
                           <label>Năm sinh</label>
-                          <div className="value">{profile.yearOfBirth || 'Chưa cập nhật'}</div>
+                          <div className="value">
+                            {profile.yearOfBirth || "Chưa cập nhật"}
+                          </div>
                         </div>
                         <div className="info-item">
                           <label>Giới tính</label>
                           <div className="value">
-                            {profile.sex === 'male' ? 'Nam' : profile.sex === 'female' ? 'Nữ' : profile.sex || 'Chưa cập nhật'}
+                            {profile.sex === "male"
+                              ? "Nam"
+                              : profile.sex === "female"
+                              ? "Nữ"
+                              : profile.sex || "Chưa cập nhật"}
                           </div>
                         </div>
-                        <div className="info-item full">
-                          <label>Giới thiệu</label>
-                          <div className="value">{profile.bio}</div>
+                        <div className="info-item">
+                          <label>Mật khẩu</label>
+                          <div className="value">**********</div>
                         </div>
+                        
                       </div>
                     </div>
                   ) : (
                     // Edit Mode - Form chỉnh sửa
-                    <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
+                    <form
+                      className="form-grid"
+                      onSubmit={(e) => e.preventDefault()}
+                    >
                       <div className="field">
                         <label>Họ và tên *</label>
-                        <input 
-                          name="name" 
-                          value={profile.name} 
-                          onChange={handleChange} 
-                          placeholder="Nhập họ và tên" 
+                        <input
+                          name="name"
+                          value={profile.name}
+                          onChange={handleChange}
+                          placeholder="Nhập họ và tên"
                           required
                         />
                       </div>
                       <div className="field">
                         <label>Email *</label>
-                        <input 
-                          type="email" 
-                          name="email" 
-                          value={profile.email} 
-                          onChange={handleChange} 
-                          placeholder="example@email.com" 
+                        <input
+                          type="email"
+                          name="email"
+                          value={profile.email}
+                          placeholder="example@email.com"
+                          disabled
+                          readOnly
                           required
                         />
                       </div>
                       <div className="field">
                         <label>Số điện thoại *</label>
-                        <input 
-                          name="phone" 
-                          value={profile.phone} 
-                          onChange={handleChange} 
-                          placeholder="0900 000 000" 
+                        <input
+                          name="phone"
+                          value={profile.phone}
+                          onChange={handleChange}
+                          placeholder="0900 000 000"
                           required
                         />
                       </div>
                       <div className="field">
                         <label>Ngày sinh</label>
-                        <input 
-                          type="date" 
-                          name="yearOfBirth" 
-                          value={profile.yearOfBirth} 
-                          onChange={handleChange} 
+                        <input
+                          type="text"
+                          name="yearOfBirth"
+                          value={profile.yearOfBirth}
+                          placeholder="dd/MM/yyyy"
+                          onChange={(e) => {
+                            let v = e.target.value.replace(/[^0-9/]/g, "");
+                            if (v.length === 2 && !v.includes("/")) v = v + "/";
+                            if (v.length === 5 && v.lastIndexOf("/") === 2)
+                              v = v + "/";
+                            if (v.length > 10) v = v.slice(0, 10);
+                            setProfile((prev) => ({ ...prev, yearOfBirth: v }));
+                          }}
                           required
                         />
                       </div>
                       <div className="field full">
                         <label>Địa chỉ</label>
-                        <input 
-                          name="address" 
-                          value={profile.address} 
-                          onChange={handleChange} 
-                          placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" 
+                        <input
+                          name="address"
+                          value={profile.address}
+                          onChange={handleChange}
+                          placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
                         />
                       </div>
                       <div className="field">
                         <label>Giới tính</label>
-                        <select 
-                          name="sex" 
-                          value={profile.sex} 
+                        <select
+                          name="sex"
+                          value={profile.sex}
                           onChange={handleChange}
                         >
                           <option value="">Chọn giới tính</option>
@@ -391,27 +515,38 @@ function AccountPage() {
                         </select>
                       </div>
                       <div className="field full">
-                        <label>Giới thiệu</label>
-                        <textarea 
-                          name="bio" 
-                          rows={4} 
-                          value={profile.bio} 
-                          onChange={handleChange} 
-                          placeholder="Mô tả ngắn về bản thân..." 
+                        <label>Mật khẩu hiện tại</label>
+                        <input
+                          type="password"
+                          name="currentPassword"
+                          value={profile.currentPassword}
+                          onChange={handleChange}
+                          placeholder="Nhập mật khẩu hiện tại"
                         />
                       </div>
+                      <div className="field full">
+                        <label>Mật khẩu mới</label>
+                        <input
+                          type="password"
+                          name="password"
+                          value={profile.password}
+                          onChange={handleChange}
+                          placeholder="Nhập mật khẩu mới"
+                        />
+                      </div>
+                      
                       <div className="actions">
-                        <button 
-                          className="btn primary" 
-                          type="button" 
+                        <button
+                          className="btn primary"
+                          type="button"
                           onClick={handleSave}
                           disabled={saving}
                         >
-                          {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                          {saving ? "Đang lưu..." : "Lưu thay đổi"}
                         </button>
-                        <button 
-                          className="btn secondary" 
-                          type="button" 
+                        <button
+                          className="btn secondary"
+                          type="button"
                           onClick={handleCancel}
                           disabled={saving}
                         >
@@ -436,7 +571,7 @@ function AccountPage() {
               </>
             )}
 
-            {activeTab === 'posts' && (
+            {activeTab === "posts" && (
               <div className="card">
                 <div className="card-header">
                   <h2>Tin đăng gần đây</h2>
@@ -447,15 +582,23 @@ function AccountPage() {
                     userPosts.map((post) => (
                       <div key={post.id} className="post-item">
                         <div className="thumb">
-                          <img src={post.images[0] || "/api/placeholder/280/180"} alt="thumb" />
+                          <img
+                            src={post.images[0] || "/api/placeholder/280/180"}
+                            alt="thumb"
+                          />
                         </div>
                         <div className="info">
                           <h3>{post.title}</h3>
                           <p className="muted">
-                            {new Date(post.createdAt).toLocaleDateString('vi-VN')} · {post.views} lượt xem
+                            {new Date(post.createdAt).toLocaleDateString(
+                              "vi-VN"
+                            )}{" "}
+                            · {post.views} lượt xem
                           </p>
                           <div className="row">
-                            <button className="btn small outline">Chỉnh sửa</button>
+                            <button className="btn small outline">
+                              Chỉnh sửa
+                            </button>
                             <button className="btn small ghost">Ẩn</button>
                           </div>
                         </div>
@@ -464,7 +607,10 @@ function AccountPage() {
                   ) : (
                     <div className="empty-state">
                       <p>Chưa có tin đăng nào</p>
-                      <button className="btn primary" onClick={() => navigate('/battery')}>
+                      <button
+                        className="btn primary"
+                        onClick={() => navigate("/battery")}
+                      >
                         Đăng tin ngay
                       </button>
                     </div>
@@ -473,7 +619,7 @@ function AccountPage() {
               </div>
             )}
 
-            {activeTab === 'reviews' && (
+            {activeTab === "reviews" && (
               <div className="card">
                 <div className="card-header">
                   <h2>Đánh giá</h2>
@@ -484,18 +630,26 @@ function AccountPage() {
                     userReviews.map((review) => (
                       <li key={review.id} className="review">
                         <div className="avatar-sm">
-                          <img src={review.reviewer.avatar || "/api/placeholder/40/40"} alt="u" />
+                          <img
+                            src={
+                              review.reviewer.avatar || "/api/placeholder/40/40"
+                            }
+                            alt="u"
+                          />
                         </div>
                         <div className="content">
                           <div className="row">
                             <strong>{review.reviewer.name}</strong>
                             <span className="stars">
-                              {'★'.repeat(review.rating)}{'☆'.repeat(5-review.rating)}
+                              {"★".repeat(review.rating)}
+                              {"☆".repeat(5 - review.rating)}
                             </span>
                           </div>
                           <p>{review.comment}</p>
                           <span className="muted">
-                            {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                            {new Date(review.createdAt).toLocaleDateString(
+                              "vi-VN"
+                            )}
                           </span>
                         </div>
                       </li>
@@ -509,35 +663,44 @@ function AccountPage() {
               </div>
             )}
 
-            {activeTab === 'about' && (
+            {activeTab === "about" && (
               <div className="card">
                 <div className="card-header">
-                  <h2>Giới thiệu & Liên kết</h2>
-                  <p>Thông tin thêm và mạng xã hội.</p>
+                  <h2>Mật khẩu</h2>
+                  <p>Cập nhật mật khẩu của bạn.</p>
                 </div>
-                <div className="about-grid">
-                  <div className="block">
-                    <h3>Giới thiệu</h3>
-                    <p>{profile.bio}</p>
+                <form
+                  className="form-grid"
+                  onSubmit={(e) => e.preventDefault()}
+                >
+                  <div className="field full">
+                    <label>Mật khẩu mới</label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={profile.password}
+                      onChange={handleChange}
+                      placeholder="Nhập mật khẩu mới"
+                    />
                   </div>
-                  <div className="block">
-                    <h3>Liên kết</h3>
-                    <div className="links">
-                      <a href="#" className="link-chip">Facebook</a>
-                      <a href="#" className="link-chip">Zalo</a>
-                      <a href="#" className="link-chip">Website</a>
-                    </div>
+                  <div className="actions">
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      {saving ? "Đang lưu..." : "Cập nhật mật khẩu"}
+                    </button>
                   </div>
-                </div>
+                </form>
               </div>
             )}
           </main>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default AccountPage
-
-
+export default AccountPage;
