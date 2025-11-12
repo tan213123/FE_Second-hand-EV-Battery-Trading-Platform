@@ -6,10 +6,10 @@ import { Outlet, useNavigate } from "react-router-dom";
 function ProtectedRoute({ role, children }) {
   // so sánh role của account đang đăng nhập và cái role mà page yêu cầu
 
-  const account = useSelector((store) => store.account);
+  const member = useSelector((store) => store.member);
   const navigate = useNavigate();
 
-  if (account?.role === role) {
+  if (member?.role === role) {
     // cho qua
     return children;
   } else {
