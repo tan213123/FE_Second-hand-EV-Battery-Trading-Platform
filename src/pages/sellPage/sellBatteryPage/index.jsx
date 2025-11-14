@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSaved, useCompare } from "../../../contexts/AppContext";
-import localStorageService from "../../../services/localStorageService";
+import api from "../../../config/api";
 import "./index.scss";
 
 function SellBatteryPage() {
@@ -48,62 +48,80 @@ function SellBatteryPage() {
 
   // Load batteries from localStorage
   useEffect(() => {
-    const loadBatteriesFromStorage = () => {
+    const loadBatteriesFromApi = async () => {
+      setLoading(true);
       try {
-        const allPosts = localStorageService.getAllPosts();
-        // Lọc chỉ lấy pin (category = 'battery')
-        const batteryPosts = allPosts.filter(post => post.category === 'battery');
-        
-        if (batteryPosts.length > 0) {
-          // Format lại dữ liệu để hiển thị
-          const formattedBatteries = batteryPosts.map(post => ({
-            id: post.id,
-            title: post.title,
-            year: post.year,
-            type: post.batteryType || "Lithium-ion",
-            condition: post.condition,
-            price: new Intl.NumberFormat('vi-VN').format(post.price) + ' đ',
-            location: post.location?.district && post.location?.city 
-              ? `${post.location.district}, ${mapCityCodeToName(post.location.city)}`
-              : mapCityCodeToName(post.location?.city) || post.location?.district || '',
-            seller: post.contactName,
-            phone: post.contactPhone,
-            verified: false,
-            images: post.images?.length || 0,
-            featured: false,
-            vip: false,
-            discount: post.negotiable ? "Có thể thương lượng" : "",
-            capacity: post.capacity || "N/A",
-            health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
-            brand: post.brand,
-            description: post.description,
-            origin: post.origin || "Chưa cập nhật",
-            originalPost: post,
-            image: post.images?.[0] || '/api/placeholder/400/300'
-          }));
-          
-          console.log('Formatted batteries with images:', formattedBatteries.map(battery => ({ id: battery.id, title: battery.title, image: battery.image })));
-          setBatteriesFromStorage(formattedBatteries);
-        } else {
-          setBatteriesFromStorage([]);
+        const response = await api.get("/article");
+        let data = response.data;
+        if (data && !Array.isArray(data)) {
+          data = [data];
         }
+        if (!Array.isArray(data)) {
+          data = [];
+        }
+
+        const batteryPosts = data.filter(
+          (post) =>
+            post.articleType === "BATTERY_ARTICLE" ||
+            post.articleType === "battery"
+        );
+
+        const formattedBatteries = batteryPosts.map((post) => ({
+          id: post.articleId || post.id,
+          title: post.title || post.content || "",
+          year: post.year,
+          type: post.batteryType || "Lithium-ion",
+          condition: post.condition,
+          price: new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
+          location:
+            post.location?.district && post.location?.city
+              ? `${post.location.district}, ${post.location.city}`
+              : post.location || post.region || "",
+          seller: post.contactName || post.memberName || "",
+          phone: post.contactPhone || "",
+          verified: post.status === "APPROVED",
+          images: Array.isArray(post.images)
+            ? post.images.length
+            : Array.isArray(post.imageUrls)
+            ? post.imageUrls.length
+            : 0,
+          featured: false,
+          vip: false,
+          discount: post.negotiable ? "Có thể thương lượng" : "",
+          capacity:
+            post.capacity !== undefined && post.capacity !== null
+              ? post.capacity
+              : "N/A",
+          health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+          brand: post.brand,
+          description: post.content || "",
+          origin: post.origin || "Chưa cập nhật",
+          originalPost: post,
+          image:
+            post.mainImageUrl ||
+            (Array.isArray(post.images) && post.images.length > 0
+              ? post.images[0].url || post.images[0]
+              : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+              ? post.imageUrls[0]
+              : "/api/placeholder/400/300"),
+        }));
+
+        setBatteriesFromStorage(formattedBatteries);
       } catch (error) {
-        console.error('Error loading batteries from storage:', error);
+        console.error("Error loading batteries from API:", error);
         setBatteriesFromStorage([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    
-    loadBatteriesFromStorage();
-    
-    // Listen for storage changes
-    const handleStorageChange = () => loadBatteriesFromStorage();
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('postUpdated', handleStorageChange);
-    
+
+    loadBatteriesFromApi();
+
+    const handleStorageChange = () => loadBatteriesFromApi();
+    window.addEventListener("postUpdated", handleStorageChange);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('postUpdated', handleStorageChange);
+      window.removeEventListener("postUpdated", handleStorageChange);
     };
   }, []);
 
@@ -113,8 +131,8 @@ function SellBatteryPage() {
     const savedBattery = {
       ...battery,
       id: `battery-${battery.id}`, // Thêm prefix để tránh conflict với trang khác
-      category: 'Pin xe điện',
-      image: battery.image || '/api/placeholder/400/300'
+      category: "Pin xe điện",
+      image: battery.image || "/api/placeholder/400/300",
     };
     toggleSaved(savedBattery);
   };
@@ -125,27 +143,27 @@ function SellBatteryPage() {
     const compareBattery = {
       ...battery,
       id: `battery-${battery.id}`,
-      category: 'Pin xe điện',
-      image: battery.image || '/api/placeholder/400/300',
+      category: "Pin xe điện",
+      image: battery.image || "/api/placeholder/400/300",
       specs: {
-        brand: battery.seller || '-',
-        capacity: battery.capacity || '-',
-        type: battery.type || '-',
-        condition: battery.condition || '-',
-        health: battery.health || '-',
-        battery: battery.batteryInfo || '-',
-        color: '-',
-        origin: battery.origin || '-'
-      }
+        brand: battery.seller || "-",
+        capacity: battery.capacity || "-",
+        type: battery.type || "-",
+        condition: battery.condition || "-",
+        health: battery.health || "-",
+        battery: battery.batteryInfo || "-",
+        color: "-",
+        origin: battery.origin || "-",
+      },
     };
     addToCompare(compareBattery);
-    
+
     // Add visual feedback animation
-    setComparedItems(prev => new Set(prev).add(battery.id));
-    
+    setComparedItems((prev) => new Set(prev).add(battery.id));
+
     // Remove the animation class after a short delay
     setTimeout(() => {
-      setComparedItems(prev => {
+      setComparedItems((prev) => {
         const newSet = new Set(prev);
         newSet.delete(battery.id);
         return newSet;
@@ -155,22 +173,22 @@ function SellBatteryPage() {
 
   // Helper function to extract city from location
   const getCityFromLocation = (location) => {
-    if (!location) return '';
-    const parts = location.split(',');
+    if (!location) return "";
+    const parts = location.split(",");
     return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
   };
 
   // Map city codes to display names to match filter
   const mapCityCodeToName = (cityCode) => {
     const cityMapping = {
-      'hcm': 'Tp Hồ Chí Minh',
-      'hanoi': 'Hà Nội', 
-      'danang': 'Đà Nẵng',
-      'cantho': 'Cần Thơ',
-      'haiphong': 'Hải Phòng',
-      'binhduong': 'Bình Dương',
-      'dongnai': 'Đồng Nai',
-      'vungtau': 'Vũng Tàu',
+      hcm: "Tp Hồ Chí Minh",
+      hanoi: "Hà Nội",
+      danang: "Đà Nẵng",
+      cantho: "Cần Thơ",
+      haiphong: "Hải Phòng",
+      binhduong: "Bình Dương",
+      dongnai: "Đồng Nai",
+      vungtau: "Vũng Tàu",
     };
     return cityMapping[cityCode] || cityCode;
   };
@@ -178,7 +196,7 @@ function SellBatteryPage() {
   const handleRevealPhone = (e, batteryId) => {
     e.preventDefault();
     e.stopPropagation();
-    setRevealedPhones(prev => {
+    setRevealedPhones((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(batteryId)) {
         newSet.delete(batteryId);
@@ -193,18 +211,18 @@ function SellBatteryPage() {
     setSelectedProduct(battery);
     setCurrentImageIndex(0);
     setShowProductDetail(true);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   };
 
   const handleCloseProductDetail = () => {
     setShowProductDetail(false);
     setSelectedProduct(null);
-    document.body.style.overflow = 'unset';
+    document.body.style.overflow = "unset";
   };
 
   const handlePrevImage = () => {
     if (selectedProduct && selectedProduct.images > 1) {
-      setCurrentImageIndex(prev => 
+      setCurrentImageIndex((prev) =>
         prev === 0 ? selectedProduct.images - 1 : prev - 1
       );
     }
@@ -212,7 +230,7 @@ function SellBatteryPage() {
 
   const handleNextImage = () => {
     if (selectedProduct && selectedProduct.images > 1) {
-      setCurrentImageIndex(prev => 
+      setCurrentImageIndex((prev) =>
         prev === selectedProduct.images - 1 ? 0 : prev + 1
       );
     }
@@ -367,7 +385,7 @@ function SellBatteryPage() {
     </svg>
   );
 
-  // Dữ liệu filter 
+  // Dữ liệu filter
   const brands = [
     { name: "VinFast", logo: "🔋", count: 8950 },
     { name: "BYD", logo: "🔋", count: 4320 },
@@ -379,13 +397,7 @@ function SellBatteryPage() {
     { name: "Khác", logo: "🔋", count: 1560 },
   ];
 
-  const locations = [
-    "Tp Hồ Chí Minh",
-    "Hà Nội",
-    "Đà Nẵng", 
-    "Huế",
-    "Gần tôi",
-  ];
+  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế", "Gần tôi"];
 
   const priceRanges = [
     "Giá dưới 50 triệu",
@@ -412,11 +424,7 @@ function SellBatteryPage() {
     "Trên 80 kWh",
   ];
 
-  const conditions = [
-    "Mới",
-    "Đã sử dụng",
-    "Cũ nhưng tốt",
-  ];
+  const conditions = ["Mới", "Đã sử dụng", "Cũ nhưng tốt"];
 
   const batteryHealthRanges = [
     "90-100%",
@@ -428,7 +436,7 @@ function SellBatteryPage() {
 
   const cycleCountRanges = [
     "Dưới 500 chu kỳ",
-    "500-1000 chu kỳ", 
+    "500-1000 chu kỳ",
     "1000-2000 chu kỳ",
     "2000-5000 chu kỳ",
     "Trên 5000 chu kỳ",
@@ -442,25 +450,19 @@ function SellBatteryPage() {
     "Hết bảo hành",
   ];
 
-  const voltageRanges = [
-    "12V",
-    "24V", 
-    "48V",
-    "400V",
-    "800V",
-  ];
+  const voltageRanges = ["12V", "24V", "48V", "400V", "800V"];
 
   const powerRanges = [
     "Dưới 50kW",
     "50-100kW",
-    "100-200kW", 
+    "100-200kW",
     "200-300kW",
     "Trên 300kW",
   ];
 
   const origins = [
     "Việt Nam",
-    "Trung Quốc", 
+    "Trung Quốc",
     "Hàn Quốc",
     "Nhật Bản",
     "Đức",
@@ -485,7 +487,8 @@ function SellBatteryPage() {
       featured: true,
       vip: true,
       discount: "Trả góp 0%",
-      image: "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=400&h=300&fit=crop"
+      image:
+        "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=400&h=300&fit=crop",
     },
     {
       id: 2,
@@ -503,12 +506,17 @@ function SellBatteryPage() {
       rating: 4.7,
       featured: false,
       vip: false,
-      image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop"
-    }
+      image:
+        "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop",
+    },
   ];
 
   // Chỉ sử dụng dữ liệu thật từ localStorage, fallback về test data nếu trống
-  const allBatteryListings = loading ? [] : (batteriesFromStorage.length > 0 ? batteriesFromStorage : testBatteries);
+  const allBatteryListings = loading
+    ? []
+    : batteriesFromStorage.length > 0
+    ? batteriesFromStorage
+    : testBatteries;
 
   // Hàm lọc pin theo filter
   const getFilteredBatteries = () => {
@@ -516,26 +524,30 @@ function SellBatteryPage() {
 
     // Lọc theo brands
     if (selectedBrands.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => {
-        const batteryBrand = battery.title.split(' ')[0].toLowerCase();
-        return selectedBrands.some(brand => 
-          brand.toLowerCase().includes(batteryBrand) || 
-          batteryBrand.includes(brand.toLowerCase()) ||
-          battery.title.toLowerCase().includes(brand.toLowerCase())
+      filteredBatteries = filteredBatteries.filter((battery) => {
+        const batteryBrand = battery.title.split(" ")[0].toLowerCase();
+        return selectedBrands.some(
+          (brand) =>
+            brand.toLowerCase().includes(batteryBrand) ||
+            batteryBrand.includes(brand.toLowerCase()) ||
+            battery.title.toLowerCase().includes(brand.toLowerCase())
         );
       });
     }
 
     // Lọc theo price ranges
     if (selectedPriceRanges.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => {
-        const priceValue = parseInt(battery.price.replace(/[^\d]/g, ''));
-        return selectedPriceRanges.some(range => {
-          if (range.includes('dưới 50')) return priceValue < 50000000;
-          if (range.includes('50 triệu - 100')) return priceValue >= 50000000 && priceValue <= 100000000;
-          if (range.includes('100 triệu - 200')) return priceValue >= 100000000 && priceValue <= 200000000;
-          if (range.includes('200 triệu - 300')) return priceValue >= 200000000 && priceValue <= 300000000;
-          if (range.includes('Trên 300')) return priceValue > 300000000;
+      filteredBatteries = filteredBatteries.filter((battery) => {
+        const priceValue = parseInt(battery.price.replace(/[^\d]/g, ""));
+        return selectedPriceRanges.some((range) => {
+          if (range.includes("dưới 50")) return priceValue < 50000000;
+          if (range.includes("50 triệu - 100"))
+            return priceValue >= 50000000 && priceValue <= 100000000;
+          if (range.includes("100 triệu - 200"))
+            return priceValue >= 100000000 && priceValue <= 200000000;
+          if (range.includes("200 triệu - 300"))
+            return priceValue >= 200000000 && priceValue <= 300000000;
+          if (range.includes("Trên 300")) return priceValue > 300000000;
           return false;
         });
       });
@@ -543,21 +555,26 @@ function SellBatteryPage() {
 
     // Lọc theo battery types
     if (selectedBatteryTypes.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
+      filteredBatteries = filteredBatteries.filter((battery) =>
         selectedBatteryTypes.includes(battery.type)
       );
     }
 
     // Lọc theo capacities
     if (selectedCapacities.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => {
-        const capacityValue = parseFloat(battery.capacity.replace(/[^\d.]/g, ''));
-        return selectedCapacities.some(cap => {
-          if (cap.includes('Dưới 20')) return capacityValue < 20;
-          if (cap.includes('20-40')) return capacityValue >= 20 && capacityValue <= 40;
-          if (cap.includes('40-60')) return capacityValue >= 40 && capacityValue <= 60;
-          if (cap.includes('60-80')) return capacityValue >= 60 && capacityValue <= 80;
-          if (cap.includes('Trên 80')) return capacityValue > 80;
+      filteredBatteries = filteredBatteries.filter((battery) => {
+        const capacityValue = parseFloat(
+          battery.capacity.replace(/[^\d.]/g, "")
+        );
+        return selectedCapacities.some((cap) => {
+          if (cap.includes("Dưới 20")) return capacityValue < 20;
+          if (cap.includes("20-40"))
+            return capacityValue >= 20 && capacityValue <= 40;
+          if (cap.includes("40-60"))
+            return capacityValue >= 40 && capacityValue <= 60;
+          if (cap.includes("60-80"))
+            return capacityValue >= 60 && capacityValue <= 80;
+          if (cap.includes("Trên 80")) return capacityValue > 80;
           return false;
         });
       });
@@ -565,82 +582,90 @@ function SellBatteryPage() {
 
     // Lọc theo conditions
     if (selectedConditions.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
+      filteredBatteries = filteredBatteries.filter((battery) =>
         selectedConditions.includes(battery.condition)
       );
     }
 
     // Lọc theo cities
     if (selectedCities.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedCities.some(city => battery.location.includes(city))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedCities.some((city) => battery.location.includes(city))
       );
     }
 
     // Lọc theo battery health
     if (selectedBatteryHealth.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedBatteryHealth.some(health => 
-          battery.title.toLowerCase().includes(health.toLowerCase()) ||
-          (battery.health && battery.health.includes(health))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedBatteryHealth.some(
+          (health) =>
+            battery.title.toLowerCase().includes(health.toLowerCase()) ||
+            (battery.health && battery.health.includes(health))
         )
       );
     }
 
     // Lọc theo cycle count
     if (selectedCycleCount.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedCycleCount.some(cycle => 
-          battery.title.toLowerCase().includes(cycle.toLowerCase()) ||
-          (battery.cycleCount && battery.cycleCount.includes(cycle))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedCycleCount.some(
+          (cycle) =>
+            battery.title.toLowerCase().includes(cycle.toLowerCase()) ||
+            (battery.cycleCount && battery.cycleCount.includes(cycle))
         )
       );
     }
 
     // Lọc theo warranty
     if (selectedWarranty.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedWarranty.some(warranty => 
-          battery.title.toLowerCase().includes(warranty.toLowerCase()) ||
-          (battery.warranty && battery.warranty.includes(warranty))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedWarranty.some(
+          (warranty) =>
+            battery.title.toLowerCase().includes(warranty.toLowerCase()) ||
+            (battery.warranty && battery.warranty.includes(warranty))
         )
       );
     }
 
     // Lọc theo voltage
     if (selectedVoltage.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedVoltage.some(voltage => 
-          battery.title.toLowerCase().includes(voltage.toLowerCase()) ||
-          (battery.voltage && battery.voltage.includes(voltage))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedVoltage.some(
+          (voltage) =>
+            battery.title.toLowerCase().includes(voltage.toLowerCase()) ||
+            (battery.voltage && battery.voltage.includes(voltage))
         )
       );
     }
 
     // Lọc theo power
     if (selectedPower.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedPower.some(power => 
-          battery.title.toLowerCase().includes(power.toLowerCase()) ||
-          (battery.power && battery.power.includes(power))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedPower.some(
+          (power) =>
+            battery.title.toLowerCase().includes(power.toLowerCase()) ||
+            (battery.power && battery.power.includes(power))
         )
       );
     }
 
     // Lọc theo origins
     if (selectedOrigins.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedOrigins.some(origin => 
-          battery.title.toLowerCase().includes(origin.toLowerCase()) ||
-          (battery.origin && battery.origin === origin)
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedOrigins.some(
+          (origin) =>
+            battery.title.toLowerCase().includes(origin.toLowerCase()) ||
+            (battery.origin && battery.origin === origin)
         )
       );
     }
 
     // Lọc theo locations (khu vực)
     if (selectedLocations.length > 0) {
-      filteredBatteries = filteredBatteries.filter(battery => 
-        selectedLocations.some(location => battery.location.includes(location))
+      filteredBatteries = filteredBatteries.filter((battery) =>
+        selectedLocations.some((location) =>
+          battery.location.includes(location)
+        )
       );
     }
 
@@ -723,19 +748,26 @@ function SellBatteryPage() {
               {showPriceDropdown && (
                 <div className="dropdown-menu">
                   {priceRanges.map((range, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedPriceRanges.includes(range) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedPriceRanges.includes(range) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedPriceRanges.includes(range)) {
-                          setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                          setSelectedPriceRanges(
+                            selectedPriceRanges.filter((r) => r !== range)
+                          );
                         } else {
-                          setSelectedPriceRanges([...selectedPriceRanges, range]);
+                          setSelectedPriceRanges([
+                            ...selectedPriceRanges,
+                            range,
+                          ]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedPriceRanges.includes(range)}
                         readOnly
                       />
@@ -756,19 +788,26 @@ function SellBatteryPage() {
               {showCapacityDropdown && (
                 <div className="dropdown-menu">
                   {capacities.map((capacity, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedCapacities.includes(capacity) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedCapacities.includes(capacity) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedCapacities.includes(capacity)) {
-                          setSelectedCapacities(selectedCapacities.filter(c => c !== capacity));
+                          setSelectedCapacities(
+                            selectedCapacities.filter((c) => c !== capacity)
+                          );
                         } else {
-                          setSelectedCapacities([...selectedCapacities, capacity]);
+                          setSelectedCapacities([
+                            ...selectedCapacities,
+                            capacity,
+                          ]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedCapacities.includes(capacity)}
                         readOnly
                       />
@@ -789,23 +828,29 @@ function SellBatteryPage() {
               {showBrandDropdown && (
                 <div className="dropdown-menu">
                   {brands.map((brand, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedBrands.includes(brand.name) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedBrands.includes(brand.name) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedBrands.includes(brand.name)) {
-                          setSelectedBrands(selectedBrands.filter(b => b !== brand.name));
+                          setSelectedBrands(
+                            selectedBrands.filter((b) => b !== brand.name)
+                          );
                         } else {
                           setSelectedBrands([...selectedBrands, brand.name]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedBrands.includes(brand.name)}
                         readOnly
                       />
-                      <span>{brand.logo} {brand.name} ({brand.count})</span>
+                      <span>
+                        {brand.logo} {brand.name} ({brand.count})
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -824,19 +869,26 @@ function SellBatteryPage() {
               {showBatteryTypeDropdown && (
                 <div className="dropdown-menu">
                   {batteryTypes.map((type, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedBatteryTypes.includes(type) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedBatteryTypes.includes(type) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedBatteryTypes.includes(type)) {
-                          setSelectedBatteryTypes(selectedBatteryTypes.filter(t => t !== type));
+                          setSelectedBatteryTypes(
+                            selectedBatteryTypes.filter((t) => t !== type)
+                          );
                         } else {
-                          setSelectedBatteryTypes([...selectedBatteryTypes, type]);
+                          setSelectedBatteryTypes([
+                            ...selectedBatteryTypes,
+                            type,
+                          ]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedBatteryTypes.includes(type)}
                         readOnly
                       />
@@ -857,19 +909,26 @@ function SellBatteryPage() {
               {showConditionDropdown && (
                 <div className="dropdown-menu">
                   {conditions.map((condition, index) => (
-                    <div 
-                      key={index} 
-                      className={`dropdown-item ${selectedConditions.includes(condition) ? 'selected' : ''}`}
+                    <div
+                      key={index}
+                      className={`dropdown-item ${
+                        selectedConditions.includes(condition) ? "selected" : ""
+                      }`}
                       onClick={() => {
                         if (selectedConditions.includes(condition)) {
-                          setSelectedConditions(selectedConditions.filter(c => c !== condition));
+                          setSelectedConditions(
+                            selectedConditions.filter((c) => c !== condition)
+                          );
                         } else {
-                          setSelectedConditions([...selectedConditions, condition]);
+                          setSelectedConditions([
+                            ...selectedConditions,
+                            condition,
+                          ]);
                         }
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedConditions.includes(condition)}
                         readOnly
                       />
@@ -896,7 +955,10 @@ function SellBatteryPage() {
                         checked={selectedBatteryHealth.includes(health)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedBatteryHealth([...selectedBatteryHealth, health]);
+                            setSelectedBatteryHealth([
+                              ...selectedBatteryHealth,
+                              health,
+                            ]);
                           } else {
                             setSelectedBatteryHealth(
                               selectedBatteryHealth.filter((h) => h !== health)
@@ -927,7 +989,10 @@ function SellBatteryPage() {
                         checked={selectedCycleCount.includes(cycle)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedCycleCount([...selectedCycleCount, cycle]);
+                            setSelectedCycleCount([
+                              ...selectedCycleCount,
+                              cycle,
+                            ]);
                           } else {
                             setSelectedCycleCount(
                               selectedCycleCount.filter((c) => c !== cycle)
@@ -952,13 +1017,19 @@ function SellBatteryPage() {
               {showWarrantyDropdown && (
                 <div className="dropdown-menu">
                   {warrantyPeriods.map((warranty) => (
-                    <label key={warranty} className="dropdown-item checkbox-item">
+                    <label
+                      key={warranty}
+                      className="dropdown-item checkbox-item"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedWarranty.includes(warranty)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedWarranty([...selectedWarranty, warranty]);
+                            setSelectedWarranty([
+                              ...selectedWarranty,
+                              warranty,
+                            ]);
                           } else {
                             setSelectedWarranty(
                               selectedWarranty.filter((w) => w !== warranty)
@@ -983,7 +1054,10 @@ function SellBatteryPage() {
               {showVoltageDropdown && (
                 <div className="dropdown-menu">
                   {voltageRanges.map((voltage) => (
-                    <label key={voltage} className="dropdown-item checkbox-item">
+                    <label
+                      key={voltage}
+                      className="dropdown-item checkbox-item"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedVoltage.includes(voltage)}
@@ -1065,7 +1139,7 @@ function SellBatteryPage() {
                 </div>
               )}
             </div>
-            <button 
+            <button
               className="clear-filter"
               onClick={() => {
                 setSelectedBrands([]);
@@ -1091,8 +1165,8 @@ function SellBatteryPage() {
           <div className="location-filter">
             <span className="label">Khu vực:</span>
             {locations.map((location, index) => (
-              <button 
-                key={index} 
+              <button
+                key={index}
                 className={`location-btn ${
                   selectedLocations.includes(location) ? "active" : ""
                 }`}
@@ -1147,14 +1221,19 @@ function SellBatteryPage() {
               <div className="filter-options">
                 {conditions.map((condition, index) => (
                   <label key={index} className="filter-option">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedConditions.includes(condition)}
                       onChange={() => {
                         if (selectedConditions.includes(condition)) {
-                          setSelectedConditions(selectedConditions.filter(c => c !== condition));
+                          setSelectedConditions(
+                            selectedConditions.filter((c) => c !== condition)
+                          );
                         } else {
-                          setSelectedConditions([...selectedConditions, condition]);
+                          setSelectedConditions([
+                            ...selectedConditions,
+                            condition,
+                          ]);
                         }
                       }}
                     />
@@ -1173,14 +1252,19 @@ function SellBatteryPage() {
                 {(showAllPrices ? priceRanges : priceRanges.slice(0, 3)).map(
                   (range, index) => (
                     <label key={index} className="filter-option">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={selectedPriceRanges.includes(range)}
                         onChange={() => {
                           if (selectedPriceRanges.includes(range)) {
-                            setSelectedPriceRanges(selectedPriceRanges.filter(r => r !== range));
+                            setSelectedPriceRanges(
+                              selectedPriceRanges.filter((r) => r !== range)
+                            );
                           } else {
-                            setSelectedPriceRanges([...selectedPriceRanges, range]);
+                            setSelectedPriceRanges([
+                              ...selectedPriceRanges,
+                              range,
+                            ]);
                           }
                         }}
                       />
@@ -1288,11 +1372,11 @@ function SellBatteryPage() {
             {/* Battery Listings Grid */}
             <div className="listings-grid">
               {getFilteredBatteries().map((battery) => (
-                <div 
-                  key={battery.id} 
+                <div
+                  key={battery.id}
                   className="battery-card"
                   onClick={() => handleProductClick(battery)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
                   {battery.vip && <div className="vip-badge">Tin VIP</div>}
                   {battery.featured && (
@@ -1300,17 +1384,21 @@ function SellBatteryPage() {
                   )}
 
                   <div className="battery-image">
-                    <img 
-                      src={battery.image || "/api/placeholder/400/300"} 
+                    <img
+                      src={battery.image || "/api/placeholder/400/300"}
                       alt={battery.title}
                       onError={(e) => {
-                        e.target.src = "/api/placeholder/400/300"
+                        e.target.src = "/api/placeholder/400/300";
                       }}
                     />
-                    <button 
-                      className={`favorite-btn ${isSaved(`battery-${battery.id}`) ? 'saved' : ''}`}
+                    <button
+                      className={`favorite-btn ${
+                        isSaved(`battery-${battery.id}`) ? "saved" : ""
+                      }`}
                       onClick={(e) => handleToggleSaved(e, battery)}
-                      title={isSaved(`battery-${battery.id}`) ? 'Bỏ lưu' : 'Lưu tin'}
+                      title={
+                        isSaved(`battery-${battery.id}`) ? "Bỏ lưu" : "Lưu tin"
+                      }
                     >
                       <HeartIcon />
                     </button>
@@ -1359,15 +1447,19 @@ function SellBatteryPage() {
                     </div>
 
                     <div className="battery-actions">
-                      <button 
+                      <button
                         className="action-btn primary"
                         onClick={(e) => handleRevealPhone(e, battery.id)}
                       >
                         <PhoneIcon />
-                        {revealedPhones.has(battery.id) ? battery.phone : "Bấm để hiện số"}
+                        {revealedPhones.has(battery.id)
+                          ? battery.phone
+                          : "Bấm để hiện số"}
                       </button>
-                      <button 
-                        className={`action-btn compare-btn ${comparedItems.has(battery.id) ? 'comparing' : ''}`}
+                      <button
+                        className={`action-btn compare-btn ${
+                          comparedItems.has(battery.id) ? "comparing" : ""
+                        }`}
                         onClick={(e) => handleAddToCompare(e, battery)}
                       >
                         <CompareIcon />
@@ -1378,16 +1470,20 @@ function SellBatteryPage() {
                 </div>
               ))}
             </div>
-
-
           </div>
         </div>
       </div>
 
       {/* Product Detail Modal */}
       {showProductDetail && selectedProduct && (
-        <div className="product-detail-overlay" onClick={handleCloseProductDetail}>
-          <div className="product-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="product-detail-overlay"
+          onClick={handleCloseProductDetail}
+        >
+          <div
+            className="product-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button className="close-btn" onClick={handleCloseProductDetail}>
               <CloseIcon />
             </button>
@@ -1396,39 +1492,57 @@ function SellBatteryPage() {
               {/* Image Gallery */}
               <div className="product-gallery">
                 <div className="main-image">
-                  <img 
-                    src={selectedProduct.image || `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`} 
+                  <img
+                    src={
+                      selectedProduct.image ||
+                      `/api/placeholder/600/400?text=Image ${
+                        currentImageIndex + 1
+                      }`
+                    }
                     alt={selectedProduct.title}
                     onError={(e) => {
-                      e.target.src = `/api/placeholder/600/400?text=Image ${currentImageIndex + 1}`
+                      e.target.src = `/api/placeholder/600/400?text=Image ${
+                        currentImageIndex + 1
+                      }`;
                     }}
                   />
                   {selectedProduct.images > 1 && (
                     <>
-                      <button className="gallery-nav prev" onClick={handlePrevImage}>
+                      <button
+                        className="gallery-nav prev"
+                        onClick={handlePrevImage}
+                      >
                         <ChevronLeftIcon />
                       </button>
-                      <button className="gallery-nav next" onClick={handleNextImage}>
+                      <button
+                        className="gallery-nav next"
+                        onClick={handleNextImage}
+                      >
                         <ChevronRightIcon />
                       </button>
                     </>
                   )}
                 </div>
-                
+
                 {selectedProduct.images > 1 && (
                   <div className="image-thumbnails">
-                    {Array.from({ length: selectedProduct.images }, (_, index) => (
-                      <div
-                        key={index}
-                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <img 
-                          src={`/api/placeholder/100/80?text=${index + 1}`} 
-                          alt={`${selectedProduct.title} ${index + 1}`} 
-                        />
-                      </div>
-                    ))}
+                    {Array.from(
+                      { length: selectedProduct.images },
+                      (_, index) => (
+                        <div
+                          key={index}
+                          className={`thumbnail ${
+                            index === currentImageIndex ? "active" : ""
+                          }`}
+                          onClick={() => setCurrentImageIndex(index)}
+                        >
+                          <img
+                            src={`/api/placeholder/100/80?text=${index + 1}`}
+                            alt={`${selectedProduct.title} ${index + 1}`}
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
 
@@ -1443,7 +1557,9 @@ function SellBatteryPage() {
                   <h2 className="product-title">{selectedProduct.title}</h2>
                   <div className="product-price">{selectedProduct.price}</div>
                   {selectedProduct.discount && (
-                    <div className="product-discount">{selectedProduct.discount}</div>
+                    <div className="product-discount">
+                      {selectedProduct.discount}
+                    </div>
                   )}
                 </div>
 
@@ -1490,12 +1606,14 @@ function SellBatteryPage() {
                   <div className="product-specs">
                     <h3>Thông số kỹ thuật</h3>
                     <div className="specs-grid">
-                      {Object.entries(selectedProduct.specs).map(([key, value]) => (
-                        <div key={key} className="spec-row">
-                          <span className="spec-label">{key}:</span>
-                          <span className="spec-value">{value}</span>
-                        </div>
-                      ))}
+                      {Object.entries(selectedProduct.specs).map(
+                        ([key, value]) => (
+                          <div key={key} className="spec-row">
+                            <span className="spec-label">{key}:</span>
+                            <span className="spec-value">{value}</span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 )}
@@ -1519,22 +1637,30 @@ function SellBatteryPage() {
                 </div>
 
                 <div className="product-actions">
-                  <button 
+                  <button
                     className="action-btn primary large"
                     onClick={(e) => handleRevealPhone(e, selectedProduct.id)}
                   >
                     <PhoneIcon />
-                    {revealedPhones.has(selectedProduct.id) ? selectedProduct.phone : "Bấm để hiện số"}
+                    {revealedPhones.has(selectedProduct.id)
+                      ? selectedProduct.phone
+                      : "Bấm để hiện số"}
                   </button>
-                  <button 
-                    className={`action-btn secondary large save-btn ${isSaved(`battery-${selectedProduct.id}`) ? 'saved' : ''}`}
+                  <button
+                    className={`action-btn secondary large save-btn ${
+                      isSaved(`battery-${selectedProduct.id}`) ? "saved" : ""
+                    }`}
                     onClick={(e) => handleToggleSaved(e, selectedProduct)}
                   >
                     <HeartIcon />
-                    {isSaved(`battery-${selectedProduct.id}`) ? 'Đã lưu' : 'Lưu tin'}
+                    {isSaved(`battery-${selectedProduct.id}`)
+                      ? "Đã lưu"
+                      : "Lưu tin"}
                   </button>
-                  <button 
-                    className={`action-btn secondary large compare-btn ${comparedItems.has(selectedProduct.id) ? 'comparing' : ''}`}
+                  <button
+                    className={`action-btn secondary large compare-btn ${
+                      comparedItems.has(selectedProduct.id) ? "comparing" : ""
+                    }`}
                     onClick={(e) => handleAddToCompare(e, selectedProduct)}
                   >
                     <CompareIcon />

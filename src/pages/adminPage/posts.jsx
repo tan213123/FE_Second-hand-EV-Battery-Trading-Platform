@@ -49,7 +49,9 @@ const Posts = () => {
   const member = useSelector((state) => state.member);
   const adminMemberId = useMemo(
     () =>
-      (member && (member.id ?? member.memberId ?? member.accountId ?? member.userId)) || null,
+      (member &&
+        (member.id ?? member.memberId ?? member.accountId ?? member.userId)) ||
+      null,
     [member]
   );
 
@@ -74,21 +76,102 @@ const Posts = () => {
       setLoading(true);
       setError("");
       try {
-        const params = {
-          page: page,
-          size: pageSize,
-          status: status === "all" ? undefined : status,
-          search: search || undefined,
+        // Convert frontend status values to backend enum values
+        const getBackendStatus = (frontendStatus) => {
+          switch (frontendStatus) {
+            case "pending":
+              return "PENDING_APPROVAL";
+            case "approved":
+              return "APPROVED";
+            case "rejected":
+              return "REJECTED";
+            case "deleted":
+              return "DELETED";
+            case "archived":
+              return "ARCHIVED";
+            case "all":
+              return undefined;
+            default:
+              return undefined;
+          }
         };
 
-        if (sort.field) {
-          params.sort = `${sort.field},${
-            sort.order === "ascend" ? "asc" : "desc"
-          }`;
-        }
+        // Use different endpoints based on whether we're filtering by status
+        let res;
+        let actualParams;
 
-        const res = await api.get("/article", { params });
+        if (status === "all") {
+          // Get all articles - don't send status parameter
+          actualParams = {
+            page: page,
+            size: pageSize,
+            search: search || undefined,
+          };
+          if (sort.field) {
+            actualParams.sort = `${sort.field},${
+              sort.order === "ascend" ? "asc" : "desc"
+            }`;
+          }
+          res = await api.get("/article", { params: actualParams });
+        } else {
+          // Get articles by specific status using the dedicated endpoint
+          actualParams = {
+            status: getBackendStatus(status),
+            page: page,
+            size: pageSize,
+            search: search || undefined,
+          };
+          if (sort.field) {
+            actualParams.sort = `${sort.field},${
+              sort.order === "ascend" ? "asc" : "desc"
+            }`;
+          }
+          res = await api.get("/article/status", { params: actualParams });
+        }
         const response = res.data;
+
+        // Debug: Log the API response to see what statuses we're getting
+        console.log("📊 API Response Debug:", {
+          endpoint: status === "all" ? "/article" : "/article/status",
+          params: actualParams,
+          totalItems: response?.totalItems || response?.totalElements || 0,
+          itemsCount:
+            response?.items?.length ||
+            response?.content?.length ||
+            response?.length ||
+            0,
+          sampleStatuses: (
+            response?.items ||
+            response?.content ||
+            response ||
+            []
+          )
+            .slice(0, 3)
+            .map((p) => ({
+              id: p.articleId || p.id,
+              rawStatus: p.status || p.articleStatus,
+              normalizedStatus: (() => {
+                const raw = (p.status || p.articleStatus || "PENDING_APPROVAL")
+                  .toString()
+                  .trim()
+                  .toUpperCase();
+                switch (raw) {
+                  case "PENDING_APPROVAL":
+                    return "pending";
+                  case "APPROVED":
+                    return "approved";
+                  case "REJECTED":
+                    return "rejected";
+                  case "DELETED":
+                    return "deleted";
+                  case "ARCHIVED":
+                    return "archived";
+                  default:
+                    return "pending";
+                }
+              })(),
+            })),
+        });
         const data = Array.isArray(response?.items)
           ? response.items
           : Array.isArray(response)
@@ -123,10 +206,21 @@ const Posts = () => {
                 .toString()
                 .trim()
                 .toUpperCase();
-              if (raw === "APPROVED") return "approved";
-              if (raw === "REJECTED") return "rejected";
-              if (raw.startsWith("PENDING")) return "pending";
-              return (p.status || "").toString().toLowerCase() || "pending";
+              // Map backend enum values to frontend status
+              switch (raw) {
+                case "PENDING_APPROVAL":
+                  return "pending";
+                case "APPROVED":
+                  return "approved";
+                case "REJECTED":
+                  return "rejected";
+                case "DELETED":
+                  return "deleted";
+                case "ARCHIVED":
+                  return "archived";
+                default:
+                  return "pending"; // fallback
+              }
             })(),
           }))
         );
@@ -149,17 +243,10 @@ const Posts = () => {
         setLoading(false);
       }
     },
-    [
-      error,
-      filterStatus,
-      searchTerm,
-      sortOrder,
-      pagination.current,
-      pagination.pageSize,
-    ]
+    [] // Stable function with no dependencies
   );
 
-  // 2. useEffect now explicitly calls fetchPosts with current state values
+  // 2. useEffect to fetch posts when dependencies change
   useEffect(() => {
     fetchPosts(
       pagination.current,
@@ -197,11 +284,14 @@ const Posts = () => {
         notification.error({ message: "Không tìm thấy mã quản trị để duyệt" });
         return;
       }
-      const res = await api.post(`/article/${id}/approve`, {
-        articleId: id,
-        memberId: adminMemberId,
+      const res = await api.post(
+        `/article/${id}/approve?memberId=${adminMemberId}`
+      );
+      console.log("Approve response:", {
+        status: res.status,
+        data: res.data,
+        id,
       });
-      console.log("Approve response:", { status: res.status, data: res.data, id });
       notification.success({ message: "Duyệt bài đăng thành công" });
       fetchPosts(
         pagination.current,
@@ -226,14 +316,19 @@ const Posts = () => {
     try {
       setRejectingIds((prev) => [...prev, id]);
       if (!adminMemberId) {
-        notification.error({ message: "Không tìm thấy mã quản trị để từ chối" });
+        notification.error({
+          message: "Không tìm thấy mã quản trị để từ chối",
+        });
         return;
       }
-      const res = await api.post(`/article/${id}/reject`, {
-        articleId: id,
-        memberId: adminMemberId,
+      const res = await api.post(
+        `/article/${id}/reject?memberId=${adminMemberId}`
+      );
+      console.log("Reject response:", {
+        status: res.status,
+        data: res.data,
+        id,
       });
-      console.log("Reject response:", { status: res.status, data: res.data, id });
       notification.success({ message: "Từ chối bài đăng thành công" });
       fetchPosts(
         pagination.current,
@@ -257,7 +352,7 @@ const Posts = () => {
   const handleDelete = async (id) => {
     try {
       setDeletingIds((prev) => [...prev, id]);
-      const res = await api.delete(`/article/${id}`);
+      const res = await api.delete(`/article/${id}?memberId=${adminMemberId}`);
       console.log("Delete response:", {
         status: res.status,
         data: res.data,
@@ -292,17 +387,15 @@ const Posts = () => {
       onOk: async () => {
         try {
           if (!adminMemberId) {
-            notification.error({ message: "Không tìm thấy mã quản trị để duyệt" });
+            notification.error({
+              message: "Không tìm thấy mã quản trị để duyệt",
+            });
             return;
           }
-          const results = await Promise.all(
+          await Promise.all(
             selectedRowKeys.map((id) =>
-              api.post(`/article/${id}/approve`, { articleId: id, memberId: adminMemberId })
+              api.post(`/article/${id}/approve?memberId=${adminMemberId}`)
             )
-          );
-          console.log(
-            "Bulk approve responses:",
-            results.map((r) => ({ status: r.status, data: r.data }))
           );
           notification.success({ message: "Duyệt hàng loạt thành công" });
           setSelectedRowKeys([]);
@@ -335,17 +428,15 @@ const Posts = () => {
       onOk: async () => {
         try {
           if (!adminMemberId) {
-            notification.error({ message: "Không tìm thấy mã quản trị để từ chối" });
+            notification.error({
+              message: "Không tìm thấy mã quản trị để từ chối",
+            });
             return;
           }
-          const results = await Promise.all(
+          await Promise.all(
             selectedRowKeys.map((id) =>
-              api.post(`/article/${id}/reject`, { articleId: id, memberId: adminMemberId })
+              api.post(`/article/${id}/reject?memberId=${adminMemberId}`)
             )
-          );
-          console.log(
-            "Bulk reject responses:",
-            results.map((r) => ({ status: r.status, data: r.data }))
           );
           notification.success({ message: "Từ chối hàng loạt thành công" });
           setSelectedRowKeys([]);
@@ -379,7 +470,9 @@ const Posts = () => {
       onOk: async () => {
         try {
           await Promise.all(
-            selectedRowKeys.map((id) => api.delete(`/article/${id}`))
+            selectedRowKeys.map((id) =>
+              api.delete(`/article/${id}?memberId=${adminMemberId}`)
+            )
           );
           notification.success({ message: "Xóa hàng loạt thành công" });
           setSelectedRowKeys([]);
@@ -404,13 +497,17 @@ const Posts = () => {
   const getStatusTag = (status) => {
     switch (status) {
       case "pending":
-        return <Tag color="gold">Chờ duyệt</Tag>;
+        return <Tag color="warning">Chờ duyệt</Tag>;
       case "approved":
-        return <Tag color="green">Đã duyệt</Tag>;
+        return <Tag color="success">Đã duyệt</Tag>;
       case "rejected":
-        return <Tag color="red">Từ chối</Tag>;
+        return <Tag color="error">Từ chối</Tag>;
+      case "deleted":
+        return <Tag color="red">Đã xóa</Tag>;
+      case "archived":
+        return <Tag color="default">Lưu trữ</Tag>;
       default:
-        return <Tag>Không rõ</Tag>;
+        return <Tag>Không xác định</Tag>;
     }
   };
 
@@ -418,7 +515,14 @@ const Posts = () => {
     // This should ideally reflect the backend counts, not just the currently fetched `posts` array.
     // If your API provides total counts for each status, use that.
     // For now, it reflects the `posts` in state.
-    const counts = { all: 0, pending: 0, approved: 0, rejected: 0 };
+    const counts = {
+      all: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      deleted: 0,
+      archived: 0,
+    };
     posts.forEach((p) => {
       counts.all++;
       if (p.status in counts) {

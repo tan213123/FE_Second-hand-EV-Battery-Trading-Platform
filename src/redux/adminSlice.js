@@ -6,7 +6,7 @@ export const fetchReports = createAsyncThunk(
   'admin/fetchReports',
   async (params, { rejectWithValue }) => {
     try {
-      const res = await api.get('/admin/reports', { params })
+      const res = await api.get('/dashboard/stats', { params })
       return res.data || {}
     } catch (err) {
       const message = err?.response?.data?.message || 'Không thể tải thống kê admin'
@@ -20,7 +20,7 @@ export const fetchAdminPosts = createAsyncThunk(
   'admin/fetchPosts',
   async (params, { rejectWithValue }) => {
     try {
-      const res = await api.get('/admin/posts', { params })
+      const res = await api.get('/article', { params })
       return res.data
     } catch (err) {
       return rejectWithValue(err?.response?.data?.message || 'Không thể tải danh sách bài đăng')
@@ -30,9 +30,9 @@ export const fetchAdminPosts = createAsyncThunk(
 
 export const approvePost = createAsyncThunk(
   'admin/approvePost',
-  async (id, { rejectWithValue }) => {
+  async ({ id, memberId }, { rejectWithValue }) => {
     try {
-      const res = await api.post(`/admin/posts/${id}/approve`)
+      const res = await api.post(`/article/${id}/approve?memberId=${memberId}`)
       return res.data
     } catch (err) {
       return rejectWithValue(err?.response?.data?.message || 'Duyệt bài thất bại')
@@ -42,9 +42,9 @@ export const approvePost = createAsyncThunk(
 
 export const rejectPost = createAsyncThunk(
   'admin/rejectPost',
-  async (id, { rejectWithValue }) => {
+  async ({ id, memberId }, { rejectWithValue }) => {
     try {
-      const res = await api.post(`/admin/posts/${id}/reject`)
+      const res = await api.post(`/article/${id}/reject?memberId=${memberId}`)
       return res.data
     } catch (err) {
       return rejectWithValue(err?.response?.data?.message || 'Từ chối bài thất bại')
@@ -57,7 +57,7 @@ export const fetchUsers = createAsyncThunk(
   'admin/fetchUsers',
   async (params, { rejectWithValue }) => {
     try {
-      const res = await api.get('/admin/users', { params })
+      const res = await api.get('/members/active', { params })
       return res.data
     } catch (err) {
       return rejectWithValue(err?.response?.data?.message || 'Không thể tải danh sách người dùng')
@@ -69,7 +69,7 @@ export const blockUser = createAsyncThunk(
   'admin/blockUser',
   async ({ id, reason }, { rejectWithValue }) => {
     try {
-      const res = await api.post(`/admin/users/${id}/block`, { reason })
+      const res = await api.delete(`/members/${id}`, { reason })
       return res.data
     } catch (err) {
       return rejectWithValue(err?.response?.data?.message || 'Khóa tài khoản thất bại')
@@ -77,17 +77,6 @@ export const blockUser = createAsyncThunk(
   }
 )
 
-export const unblockUser = createAsyncThunk(
-  'admin/unblockUser',
-  async (id, { rejectWithValue }) => {
-    try {
-      const res = await api.post(`/admin/users/${id}/unblock`)
-      return res.data
-    } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || 'Mở khóa tài khoản thất bại')
-    }
-  }
-)
 
 const initialState = {
   reports: {
@@ -164,9 +153,6 @@ const adminSlice = createSlice({
         state.users.error = action.payload
       })
       .addCase(blockUser.rejected, (state, action) => {
-        state.users.error = action.payload
-      })
-      .addCase(unblockUser.rejected, (state, action) => {
         state.users.error = action.payload
       })
   },
