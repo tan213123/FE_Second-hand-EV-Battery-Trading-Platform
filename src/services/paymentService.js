@@ -14,15 +14,23 @@ const PAYMENT_ENDPOINTS = {
 }
 
 const handleApiError = (error, fallbackMessage) => {
-  const message =
-    error.response?.data?.message ||
-    error.response?.data?.error ||
-    fallbackMessage
+  if (error.response) {
+    const { data, status } = error.response
+    const message = typeof data === 'string'
+      ? data
+      : data?.message || data?.error || fallbackMessage
+
+    return {
+      success: false,
+      error: message,
+      status,
+    }
+  }
 
   return {
     success: false,
-    error: message,
-    status: error.response?.status,
+    error: fallbackMessage,
+    status: undefined,
   }
 }
 
@@ -116,13 +124,52 @@ export const paymentService = {
 
   async createVnpayPaymentUrl(orderId) {
     try {
-      const { data } = await api.post(
+      console.log('Creating VNPAY URL for orderId:', orderId)
+      const payload = { orderId: Number(orderId) }
+
+      const response = await api.post(
         PAYMENT_ENDPOINTS.CREATE_VNPAY_URL,
-        null,
-        { params: { orderId } },
+        payload,
+        {
+          params: payload, // hỗ trợ backend cũ yêu cầu query param
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          responseType: 'text', // backend trả về string URL
+        },
       )
-      return { success: true, data }
+      
+      console.log('Payment URL raw response:', response.data)
+      
+      let paymentUrl = response.data
+
+      // Nếu trả về JSON string, parse lấy paymentUrl/url
+      if (typeof paymentUrl === 'string' && paymentUrl.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(paymentUrl)
+          paymentUrl = parsed.paymentUrl || parsed.url || paymentUrl
+        } catch (e) {
+          console.log('Response is not JSON, using raw string as URL')
+        }
+      }
+      
+      if (!paymentUrl || typeof paymentUrl !== 'string' || !paymentUrl.startsWith('http')) {
+        console.error('Invalid payment URL:', paymentUrl)
+        return {
+          success: false,
+          error: 'Không nhận được liên kết thanh toán hợp lệ từ máy chủ',
+        }
+      }
+
+      console.log('Payment URL created successfully:', paymentUrl)
+      return { success: true, data: paymentUrl }
     } catch (error) {
+      console.error('Error creating VNPAY URL:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      })
       return handleApiError(error, 'Không thể tạo liên kết thanh toán VNPAY')
     }
   },

@@ -39,10 +39,10 @@ function PackagePage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   // Redux state
-  const { activePackages, loading: packagesLoading, error: packagesError } = 
-    useSelector((state) => state.package)
-  const { loading: orderLoading } = useSelector((state) => state.order)
-  const { vnpayUrl, loading: paymentLoading } = useSelector((state) => state.payment)
+  const { activePackages = [], loading: packagesLoading = false, error: packagesError = null } = 
+    useSelector((state) => state.package) || {}
+  const { loading: orderLoading = false } = useSelector((state) => state.order) || {}
+  const { vnpayUrl = null, loading: paymentLoading = false } = useSelector((state) => state.payment) || {}
   const member = useSelector((state) => state.member)
 
   // Fetch packages từ backend
@@ -50,13 +50,14 @@ function PackagePage() {
     dispatch(fetchActivePackages())
   }, [dispatch])
 
-  // Redirect khi có VNPAY URL
-  useEffect(() => {
-    if (vnpayUrl) {
-      window.location.href = vnpayUrl
-      dispatch(clearVnpayUrl())
-    }
-  }, [vnpayUrl, dispatch])
+  // Redirect khi có VNPAY URL (fallback - không dùng nữa vì redirect trực tiếp trong handleVnpayPayment)
+  // useEffect(() => {
+  //   if (vnpayUrl) {
+  //     console.log('Redirecting via useEffect to:', vnpayUrl)
+  //     window.location.href = vnpayUrl
+  //     dispatch(clearVnpayUrl())
+  //   }
+  // }, [vnpayUrl, dispatch])
 
   // Clear error khi unmount
   useEffect(() => {
@@ -137,32 +138,54 @@ function PackagePage() {
       return
     }
 
+    console.log('Starting payment process for package:', pkg)
+
     try {
       // 1. Tạo Order
+      console.log('Creating order...')
       const orderResult = await dispatch(createOrder({
         memberId: member.memberId,
         packageId: pkg.packageId,
       }))
 
+      console.log('Order result:', orderResult)
+
       if (createOrder.fulfilled.match(orderResult)) {
         const orderId = orderResult.payload.orderId
+        console.log('Order created successfully, orderId:', orderId)
 
         // 2. Tạo VNPAY Payment URL
+        console.log('Creating VNPAY payment URL...')
         const paymentResult = await dispatch(createVnpayPaymentUrl(orderId))
 
+        console.log('Payment result:', paymentResult)
+
         if (createVnpayPaymentUrl.fulfilled.match(paymentResult)) {
-          // URL sẽ được lưu trong state.payment.vnpayUrl
-          // useEffect sẽ tự động redirect
+          const paymentUrl = paymentResult.payload.url
+          console.log('Payment URL received:', paymentUrl)
+          
+          // Đóng modal trước
           setShowPaymentModal(false)
+          
+          // Redirect trực tiếp đến VNPAY
+          if (paymentUrl && paymentUrl.startsWith('http')) {
+            console.log('Redirecting to VNPAY...')
+            window.location.href = paymentUrl
+          } else {
+            console.error('Invalid payment URL:', paymentUrl)
+            alert('Lỗi: Không nhận được liên kết thanh toán hợp lệ')
+          }
         } else {
-          alert('Lỗi tạo liên kết thanh toán: ' + paymentResult.payload)
+          console.error('Payment URL creation failed:', paymentResult.payload)
+          alert('Lỗi tạo liên kết thanh toán: ' + (paymentResult.payload || 'Unknown error'))
         }
       } else {
-        alert('Lỗi tạo đơn hàng: ' + orderResult.payload)
+        console.error('Order creation failed:', orderResult.payload)
+        alert('Lỗi tạo đơn hàng: ' + (orderResult.payload || 'Unknown error'))
       }
     } catch (error) {
-      console.error('Error:', error)
-      alert('Có lỗi xảy ra, vui lòng thử lại')
+      console.error('Error in payment process:', error)
+      alert('Có lỗi xảy ra, vui lòng thử lại: ' + (error.message || 'Unknown error'))
     }
   }
 
@@ -361,9 +384,6 @@ function PackagePage() {
                     disabled={orderLoading || paymentLoading}
                   >
                     {orderLoading || paymentLoading ? 'Đang xử lý...' : '💳 Thanh toán VNPAY'}
-                  </button>
-                  <button className="btn btn-primary">
-                    Tôi đã thanh toán
                   </button>
                 </div>
               </>
