@@ -18,7 +18,7 @@ const PaymentPage = () => {
     } else {
       // Fallback data nếu không có state
       setPaymentData({
-        orderId: `ECO${Date.now()}`,
+          orderId: paymentData.orderId,
         amount: 500000,
         description: 'Phí tham gia đấu giá',
         packageName: 'Gói Đấu giá',
@@ -50,18 +50,49 @@ const PaymentPage = () => {
     }).format(price)
   }
 
-  const handlePayment = async () => {
-    setIsProcessing(true)
-    
-    // Simulate VNPAY payment process
-    setTimeout(() => {
-      // Trong thực tế, đây sẽ là API call đến VNPAY
-      const vnpayUrl = `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=${paymentData.amount * 100}&vnp_Command=pay&vnp_CreateDate=${new Date().toISOString().replace(/[-:]/g, '').replace('T', '').substring(0, 14)}&vnp_CurrCode=VND&vnp_IpAddr=127.0.0.1&vnp_Locale=vn&vnp_OrderInfo=${encodeURIComponent(paymentData.description)}&vnp_OrderType=other&vnp_ReturnUrl=${encodeURIComponent(window.location.origin + '/payment/result')}&vnp_TmnCode=ECOXETEST&vnp_TxnRef=${paymentData.orderId}&vnp_Version=2.1.0&vnp_SecureHash=testhash`
-      
-      // Redirect to VNPAY
-      window.location.href = vnpayUrl
-    }, 2000)
-  }
+    const handlePayment = async () => {
+        try {
+            setIsProcessing(true);
+
+            if (selectedMethod === "vnpay") {
+                // 🔥 GỌI API BACKEND TẠO URL THANH TOÁN
+                const response = await fetch(
+                    "http://14.225.206.98:8080/api/payment/vnpay/create-url",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            orderId: paymentData.orderId   // phải là Long có thật từ backend!
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error("Không tạo được URL thanh toán");
+                }
+
+                const paymentUrl = await response.text(); // backend trả về URL dạng string
+
+                // 🔥 Chuyển hướng sang VNPAY
+                window.location.href = paymentUrl;
+                return;
+            }
+
+            // Nếu là chuyển khoản ngân hàng
+            if (selectedMethod === "bank") {
+                alert("Vui lòng chuyển khoản theo thông tin hiển thị.");
+                return;
+            }
+
+        } catch (err) {
+            console.error("Payment error:", err);
+            alert("Lỗi khi tạo thanh toán. Vui lòng thử lại.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+
 
   const handleCancel = () => {
     navigate(-1)
@@ -139,9 +170,9 @@ const PaymentPage = () => {
             {/* Payment Methods */}
             <div className="payment-methods">
               <h2>Chọn phương thức thanh toán</h2>
-              
+
               <div className="method-options">
-                <div 
+                <div
                   className={`method-option ${selectedMethod === 'vnpay' ? 'selected' : ''}`}
                   onClick={() => setSelectedMethod('vnpay')}
                 >
@@ -158,9 +189,9 @@ const PaymentPage = () => {
                     </div>
                   </div>
                   <div className="method-radio">
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
+                    <input
+                      type="radio"
+                      name="paymentMethod"
                       value="vnpay"
                       checked={selectedMethod === 'vnpay'}
                       onChange={() => setSelectedMethod('vnpay')}
@@ -168,7 +199,7 @@ const PaymentPage = () => {
                   </div>
                 </div>
 
-                <div 
+                <div
                   className={`method-option ${selectedMethod === 'bank' ? 'selected' : ''}`}
                   onClick={() => setSelectedMethod('bank')}
                 >
@@ -184,9 +215,9 @@ const PaymentPage = () => {
                     </div>
                   </div>
                   <div className="method-radio">
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
+                    <input
+                      type="radio"
+                      name="paymentMethod"
                       value="bank"
                       checked={selectedMethod === 'bank'}
                       onChange={() => setSelectedMethod('bank')}
@@ -252,10 +283,10 @@ const PaymentPage = () => {
                       <span className="bank-value price">{formatPrice(paymentData.amount)}</span>
                     </div>
                   </div>
-                  
+
                   <div className="qr-code-section">
                     <div className="qr-code">
-                      <img 
+                      <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`Vietcombank|1234567890|CONG TY ECOXE|${paymentData.amount}|${paymentData.orderId}`)}`}
                         alt="QR Code"
                       />
@@ -271,13 +302,13 @@ const PaymentPage = () => {
 
           {/* Payment Actions */}
           <div className="payment-actions">
-            <button 
+            <button
               className="btn-cancel"
               onClick={handleCancel}
             >
               Hủy thanh toán
             </button>
-            <button 
+            <button
               className={`btn-pay ${isProcessing ? 'processing' : ''}`}
               onClick={handlePayment}
               disabled={isProcessing}
@@ -313,7 +344,7 @@ const PaymentPage = () => {
             </div>
           </div>
           <p className="security-note">
-            Thông tin thanh toán của bạn được mã hóa và bảo mật tuyệt đối. 
+            Thông tin thanh toán của bạn được mã hóa và bảo mật tuyệt đối.
             Chúng tôi không lưu trữ thông tin thẻ của bạn.
           </p>
         </div>

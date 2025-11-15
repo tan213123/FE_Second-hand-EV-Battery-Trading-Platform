@@ -22,7 +22,7 @@ import PaymentResultPage from "./pages/paymentResultPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ProtectedRoute from "./components/protected-route";
-
+import SubscriptionListPage from "./pages/subscriptionListPage/index.jsx";
 function App() {
   const router = createBrowserRouter([
     {
@@ -46,6 +46,8 @@ function App() {
         { path: "/settings", element: <SettingsPage /> },
         { path: "/my-posts", element: <MyPostsPage /> },
         { path: "/packages", element: <PackagePage /> },
+          { path: "/payment/vnpay/return/vnp/result", element: <PaymentResultPage /> },
+          { path: "my-subscriptions", element: <SubscriptionListPage /> },
         { path: "/post-detail/:id", element: <PostDetailPage /> },
         { path: "/payment", element: <PaymentPage /> },
         { path: "/payment/result", element: <PaymentResultPage /> },

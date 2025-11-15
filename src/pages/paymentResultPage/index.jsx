@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './index.scss'
+import api from "../../config/api";
 
 const PaymentResultPage = () => {
   const navigate = useNavigate()
@@ -8,49 +9,52 @@ const PaymentResultPage = () => {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Simulate checking payment result
-    setTimeout(() => {
-      // Trong thực tế, đây sẽ là API call để kiểm tra kết quả thanh toán
-      const urlParams = new URLSearchParams(location.search)
-      const vnpResponseCode = urlParams.get('vnp_ResponseCode')
-      
-      if (vnpResponseCode === '00') {
-        setResult({
-          success: true,
-          orderId: urlParams.get('vnp_TxnRef') || 'ECO' + Date.now(),
-          amount: parseInt(urlParams.get('vnp_Amount')) / 100,
-          transactionId: urlParams.get('vnp_TransactionNo'),
-          message: 'Thanh toán thành công!'
-        })
-      } else {
-        setResult({
-          success: false,
-          orderId: urlParams.get('vnp_TxnRef') || 'ECO' + Date.now(),
-          message: 'Thanh toán thất bại. Vui lòng thử lại.'
-        })
-      }
-      setLoading(false)
-    }, 2000)
-  }, [location.search])
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const params = Object.fromEntries(urlParams.entries());
+
+        console.log("FE truyền sang BE:", params);
+        api.get("/api/payment/vnpay/return/vnp", { params })
+            .then(res => {
+                console.log("BE trả về:", res.data);
+                setResult(res.data);
+            })
+            .catch(() => setResult({ success: false, message: "Không lấy được trạng thái!" }))
+            .finally(() => setLoading(false));
+    }, [location.search]);
+
 
   const formatPrice = (price) => {
+    if (price == null) return '—'
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
     }).format(price)
   }
 
+  const formatDateTime = (date) => {
+    if (!(date instanceof Date)) return '—'
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }) + ' ' + date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
   const handleContinue = () => {
     if (result?.success) {
-      navigate('/auction')
+      navigate('/my-orders')
     } else {
       navigate('/packages')
     }
   }
 
   const handleRetry = () => {
-    navigate('/payment')
+    navigate('/packages')
   }
 
   if (loading) {
@@ -91,8 +95,7 @@ const PaymentResultPage = () => {
               
               <h1 className="result-title">Thanh toán thành công!</h1>
               <p className="result-message">
-                Cảm ơn bạn đã sử dụng dịch vụ của EcoXe. 
-                Giao dịch đã được xử lý thành công.
+                {result.message}
               </p>
 
               <div className="transaction-details">
@@ -100,7 +103,7 @@ const PaymentResultPage = () => {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="detail-label">Mã đơn hàng:</span>
-                    <span className="detail-value">{result.orderId}</span>
+                    <span className="detail-value">{result.orderId || '—'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Số tiền:</span>
@@ -108,11 +111,11 @@ const PaymentResultPage = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Mã giao dịch:</span>
-                    <span className="detail-value">{result.transactionId}</span>
+                    <span className="detail-value">{result.transactionNo || '—'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Thời gian:</span>
-                    <span className="detail-value">{new Date().toLocaleString('vi-VN')}</span>
+                    <span className="detail-value">{formatDateTime(result.payDate || formatVnpayDate (result.payDate))}</span>
                   </div>
                 </div>
               </div>
@@ -153,6 +156,19 @@ const PaymentResultPage = () => {
                     <span className="error-label">Mã đơn hàng:</span>
                     <span className="error-value">{result?.orderId}</span>
                   </div>
+
+                    <div className="error-item">
+                        <span className="error-label">Mã giao dịch:</span>
+                        <span className="error-value">{result?.transactionNo || result?.transactionRef || '—'}</span>
+                    </div>
+                    <div className="error-item">
+                        <span className="error-label">Số tiền:</span>
+                        <span className="error-value">{result?.amount ? formatPrice(result.amount) : '—'}</span>
+                    </div>
+                    <div className="error-item">
+                        <span className="error-label">Mã lỗi:</span>
+                        <span className="error-value">{result?.errorCode || '—'}</span>
+                    </div>
                   <div className="error-item">
                     <span className="error-label">Thời gian:</span>
                     <span className="error-value">{new Date().toLocaleString('vi-VN')}</span>
@@ -180,7 +196,7 @@ const PaymentResultPage = () => {
                   className="btn-primary"
                   onClick={handleContinue}
                 >
-                  Tiếp tục đấu giá
+                  Xem đơn hàng của tôi
                 </button>
                 <button 
                   className="btn-secondary"

@@ -387,6 +387,20 @@ function Header() {
                 <Link to="/battery" className="nav-link">
                   Pin
                 </Link>
+
+                  <span
+                      className="nav-link"
+                      style={{ color: "#4ECDC4", fontWeight: 600, cursor: "pointer" }}
+                      onClick={() => {
+                          if (isAuthenticated) {
+                              navigate("/my-subscriptions");
+                          } else {
+                              navigate("/login");
+                          }
+                      }}
+                  >
+    Subscription
+  </span>
               </>
             ) : (
               <>
@@ -408,7 +422,10 @@ function Header() {
                 >
                   🔒 Pin
                 </div>
+
+
               </>
+
             )}
           </nav>
 
