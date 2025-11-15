@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../../config/api";
 import "./index.scss";
+import { toast } from "react-toastify";
 
 // Icons
 const BackIcon = () => (
@@ -63,12 +65,35 @@ function PostDetailPage() {
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    price: "",
+    location: "",
+    description: "",
+    brand: "",
+    year: "",
+    origin: "",
+    mileage: "",
+    seats: "",
+    model: "",
+    licensesPlate: "",
+    registrationDeadline: "",
+    vehicleCapacity: "",
+    volt: "",
+    capacity: "",
+    size: "",
+    weight: "",
+    warrantyMonths: "",
+  });
 
   useEffect(() => {
     // Lấy dữ liệu từ sessionStorage
     const postData = sessionStorage.getItem("viewingPost");
     if (postData) {
       const raw = JSON.parse(postData);
+      console.log("RAW VIEWING POST:", raw);
+
       setPost({
         ...raw,
         // Chuẩn hóa id và loại bài đăng để sử dụng lại khi chỉnh sửa / gọi API
@@ -93,7 +118,15 @@ function PostDetailPage() {
         postedDate: raw.publicDate || raw.createAt || raw.createdAt || "",
         updatedAt: raw.updateAt || raw.updatedAt || "",
         contactName: raw.contactName || raw.sellerName || raw.memberName || "",
-        contactPhone: raw.contactPhone || raw.sellerPhone || raw.phone || "",
+        contactPhone:
+          raw.contactPhone ||
+          raw.sellerPhone ||
+          raw.phone ||
+          raw.phoneNumber ||
+          raw.memberPhone ||
+          "",
+        // Tình trạng chung
+        condition: raw.condition || "",
         // Mapping cho bài đăng pin
         brand: raw.brand || "",
         year: raw.year || "",
@@ -103,6 +136,14 @@ function PostDetailPage() {
         size: raw.size || "",
         weight: raw.weight || "",
         warrantyMonths: raw.warrantyMonths || "",
+        // Mapping thêm cho bài đăng xe
+        seats: raw.seats || raw.numberOfSeat || "",
+        model: raw.model || "",
+        mileage: raw.mileage || raw.milesTraveled || "",
+        licensesPlate: raw.licensesPlate || "",
+        registrationDeadline: raw.registrationDeadline || "",
+        vehicleCapacity: raw.vehicleCapacity || "",
+        warrantyPeriodMonths: raw.warrantyPeriodMonths || "",
       });
     } else {
       // Nếu không có data trong sessionStorage, redirect về trang my-posts
@@ -134,19 +175,198 @@ function PostDetailPage() {
   const handleEdit = () => {
     if (!post) return;
 
-    // Lấy id thực của bài viết từ articleId hoặc id
-    const articleId = post.articleId || post.id;
-    // Chuẩn hóa category theo articleType để form edit hiểu đúng loại bài đăng
-    const category = post.articleType || post.category || "";
+    const locationValue =
+      typeof post.location === "string"
+        ? post.location
+        : post.location?.address || "";
 
-    const editingData = {
-      ...post,
-      id: articleId,
-      category,
-    };
+    setEditForm({
+      title: post.title || "",
+      price:
+        post.price !== undefined && post.price !== null
+          ? String(post.price)
+          : "",
+      location: locationValue,
+      description: post.description || post.content || "",
+      brand: post.brand || "",
+      year: post.year || "",
+      origin: post.origin || "",
+      mileage: post.mileage || post.milesTraveled || "",
+      seats: post.seats || post.numberOfSeat || "",
+      model: post.model || "",
+      licensesPlate: post.licensesPlate || "",
+      registrationDeadline: post.registrationDeadline || "",
+      vehicleCapacity: post.vehicleCapacity || "",
+      volt: post.volt || "",
+      capacity: post.capacity || "",
+      size: post.size || "",
+      weight: post.weight || "",
+      warrantyMonths: post.warrantyMonths || post.warrantyPeriodMonths || "",
+    });
+    setShowEditModal(true);
+  };
 
-    sessionStorage.setItem("editingPost", JSON.stringify(editingData));
-    navigate("/post?mode=edit&id=" + articleId);
+  const handleEditFormChange = (field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleUpdatePost = async () => {
+    if (!post) return;
+    try {
+      const data = post;
+      const id = data.articleId || data.id;
+      const type = data.category || data.articleType;
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      let endpoint = "";
+      let payload = {};
+
+      if (type === "car" || type === "CAR_ARTICLE") {
+        endpoint = `/article/car/${id}`;
+
+        let regDate = "";
+        if (typeof editForm.registrationDeadline === "string") {
+          const ddmmyyyy = editForm.registrationDeadline.match(
+            /^(\d{2})\/(\d{2})\/(\d{4})$/
+          );
+          const yyyymmdd = editForm.registrationDeadline.match(
+            /^(\d{4})-(\d{2})-(\d{2})$/
+          );
+          if (ddmmyyyy) {
+            regDate = editForm.registrationDeadline;
+          } else if (yyyymmdd) {
+            const [, yyyy, mm, dd] = yyyymmdd;
+            regDate = `${dd}/${mm}/${yyyy}`;
+          }
+        } else if (typeof data.registrationDeadline === "string") {
+          regDate = data.registrationDeadline;
+        }
+
+        payload = {
+          title: editForm.title || data.title || "",
+          content: editForm.description || data.content || "",
+          location: editForm.location || data.location || data.region || "",
+          articleType: "CAR_ARTICLE",
+          publicDate: data.publicDate,
+          memberId: data.memberId || (user ? user.memberId : ""),
+          price: editForm.price ? parseFloat(editForm.price) : data.price || 0,
+          status: data.status,
+          contactPhone: data.contactPhone || "",
+          brand: editForm.brand || data.brand || "",
+          model: editForm.model || data.model || "",
+          year: editForm.year
+            ? parseInt(editForm.year)
+            : data.year || new Date().getFullYear(),
+          origin: editForm.origin || data.origin || "",
+          type: editForm.model || data.type || "",
+          numberOfSeat: editForm.seats
+            ? parseInt(editForm.seats)
+            : data.numberOfSeat || 4,
+          licensesPlate: editForm.licensesPlate || data.licensesPlate || "",
+          registrationDeadline: regDate,
+          milesTraveled: editForm.mileage
+            ? parseInt(editForm.mileage)
+            : data.milesTraveled || 0,
+          warrantyPeriodMonths: editForm.warrantyMonths
+            ? parseInt(editForm.warrantyMonths)
+            : data.warrantyPeriodMonths || 12,
+        };
+      } else if (type === "battery" || type === "BATTERY_ARTICLE") {
+        endpoint = `/article/battery/${id}`;
+
+        payload = {
+          title: editForm.title || data.title || "",
+          content: editForm.description || data.content || "",
+          location: editForm.location || data.location || data.region || "",
+          articleType: "BATTERY_ARTICLE",
+          publicDate: data.publicDate,
+          memberId: data.memberId || (user ? user.memberId : ""),
+          price: editForm.price ? parseFloat(editForm.price) : data.price || 0,
+          status: data.status,
+          contactPhone: data.contactPhone || "",
+          volt: editForm.volt ? parseFloat(editForm.volt) : data.volt || 0,
+          capacity: editForm.capacity
+            ? parseFloat(editForm.capacity)
+            : data.capacity || 0,
+          size: editForm.size ? parseFloat(editForm.size) : data.size || 0,
+          weight: editForm.weight
+            ? parseFloat(editForm.weight)
+            : data.weight || 0,
+          brand: editForm.brand || data.brand || "",
+          origin: editForm.origin || data.origin || "",
+          warrantyMonths: editForm.warrantyMonths
+            ? parseInt(editForm.warrantyMonths)
+            : data.warrantyMonths || 1,
+        };
+      } else {
+        // Mặc định: MOTOR_ARTICLE
+        endpoint = `/article/motor/${id}`;
+
+        payload = {
+          title: editForm.title || data.title || "",
+          content: editForm.description || data.content || "",
+          location: editForm.location || data.location || data.region || "",
+          articleType: "MOTOR_ARTICLE",
+          publicDate: data.publicDate,
+          memberId: data.memberId || (user ? user.memberId : ""),
+          price: editForm.price ? parseFloat(editForm.price) : data.price || 0,
+          status: data.status,
+          contactPhone: data.contactPhone || "",
+          brand: editForm.brand || data.brand || "",
+          year: editForm.year
+            ? parseInt(editForm.year)
+            : data.year || new Date().getFullYear(),
+          vehicleCapacity: editForm.vehicleCapacity
+            ? parseFloat(editForm.vehicleCapacity)
+            : data.vehicleCapacity || 1,
+          licensesPlate:
+            editForm.licensesPlate || data.licensesPlate || "string",
+          origin: editForm.origin || data.origin || "",
+          milesTraveled: editForm.mileage
+            ? parseFloat(editForm.mileage)
+            : data.milesTraveled || 0,
+          warrantyMonths: editForm.warrantyMonths
+            ? parseInt(editForm.warrantyMonths)
+            : data.warrantyMonths || 1,
+        };
+      }
+
+      await api.put(endpoint, payload);
+
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: payload.title,
+              price: payload.price,
+              location: payload.location,
+              description: payload.content,
+              brand: payload.brand ?? prev.brand,
+              year: payload.year ?? prev.year,
+              origin: payload.origin ?? prev.origin,
+              volt: payload.volt ?? prev.volt,
+              capacity: payload.capacity ?? prev.capacity,
+              size: payload.size ?? prev.size,
+              weight: payload.weight ?? prev.weight,
+              warrantyMonths:
+                payload.warrantyMonths ??
+                payload.warrantyPeriodMonths ??
+                prev.warrantyMonths,
+              seats: payload.numberOfSeat ?? prev.seats,
+            }
+          : prev
+      );
+
+      setShowEditModal(false);
+      alert("Cập nhật bài đăng thành công!");
+    } catch (err) {
+      console.error(err);
+      console.log(err.response);
+      toast.alert("Có lỗi xảy ra khi cập nhật bài đăng!");
+    }
   };
 
   const handleBack = () => {
@@ -288,28 +508,94 @@ function PostDetailPage() {
                     <span className="value">{post.origin}</span>
                   </div>
                 )}
-                {post.volt && (
-                  <div className="detail-item">
-                    <span className="label">Hiệu điện thế (Volt):</span>
-                    <span className="value">{post.volt}</span>
-                  </div>
-                )}
                 {post.brand && (
                   <div className="detail-item">
                     <span className="label">Hãng Pin/Hãng Xe:</span>
                     <span className="value">{post.brand}</span>
                   </div>
                 )}
-                {post.size && (
+                {post.year && (
                   <div className="detail-item">
-                    <span className="label">Kích thước (cm):</span>
-                    <span className="value">{post.size}</span>
+                    <span className="label">Năm sản xuất:</span>
+                    <span className="value">{post.year}</span>
+                  </div>
+                )}
+                {post.model && (
+                  <div className="detail-item">
+                    <span className="label">Model:</span>
+                    <span className="value">{post.model}</span>
                   </div>
                 )}
                 {post.seats && (
                   <div className="detail-item">
                     <span className="label">Số chỗ ngồi:</span>
                     <span className="value">{post.seats}</span>
+                  </div>
+                )}
+                {post.licensesPlate && (
+                  <div className="detail-item">
+                    <span className="label">Biển số:</span>
+                    <span className="value">{post.licensesPlate}</span>
+                  </div>
+                )}
+                {post.registrationDeadline && (
+                  <div className="detail-item">
+                    <span className="label">Hạn đăng kiểm:</span>
+                    <span className="value">{post.registrationDeadline}</span>
+                  </div>
+                )}
+                {(post.mileage || post.milesTraveled) && (
+                  <div className="detail-item">
+                    <span className="label">Số km đã đi:</span>
+                    <span className="value">
+                      {post.mileage || post.milesTraveled}
+                    </span>
+                  </div>
+                )}
+                {post.vehicleCapacity && (
+                  <div className="detail-item">
+                    <span className="label">Dung tích xe (kW):</span>
+                    <span className="value">{post.vehicleCapacity}</span>
+                  </div>
+                )}
+                {post.volt && (
+                  <div className="detail-item">
+                    <span className="label">Hiệu điện thế (Volt):</span>
+                    <span className="value">{post.volt}</span>
+                  </div>
+                )}
+                {post.capacity && (
+                  <div className="detail-item">
+                    <span className="label">Công suất (Ah/kWh):</span>
+                    <span className="value">{post.capacity}</span>
+                  </div>
+                )}
+                {post.size && (
+                  <div className="detail-item">
+                    <span className="label">Kích thước:</span>
+                    <span className="value">{post.size}</span>
+                  </div>
+                )}
+                {post.weight && (
+                  <div className="detail-item">
+                    <span className="label">Trọng lượng:</span>
+                    <span className="value">{post.weight}</span>
+                  </div>
+                )}
+                {(post.warrantyMonths || post.warrantyPeriodMonths) && (
+                  <div className="detail-item">
+                    <span className="label">Bảo hành (tháng):</span>
+                    <span className="value">
+                      {post.warrantyMonths || post.warrantyPeriodMonths}
+                    </span>
+                  </div>
+                )}
+                {post.condition && (
+                  <div className="detail-item">
+                    <span className="label">Tình trạng:</span>
+                    <span className="value">
+                      {getConditionName(post.condition)}
+                    </span>
                   </div>
                 )}
                 {/* Hiển thị tất cả các trường có trong object bài đăng */}
@@ -404,6 +690,307 @@ function PostDetailPage() {
             </div>
           </div>
         </div>
+        {showEditModal && (
+          <div className="edit-modal-overlay">
+            <div className="edit-modal">
+              <div className="modal-header">
+                <h2>Chỉnh sửa tin đăng</h2>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Tiêu đề</label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) =>
+                      handleEditFormChange("title", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Giá</label>
+                  <input
+                    type="number"
+                    value={editForm.price}
+                    onChange={(e) =>
+                      handleEditFormChange("price", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Vị trí</label>
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={(e) =>
+                      handleEditFormChange("location", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Mô tả</label>
+                  <textarea
+                    rows="4"
+                    value={editForm.description}
+                    onChange={(e) =>
+                      handleEditFormChange("description", e.target.value)
+                    }
+                  />
+                </div>
+                {(post.articleType === "CAR_ARTICLE" ||
+                  post.category === "car" ||
+                  post.articleType === "car") && (
+                  <>
+                    <div className="form-group">
+                      <label>Hãng xe</label>
+                      <input
+                        type="text"
+                        value={editForm.brand}
+                        onChange={(e) =>
+                          handleEditFormChange("brand", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Năm sản xuất</label>
+                      <input
+                        type="number"
+                        value={editForm.year}
+                        onChange={(e) =>
+                          handleEditFormChange("year", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Model</label>
+                      <input
+                        type="text"
+                        value={editForm.model}
+                        onChange={(e) =>
+                          handleEditFormChange("model", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Số chỗ ngồi</label>
+                      <input
+                        type="number"
+                        value={editForm.seats}
+                        onChange={(e) =>
+                          handleEditFormChange("seats", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Biển số</label>
+                      <input
+                        type="text"
+                        value={editForm.licensesPlate}
+                        onChange={(e) =>
+                          handleEditFormChange("licensesPlate", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Hạn đăng kiểm (dd/MM/yyyy)</label>
+                      <input
+                        type="text"
+                        value={editForm.registrationDeadline}
+                        onChange={(e) =>
+                          handleEditFormChange(
+                            "registrationDeadline",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Số km đã đi</label>
+                      <input
+                        type="number"
+                        value={editForm.mileage}
+                        onChange={(e) =>
+                          handleEditFormChange("mileage", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Bảo hành (tháng)</label>
+                      <input
+                        type="number"
+                        value={editForm.warrantyMonths}
+                        onChange={(e) =>
+                          handleEditFormChange("warrantyMonths", e.target.value)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+                {(post.articleType === "MOTOR_ARTICLE" ||
+                  post.category === "electric" ||
+                  post.articleType === "motor") && (
+                  <>
+                    <div className="form-group">
+                      <label>Hãng xe</label>
+                      <input
+                        type="text"
+                        value={editForm.brand}
+                        onChange={(e) =>
+                          handleEditFormChange("brand", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Năm sản xuất</label>
+                      <input
+                        type="number"
+                        value={editForm.year}
+                        onChange={(e) =>
+                          handleEditFormChange("year", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Dung tích xe (kW)</label>
+                      <input
+                        type="number"
+                        value={editForm.vehicleCapacity}
+                        onChange={(e) =>
+                          handleEditFormChange(
+                            "vehicleCapacity",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Biển số</label>
+                      <input
+                        type="text"
+                        value={editForm.licensesPlate}
+                        onChange={(e) =>
+                          handleEditFormChange("licensesPlate", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Số km đã đi</label>
+                      <input
+                        type="number"
+                        value={editForm.mileage}
+                        onChange={(e) =>
+                          handleEditFormChange("mileage", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Bảo hành (tháng)</label>
+                      <input
+                        type="number"
+                        value={editForm.warrantyMonths}
+                        onChange={(e) =>
+                          handleEditFormChange("warrantyMonths", e.target.value)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+                {(post.articleType === "BATTERY_ARTICLE" ||
+                  post.category === "battery") && (
+                  <>
+                    <div className="form-group">
+                      <label>Hãng pin</label>
+                      <input
+                        type="text"
+                        value={editForm.brand}
+                        onChange={(e) =>
+                          handleEditFormChange("brand", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Xuất xứ</label>
+                      <input
+                        type="text"
+                        value={editForm.origin}
+                        onChange={(e) =>
+                          handleEditFormChange("origin", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Hiệu điện thế (Volt)</label>
+                      <input
+                        type="number"
+                        value={editForm.volt}
+                        onChange={(e) =>
+                          handleEditFormChange("volt", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Công suất (Ah/kWh)</label>
+                      <input
+                        type="number"
+                        value={editForm.capacity}
+                        onChange={(e) =>
+                          handleEditFormChange("capacity", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Kích thước</label>
+                      <input
+                        type="number"
+                        value={editForm.size}
+                        onChange={(e) =>
+                          handleEditFormChange("size", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Trọng lượng</label>
+                      <input
+                        type="number"
+                        value={editForm.weight}
+                        onChange={(e) =>
+                          handleEditFormChange("weight", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Bảo hành (tháng)</label>
+                      <input
+                        type="number"
+                        value={editForm.warrantyMonths}
+                        onChange={(e) =>
+                          handleEditFormChange("warrantyMonths", e.target.value)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Hủy
+                </button>
+                <button className="btn btn-primary" onClick={handleUpdatePost}>
+                  Cập nhật
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

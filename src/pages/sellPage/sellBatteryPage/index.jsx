@@ -62,8 +62,9 @@ function SellBatteryPage() {
 
         const batteryPosts = data.filter(
           (post) =>
-            post.articleType === "BATTERY_ARTICLE" ||
-            post.articleType === "battery"
+            (post.articleType === "BATTERY_ARTICLE" ||
+              post.articleType === "battery") &&
+            post.status === "APPROVED"
         );
 
         const formattedBatteries = batteryPosts.map((post) => ({
@@ -78,7 +79,13 @@ function SellBatteryPage() {
               ? `${post.location.district}, ${post.location.city}`
               : post.location || post.region || "",
           seller: post.contactName || post.memberName || "",
-          phone: post.contactPhone || "",
+          // cố gắng lấy số điện thoại từ nhiều field khác nhau trong article
+          phone:
+            post.contactPhone ||
+            post.memberPhone ||
+            post.phone ||
+            post.phoneNumber ||
+            "",
           verified: post.status === "APPROVED",
           images: Array.isArray(post.images)
             ? post.images.length
@@ -1453,7 +1460,7 @@ function SellBatteryPage() {
                       >
                         <PhoneIcon />
                         {revealedPhones.has(battery.id)
-                          ? battery.phone
+                          ? battery.phone || "Không có số điện thoại"
                           : "Bấm để hiện số"}
                       </button>
                       <button
@@ -1576,6 +1583,18 @@ function SellBatteryPage() {
                     <span className="label">Tình trạng:</span>
                     <span className="value">{selectedProduct.condition}</span>
                   </div>
+                  {selectedProduct.brand && (
+                    <div className="info-row">
+                      <span className="label">Thương hiệu:</span>
+                      <span className="value">{selectedProduct.brand}</span>
+                    </div>
+                  )}
+                  {selectedProduct.origin && (
+                    <div className="info-row">
+                      <span className="label">Xuất xứ:</span>
+                      <span className="value">{selectedProduct.origin}</span>
+                    </div>
+                  )}
                   <div className="info-row">
                     <span className="label">Sức khỏe pin:</span>
                     <span className="value">{selectedProduct.health}</span>
@@ -1627,11 +1646,6 @@ function SellBatteryPage() {
                         {selectedProduct.seller}
                         {selectedProduct.verified && <VerifiedIcon />}
                       </div>
-                      {selectedProduct.rating && (
-                        <div className="seller-rating">
-                          {selectedProduct.rating} ⭐ {selectedProduct.reviews}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -206,7 +206,9 @@ function SellOtoPage() {
 
         const carPosts = data.filter(
           (post) =>
-            post.articleType === "CAR_ARTICLE" || post.articleType === "car"
+            (post.articleType === "CAR_ARTICLE" ||
+              post.articleType === "car") &&
+            post.status === "APPROVED"
         );
 
         if (carPosts.length > 0) {
@@ -242,7 +244,10 @@ function SellOtoPage() {
             batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
             origin: post.origin || "Chưa cập nhật",
             bodyType: post.bodyType,
-            seats: post.seats,
+            // số lượng chỗ ngồi từ BE
+            seats: post.seats || post.numberOfSeat,
+            // hạn đăng kiểm nếu BE cung cấp
+            registrationDeadline: post.registrationDeadline,
             originalPost: post,
             image:
               post.mainImageUrl ||
@@ -1471,13 +1476,41 @@ function SellOtoPage() {
                     <span className="value">{selectedProduct.year}</span>
                   </div>
                   <div className="info-row">
-                    <span className="label">Tình trạng:</span>
-                    <span className="value">{selectedProduct.condition}</span>
-                  </div>
-                  <div className="info-row">
                     <span className="label">Loại xe:</span>
                     <span className="value">{selectedProduct.type}</span>
                   </div>
+                  {selectedProduct.brand && (
+                    <div className="info-row">
+                      <span className="label">Hãng xe:</span>
+                      <span className="value">{selectedProduct.brand}</span>
+                    </div>
+                  )}
+                  {selectedProduct.bodyType && (
+                    <div className="info-row">
+                      <span className="label">Kiểu dáng:</span>
+                      <span className="value">{selectedProduct.bodyType}</span>
+                    </div>
+                  )}
+                  {selectedProduct.color && (
+                    <div className="info-row">
+                      <span className="label">Màu sắc:</span>
+                      <span className="value">{selectedProduct.color}</span>
+                    </div>
+                  )}
+                  {selectedProduct.seats && (
+                    <div className="info-row">
+                      <span className="label">Số lượng chỗ ngồi:</span>
+                      <span className="value">{selectedProduct.seats}</span>
+                    </div>
+                  )}
+                  {selectedProduct.registrationDeadline && (
+                    <div className="info-row">
+                      <span className="label">Hạn đăng kiểm:</span>
+                      <span className="value">
+                        {selectedProduct.registrationDeadline}
+                      </span>
+                    </div>
+                  )}
                   <div className="info-row">
                     <span className="label">Hộp số:</span>
                     <span className="value">
@@ -1490,20 +1523,6 @@ function SellOtoPage() {
                       {selectedProduct.origin || "Chưa cập nhật"}
                     </span>
                   </div>
-                  {selectedProduct.batteryInfo && (
-                    <div className="info-row">
-                      <span className="label">Pin:</span>
-                      <span className="value">
-                        {selectedProduct.batteryInfo}
-                      </span>
-                    </div>
-                  )}
-                  {selectedProduct.seats && (
-                    <div className="info-row">
-                      <span className="label">Số chỗ ngồi:</span>
-                      <span className="value">{selectedProduct.seats}</span>
-                    </div>
-                  )}
                   <div className="info-row">
                     <span className="label">Khu vực:</span>
                     <span className="value">
@@ -1545,11 +1564,6 @@ function SellOtoPage() {
                         {selectedProduct.seller}
                         {selectedProduct.verified && <VerifiedIcon />}
                       </div>
-                      {selectedProduct.rating && (
-                        <div className="seller-rating">
-                          {selectedProduct.rating} ⭐ {selectedProduct.reviews}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

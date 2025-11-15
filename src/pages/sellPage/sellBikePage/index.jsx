@@ -204,8 +204,9 @@ function SellBikePage() {
 
         const bikesPosts = data.filter(
           (post) =>
-            post.articleType === "MOTOR_ARTICLE" ||
-            post.articleType === "electric"
+            (post.articleType === "MOTOR_ARTICLE" ||
+              post.articleType === "electric") &&
+            post.status === "APPROVED"
         );
 
         const formattedBikes = bikesPosts.map((post) => ({
@@ -220,6 +221,7 @@ function SellBikePage() {
               ? `${post.location.district}, ${post.location.city}`
               : post.location || post.region || "",
           seller: post.contactName || post.memberName || "",
+          // Lấy số điện thoại từ nhiều field khác nhau để đảm bảo hiển thị được
           phone: post.contactPhone || "",
           verified: post.status === "APPROVED",
           images: Array.isArray(post.images)
@@ -1381,7 +1383,7 @@ function SellBikePage() {
                         >
                           <PhoneIcon />
                           {revealedPhones.has(bike.id)
-                            ? bike.phone
+                            ? bike.phone || "Không có số điện thoại"
                             : "Bấm để hiện số"}
                         </button>
                         <button
@@ -1535,27 +1537,27 @@ function SellBikePage() {
                     <span className="value">{selectedProduct.year}</span>
                   </div>
                   <div className="info-row">
-                    <span className="label">Tình trạng:</span>
-                    <span className="value">{selectedProduct.condition}</span>
-                  </div>
-                  <div className="info-row">
                     <span className="label">Loại xe:</span>
                     <span className="value">{selectedProduct.type}</span>
                   </div>
+                  {selectedProduct.brand && (
+                    <div className="info-row">
+                      <span className="label">Hãng xe:</span>
+                      <span className="value">{selectedProduct.brand}</span>
+                    </div>
+                  )}
+                  {selectedProduct.color && (
+                    <div className="info-row">
+                      <span className="label">Màu sắc:</span>
+                      <span className="value">{selectedProduct.color}</span>
+                    </div>
+                  )}
                   <div className="info-row">
                     <span className="label">Xuất xứ:</span>
                     <span className="value">
                       {selectedProduct.origin || "Chưa cập nhật"}
                     </span>
                   </div>
-                  {selectedProduct.batteryInfo && (
-                    <div className="info-row">
-                      <span className="label">Pin:</span>
-                      <span className="value">
-                        {selectedProduct.batteryInfo}
-                      </span>
-                    </div>
-                  )}
                   <div className="info-row">
                     <span className="label">Khu vực:</span>
                     <span className="value">
@@ -1597,11 +1599,6 @@ function SellBikePage() {
                         {selectedProduct.seller}
                         {selectedProduct.verified && <VerifiedIcon />}
                       </div>
-                      {selectedProduct.rating && (
-                        <div className="seller-rating">
-                          {selectedProduct.rating} ⭐ {selectedProduct.reviews}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1613,7 +1610,7 @@ function SellBikePage() {
                   >
                     <PhoneIcon />
                     {revealedPhones.has(selectedProduct.id)
-                      ? selectedProduct.phone
+                      ? selectedProduct.phone || "Không có số điện thoại"
                       : "Bấm để hiện số"}
                   </button>
                   <button
