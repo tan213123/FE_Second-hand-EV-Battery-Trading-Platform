@@ -212,60 +212,83 @@ function SellOtoPage() {
         );
 
         if (carPosts.length > 0) {
-          const formattedCars = carPosts.map((post) => ({
-            id: post.articleId || post.id,
-            title: post.title || post.content || "",
-            year: post.year,
-            type: "Điện",
-            condition: post.condition,
-            price:
-              new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
-            location:
-              post.location?.district && post.location?.city
-                ? `${post.location.district}, ${post.location.city}`
-                : post.location || post.region || "",
-            seller: post.contactName || post.memberName || "",
-            phone: post.contactPhone || "",
-            verified: post.status === "APPROVED",
-            images: Array.isArray(post.images)
-              ? post.images.length
-              : Array.isArray(post.imageUrls)
-              ? post.imageUrls.length
-              : 0,
-            featured: false,
-            vip: false,
-            discount: post.negotiable ? "Có thể thương lượng" : "",
-            mileage: post.mileage ? `${post.mileage} km` : "0 km",
-            engine: "Điện",
-            transmission: "Tự động",
-            color: post.color,
-            brand: post.brand,
-            description: post.content || "",
-            batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
-            origin: post.origin || "Chưa cập nhật",
-            bodyType: post.bodyType,
-            // số lượng chỗ ngồi từ BE
-            seats: post.seats || post.numberOfSeat,
-            // hạn đăng kiểm nếu BE cung cấp
-            registrationDeadline: post.registrationDeadline,
-            originalPost: post,
-            image:
-              post.mainImageUrl ||
-              (Array.isArray(post.images) && post.images.length > 0
-                ? post.images[0].url || post.images[0]
-                : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
-                ? post.imageUrls[0]
-                : "/api/placeholder/400/300"),
-          }));
+          const formattedCars = carPosts.map((post) => {
+            const rawMiles =
+              post.mileage !== undefined && post.mileage !== null
+                ? post.mileage
+                : post.milesTraveled !== undefined &&
+                  post.milesTraveled !== null
+                ? post.milesTraveled
+                : 0;
 
-          console.log(
-            "Formatted cars from API:",
-            formattedCars.map((car) => ({
-              id: car.id,
-              title: car.title,
-              image: car.image,
-            }))
-          );
+            const locationText =
+              post.location && typeof post.location === "object"
+                ? post.location.district && post.location.city
+                  ? `${post.location.district}, ${post.location.city}`
+                  : post.location.city || post.location.district || ""
+                : post.location || post.region || "";
+
+            return {
+              id: post.articleId || post.id,
+              title: post.title || post.content || "",
+              year: post.year,
+              // article type / body type from BE ("MPV", "SUV", ...)
+              type: post.type || "Điện",
+              condition: post.condition,
+              price:
+                new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
+              location: locationText,
+              seller: post.contactName || post.memberName || "",
+              phone: post.contactPhone || "",
+              verified: post.status === "APPROVED",
+              images: Array.isArray(post.images)
+                ? post.images.length
+                : Array.isArray(post.imageUrls)
+                ? post.imageUrls.length
+                : 0,
+              featured: false,
+              vip: false,
+              discount: post.negotiable ? "Có thể thương lượng" : "",
+              mileage: `${rawMiles} km`,
+              engine: "Điện",
+              transmission: "Tự động",
+              color: post.color,
+              brand: post.brand,
+              description: post.content || "",
+              batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+              origin: post.origin || "Chưa cập nhật",
+              bodyType: post.bodyType || post.model || "",
+              seats: post.seats || post.numberOfSeat,
+              registrationDeadline: post.registrationDeadline,
+              warrantyMonths:
+                post.warrantyPeriodMonths ?? post.warrantyMonths ?? null,
+              originalPost: post,
+              image:
+                post.mainImageUrl ||
+                (Array.isArray(post.images) && post.images.length > 0
+                  ? post.images[0].url || post.images[0]
+                  : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+                  ? post.imageUrls[0]
+                  : "/api/placeholder/400/300"),
+              specs: {
+                "Hãng xe": post.brand || "N/A",
+                "Model/Loại xe": post.model || post.type || "N/A",
+                "Số chỗ ngồi":
+                  post.numberOfSeat !== undefined && post.numberOfSeat !== null
+                    ? post.numberOfSeat
+                    : post.seats ?? "N/A",
+                "Năm sản xuất": post.year || "N/A",
+                "Số km đã đi": rawMiles ? `${rawMiles} km` : "0 km",
+                "Biển số": post.licensesPlate || "Chưa cập nhật",
+                "Hạn đăng kiểm": post.registrationDeadline || "Chưa cập nhật",
+                "Xuất xứ": post.origin || "Chưa cập nhật",
+                "Bảo hành (tháng)":
+                  post.warrantyPeriodMonths ??
+                  post.warrantyMonths ??
+                  "Chưa cập nhật",
+              },
+            };
+          });
           setCarsFromStorage(formattedCars);
         } else {
           setCarsFromStorage([]);

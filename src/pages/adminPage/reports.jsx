@@ -58,7 +58,6 @@ const Reports = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [viewMode, setViewMode] = useState("year"); // 'year' or 'month'
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'inactive'
 
   // API state
   const [loading, setLoading] = useState(false);
@@ -66,20 +65,8 @@ const Reports = () => {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [yearlyRevenue, setYearlyRevenue] = useState(null);
   const [monthlyRevenue, setMonthlyRevenue] = useState(null);
-
-  // Convert frontend status to backend status
-  const getBackendStatus = (frontendStatus) => {
-    switch (frontendStatus) {
-      case "active":
-        return "ACTIVE";
-      case "inactive":
-        return "INACTIVE";
-      case "all":
-        return undefined;
-      default:
-        return undefined;
-    }
-  };
+  const [subscriptionAnalytics, setSubscriptionAnalytics] = useState(null);
+  const [packages, setPackages] = useState([]);
 
   // Generate years for dropdown (last 5 years)
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -108,36 +95,40 @@ const Reports = () => {
         const params = {
           year: selectedYear,
           ...(viewMode === "month" && { month: selectedMonth }),
-          ...(getBackendStatus(statusFilter) && {
-            status: getBackendStatus(statusFilter),
-          }),
         };
 
         console.log("📊 Dashboard API Debug:", {
           params,
           viewMode,
-          statusFilter,
-          backendStatus: getBackendStatus(statusFilter),
         });
 
         // Fetch all dashboard endpoints in parallel
-        const [statsRes, yearlyRes, monthlyRes] = await Promise.all([
-          api.get("/dashboard/stats", { params }),
-          api.get("/dashboard/yearly-revenue", {
-            params: { year: selectedYear },
-          }),
-          api.get("/dashboard/monthly-revenue", { params }),
-        ]);
+        const [statsRes, yearlyRes, monthlyRes, subsRes, packagesRes] =
+          await Promise.all([
+            api.get("/dashboard/stats", { params }),
+            api.get("/dashboard/yearly-revenue", {
+              params: { year: selectedYear },
+            }),
+            api.get("/dashboard/monthly-revenue", { params }),
+            api.get("/dashboard/subscriptions", {
+              params: { year: selectedYear },
+            }),
+            api.get("/package"),
+          ]);
 
         console.log("✅ Dashboard API responses:", {
           stats: statsRes.data,
           yearly: yearlyRes.data,
           monthly: monthlyRes.data,
+          subscriptions: subsRes.data,
+          packages: packagesRes.data,
         });
 
         setDashboardStats(statsRes.data);
         setYearlyRevenue(yearlyRes.data);
         setMonthlyRevenue(monthlyRes.data);
+        setSubscriptionAnalytics(subsRes.data);
+        setPackages(packagesRes.data || []);
       } catch (e) {
         console.error("❌ Dashboard API error:", e?.response || e);
         setError(e?.response?.data?.message || "Không thể tải dữ liệu báo cáo");
@@ -147,23 +138,12 @@ const Reports = () => {
     };
 
     fetchDashboardData();
-  }, [selectedYear, selectedMonth, viewMode, statusFilter]);
+  }, [selectedYear, selectedMonth, viewMode]);
 
   // Process real backend data
   const filteredData = useMemo(() => {
-    const defaultData = {
-      subscriptionData: { basic: 0, premium: 0, enterprise: 0 },
-      monthlyData: { labels: [], data: [] },
-      revenueData: { labels: [], data: [] },
-      dailyData: { labels: [], revenue: [] },
-    };
-
-    // Mock subscription data (since backend doesn't have this yet)
-    const mockSubscriptionData = {
-      basic: Math.floor(Math.random() * 100) + 50,
-      premium: Math.floor(Math.random() * 80) + 30,
-      enterprise: Math.floor(Math.random() * 40) + 10,
-    };
+    const distribution = subscriptionAnalytics?.distribution || {};
+    const subscriptionData = distribution; // map: packageName -> count
 
     if (viewMode === "year") {
       // Process yearly revenue data
@@ -180,6 +160,24 @@ const Reports = () => {
 
       const monthLabels = [];
       const monthValues = [];
+      const monthlySubs = subscriptionAnalytics?.monthly || [];
+      const packageNames = packages.map((p) => p.name);
+      const series = packageNames.map((name) => {
+        const data = [];
+
+        for (let month = 1; month <= 12; month++) {
+          const monthRows = monthlySubs.filter(
+            (item) => item.month === month && item.packageName === name
+          );
+          const total = monthRows.reduce(
+            (sum, item) => sum + (item.count || 0),
+            0
+          );
+          data.push(total);
+        }
+
+        return { name, data };
+      });
 
       // Create data for all 12 months
       for (let month = 1; month <= 12; month++) {
@@ -189,7 +187,11 @@ const Reports = () => {
       }
 
       return {
-        subscriptionData: mockSubscriptionData,
+        subscriptionData,
+        monthlyData: {
+          labels: monthLabels,
+          series,
+        },
         revenueData: {
           labels: monthLabels,
           data: monthValues,
@@ -208,7 +210,7 @@ const Reports = () => {
       const avgDailyRevenue = dailyRevenue / daysInMonth;
 
       return {
-        subscriptionData: mockSubscriptionData,
+        subscriptionData,
         dailyData: {
           labels: Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`),
           revenue: Array.from(
@@ -220,47 +222,54 @@ const Reports = () => {
       };
     }
   }, [
-    dashboardStats,
     yearlyRevenue,
     monthlyRevenue,
+    subscriptionAnalytics,
+    packages,
     selectedYear,
     selectedMonth,
     viewMode,
   ]);
 
   const barChartData = {
-    labels: ["Cơ bản", "Premium", "Doanh nghiệp"],
+    labels: (packages || []).map((p) => p.name),
     datasets: [
       {
         label: "Số người dùng",
-        data: [
-          filteredData?.subscriptionData?.basic ?? 0,
-          filteredData?.subscriptionData?.premium ?? 0,
-          filteredData?.subscriptionData?.enterprise ?? 0,
-        ],
-        backgroundColor: [
-          "rgba(53, 162, 235, 0.8)",
-          "rgba(75, 192, 192, 0.8)",
-          "rgba(255, 159, 64, 0.8)",
-        ],
+        data: (packages || []).map(
+          (p) => filteredData?.subscriptionData?.[p.name] ?? 0
+        ),
+        backgroundColor: (packages || []).map((_, idx) => {
+          const colors = [
+            "rgba(53, 162, 235, 0.8)",
+            "rgba(75, 192, 192, 0.8)",
+            "rgba(255, 159, 64, 0.8)",
+            "rgba(153, 102, 255, 0.8)",
+            "rgba(255, 99, 132, 0.8)",
+          ];
+          return colors[idx % colors.length];
+        }),
       },
     ],
   };
 
   const pieChartData = {
-    labels: ["Cơ bản", "Premium", "Doanh nghiệp"],
+    labels: (packages || []).map((p) => p.name),
     datasets: [
       {
-        data: [
-          filteredData?.subscriptionData?.basic ?? 0,
-          filteredData?.subscriptionData?.premium ?? 0,
-          filteredData?.subscriptionData?.enterprise ?? 0,
-        ],
-        backgroundColor: [
-          "rgba(53, 162, 235, 0.8)",
-          "rgba(75, 192, 192, 0.8)",
-          "rgba(255, 159, 64, 0.8)",
-        ],
+        data: (packages || []).map(
+          (p) => filteredData?.subscriptionData?.[p.name] ?? 0
+        ),
+        backgroundColor: (packages || []).map((_, idx) => {
+          const colors = [
+            "rgba(53, 162, 235, 0.8)",
+            "rgba(75, 192, 192, 0.8)",
+            "rgba(255, 159, 64, 0.8)",
+            "rgba(153, 102, 255, 0.8)",
+            "rgba(255, 99, 132, 0.8)",
+          ];
+          return colors[idx % colors.length];
+        }),
       },
     ],
   };
@@ -273,33 +282,26 @@ const Reports = () => {
               ? [...filteredData.monthlyData.labels]
               : [],
             datasets: [
-              {
-                label: "Cơ bản",
-                data: Array.isArray(filteredData?.monthlyData?.basic)
-                  ? [...filteredData.monthlyData.basic]
-                  : [],
-                borderColor: "rgba(53, 162, 235, 0.8)",
-                backgroundColor: "rgba(53, 162, 235, 0.1)",
-                fill: true,
-              },
-              {
-                label: "Premium",
-                data: Array.isArray(filteredData?.monthlyData?.premium)
-                  ? [...filteredData.monthlyData.premium]
-                  : [],
-                borderColor: "rgba(75, 192, 192, 0.8)",
-                backgroundColor: "rgba(75, 192, 192, 0.1)",
-                fill: true,
-              },
-              {
-                label: "Doanh nghiệp",
-                data: Array.isArray(filteredData?.monthlyData?.enterprise)
-                  ? [...filteredData.monthlyData.enterprise]
-                  : [],
-                borderColor: "rgba(255, 159, 64, 0.8)",
-                backgroundColor: "rgba(255, 159, 64, 0.1)",
-                fill: true,
-              },
+              ...(Array.isArray(filteredData?.monthlyData?.series)
+                ? filteredData.monthlyData.series.map((s, idx) => {
+                    const colors = [
+                      "rgba(53, 162, 235, 0.8)",
+                      "rgba(75, 192, 192, 0.8)",
+                      "rgba(255, 159, 64, 0.8)",
+                      "rgba(153, 102, 255, 0.8)",
+                      "rgba(255, 99, 132, 0.8)",
+                    ];
+                    const borderColor = colors[idx % colors.length];
+                    const bgColor = borderColor.replace("0.8", "0.1");
+                    return {
+                      label: s.name,
+                      data: Array.isArray(s.data) ? [...s.data] : [],
+                      borderColor,
+                      backgroundColor: bgColor,
+                      fill: true,
+                    };
+                  })
+                : []),
             ],
           }
         : null,
@@ -349,6 +351,7 @@ const Reports = () => {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top",
@@ -453,19 +456,6 @@ const Reports = () => {
               </Select>
             </Space>
           )}
-
-          <Space>
-            <span>Trạng thái:</span>
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: 120 }}
-            >
-              <Option value="all">Tất cả</Option>
-              <Option value="active">Hoạt động</Option>
-              <Option value="inactive">Không hoạt động</Option>
-            </Select>
-          </Space>
         </Space>
       </Card>
 
@@ -503,7 +493,7 @@ const Reports = () => {
         <Col xs={24} sm={8}>
           <Card>
             <Statistic
-              title="Số lượng bài đăng"
+              title="Tổng số lượng bài đăng"
               value={
                 dashboardStats?.totalArticles ??
                 dashboardStats?.articleCount ??
@@ -520,12 +510,15 @@ const Reports = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card title="Phân bố người dùng theo gói" style={{ height: "400px" }}>
+          <Card
+            title="Tổng phân bố người dùng theo gói"
+            style={{ height: "400px" }}
+          >
             <Bar data={barChartData} options={chartOptions} />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Tỷ lệ đăng ký gói" style={{ height: "400px" }}>
+          <Card title="Tổng tỷ lệ đăng ký gói" style={{ height: "400px" }}>
             <Pie data={pieChartData} options={chartOptions} />
           </Card>
         </Col>

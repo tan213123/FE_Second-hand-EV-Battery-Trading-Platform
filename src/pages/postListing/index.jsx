@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ImageUpload from "../../components/ImageUpload";
-import { productService } from "../../services/productService";
 import api from "../../config/api";
 import "./index.scss";
 
@@ -1022,7 +1021,133 @@ const PostListing = () => {
         console.warn("memberId is missing from localStorage user payload.");
       }
       if (isEditMode) {
-        result = await productService.updateProductWithImages(formData);
+        const data = formData;
+        const id = data.articleId || data.id;
+        const type = data.category || data.articleType;
+        let endpoint = "";
+        let payload = {};
+        const pubDate =
+          data.publicDate ||
+          data.postedDate ||
+          new Date().toISOString().slice(0, 10);
+
+        if (type === "BATTERY_ARTICLE" || type === "battery") {
+          endpoint = `/article/battery/${id}`;
+          const originValue = (data.origin || "").trim();
+
+          payload = {
+            title: data.title || "",
+            content: data.description || data.content || "",
+            location: data.region || "",
+            articleType: "BATTERY_ARTICLE",
+            publicDate: pubDate,
+            memberId: data.memberId || memberId,
+            price: data.price ? parseFloat(data.price) : 0,
+            status: data.status || "PENDING_APPROVAL",
+            contactPhone: data.contactPhone || "",
+            volt: data.volt ? parseFloat(data.volt) : 0,
+            capacity: data.capacity ? parseFloat(data.capacity) : 0,
+            size: data.size ? parseFloat(data.size) : 0,
+            weight: data.weight ? parseFloat(data.weight) : 0,
+            brand: data.brand || "",
+            origin: originValue,
+            warrantyMonths: data.warrantyPeriodMonths
+              ? parseInt(data.warrantyPeriodMonths)
+              : 1,
+            imageUrls:
+              Array.isArray(data.images) && data.images.length > 0
+                ? data.images
+                : [],
+          };
+        } else if (type === "MOTOR_ARTICLE" || type === "motor") {
+          endpoint = `/article/motor/${id}`;
+          const originValue = (data.origin || "").trim();
+
+          payload = {
+            title: data.title || "",
+            content: data.description || data.content || "",
+            location: data.region || "",
+            articleType: "MOTOR_ARTICLE",
+            publicDate: pubDate,
+            memberId: data.memberId || memberId,
+            price: data.price ? parseFloat(data.price) : 0,
+            status: data.status || "PENDING_APPROVAL",
+            contactPhone: data.contactPhone || "",
+            brand: data.brand || "",
+            year: data.year ? parseInt(data.year) : new Date().getFullYear(),
+            vehicleCapacity: data.vehicleCapacity
+              ? parseFloat(data.vehicleCapacity)
+              : 1,
+            licensesPlate: data.licensesPlate || "string",
+            origin: originValue,
+            milesTraveled: data.mileage
+              ? parseFloat(data.mileage)
+              : data.milesTraveled
+              ? parseFloat(data.milesTraveled)
+              : 0,
+            warrantyMonths: data.warrantyPeriodMonths
+              ? parseInt(data.warrantyPeriodMonths)
+              : 1,
+            imageUrls:
+              Array.isArray(data.images) && data.images.length > 0
+                ? data.images
+                : [],
+          };
+        } else {
+          endpoint = `/article/car/${id}`;
+          let regDate = "";
+          if (typeof data.registrationDeadline === "string") {
+            const ddmmyyyy = data.registrationDeadline.match(
+              /^(\d{2})\/(\d{2})\/(\d{4})$/
+            );
+            const yyyymmdd = data.registrationDeadline.match(
+              /^(\d{4})-(\d{2})-(\d{2})$/
+            );
+            if (ddmmyyyy) {
+              regDate = data.registrationDeadline;
+            } else if (yyyymmdd) {
+              const [, yyyy, mm, dd] = yyyymmdd;
+              regDate = `${dd}/${mm}/${yyyy}`;
+            }
+          }
+          const originValue = (data.origin || "").trim();
+
+          payload = {
+            title: data.title || "",
+            content: data.description || data.content || "",
+            location: data.region || "",
+            articleType: "CAR_ARTICLE",
+            publicDate: pubDate,
+            memberId: data.memberId || memberId,
+            price: data.price ? parseFloat(data.price) : 0,
+            status: data.status || "PENDING_APPROVAL",
+            contactPhone: data.contactPhone || "",
+            brand: data.brand || "",
+            model: data.model || "",
+            year: data.year ? parseInt(data.year) : new Date().getFullYear(),
+            origin: originValue,
+            type: data.model || "",
+            numberOfSeat: data.seats ? parseInt(data.seats) : 4,
+            licensesPlate: data.licensesPlate || "",
+            registrationDeadline: regDate,
+            milesTraveled: data.milesTraveled
+              ? parseInt(data.milesTraveled)
+              : data.mileage
+              ? parseInt(data.mileage)
+              : 0,
+            warrantyPeriodMonths: data.warrantyPeriodMonths
+              ? parseInt(data.warrantyPeriodMonths)
+              : 12,
+            imageUrls:
+              Array.isArray(data.images) && data.images.length > 0
+                ? data.images
+                : [],
+          };
+        }
+
+        console.log("API Request (edit):", endpoint, payload);
+        const response = await api.put(endpoint, payload);
+        result = { data: response.data, error: null };
       } else {
         let pubDate = "";
         const now = new Date();
@@ -1189,7 +1314,7 @@ const PostListing = () => {
       navigate("/my-posts");
     } catch (error) {
       console.error("❌ Lỗi không mong muốn:", error);
-      alert("Có lỗi xảy ra, vui lòng thử lại!");
+      alert("Bài post đã được duyệt không thể cập nhật!");
     } finally {
       setIsSubmitting(false);
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../../config/api";
 
@@ -15,6 +16,9 @@ import {
   notification,
   Alert,
   Popconfirm,
+  Descriptions,
+  Spin,
+  Image,
 } from "antd";
 import {
   SearchOutlined,
@@ -30,6 +34,7 @@ const { Title, Text } = Typography;
 const { confirm } = Modal;
 
 const Posts = () => {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -41,10 +46,12 @@ const Posts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all"); // all, pending, approved, rejected
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [sortOrder, setSortOrder] = useState({}); // { field: 'id', order: 'ascend' }
   const [approvingIds, setApprovingIds] = useState([]);
   const [rejectingIds, setRejectingIds] = useState([]);
   const [deletingIds, setDeletingIds] = useState([]);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailArticle, setDetailArticle] = useState(null);
 
   const member = useSelector((state) => state.member);
   const adminMemberId = useMemo(
@@ -72,7 +79,7 @@ const Posts = () => {
 
   // 1. Refine dependencies for useCallback
   const fetchPosts = useCallback(
-    async (page, pageSize, status, search, sort) => {
+    async (page, pageSize, status, search) => {
       setLoading(true);
       setError("");
       try {
@@ -106,12 +113,8 @@ const Posts = () => {
             page: page,
             size: pageSize,
             search: search || undefined,
+            sort: "articleId,desc",
           };
-          if (sort.field) {
-            actualParams.sort = `${sort.field},${
-              sort.order === "ascend" ? "asc" : "desc"
-            }`;
-          }
           res = await api.get("/article", { params: actualParams });
         } else {
           // Get articles by specific status using the dedicated endpoint
@@ -120,12 +123,8 @@ const Posts = () => {
             page: page,
             size: pageSize,
             search: search || undefined,
+            sort: "articleId,desc",
           };
-          if (sort.field) {
-            actualParams.sort = `${sort.field},${
-              sort.order === "ascend" ? "asc" : "desc"
-            }`;
-          }
           res = await api.get("/article/status", { params: actualParams });
         }
         const response = res.data;
@@ -252,28 +251,56 @@ const Posts = () => {
       pagination.current,
       pagination.pageSize,
       filterStatus,
-      searchTerm,
-      sortOrder
+      searchTerm
     );
   }, [
     pagination.current,
     pagination.pageSize,
     filterStatus,
     searchTerm,
-    sortOrder,
     fetchPosts,
   ]);
 
-  const handleTableChange = (newPagination, filters, sorter) => {
+  const handleViewDetail = async (id) => {
+    try {
+      setDetailLoading(true);
+      setDetailVisible(true);
+      const res = await api.get(`/article/${id}`);
+      setDetailArticle(res.data);
+    } catch (e) {
+      console.error("Load article detail error:", e?.response || e);
+      notification.error({
+        message: "Không thể tải chi tiết bài đăng",
+        description:
+          e?.response?.data?.message ||
+          "Đã xảy ra lỗi khi tải chi tiết bài đăng.",
+      });
+      setDetailVisible(false);
+      setDetailArticle(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleOpenDetailPage = async (id) => {
+    try {
+      // Lấy đầy đủ dữ liệu bài đăng rồi chuyển sang PostDetailPage để chỉnh sửa
+      const res = await api.get(`/article/${id}`);
+      sessionStorage.setItem("viewingPost", JSON.stringify(res.data));
+      navigate(`/post-detail/${id}`);
+    } catch (e) {
+      console.error("Open detail page error:", e?.response || e);
+      notification.error({
+        message: "Không thể mở trang chi tiết bài đăng",
+        description:
+          e?.response?.data?.message || "Đã xảy ra lỗi khi mở trang chi tiết.",
+      });
+    }
+  };
+
+  const handleTableChange = (newPagination) => {
     // Only update pagination state here. useEffect will react to these changes.
     setPagination(newPagination);
-
-    // Update sortOrder state
-    if (sorter.field) {
-      setSortOrder({ field: sorter.field, order: sorter.order });
-    } else {
-      setSortOrder({});
-    }
   };
 
   // ... rest of the component remains the same ...
@@ -297,8 +324,7 @@ const Posts = () => {
         pagination.current,
         pagination.pageSize,
         filterStatus,
-        searchTerm,
-        sortOrder
+        searchTerm
       );
     } catch (e) {
       console.error("Approve error:", e?.response || e);
@@ -334,8 +360,7 @@ const Posts = () => {
         pagination.current,
         pagination.pageSize,
         filterStatus,
-        searchTerm,
-        sortOrder
+        searchTerm
       );
     } catch (e) {
       console.error("Reject error:", e?.response || e);
@@ -364,8 +389,7 @@ const Posts = () => {
         pagination.current,
         pagination.pageSize,
         filterStatus,
-        searchTerm,
-        sortOrder
+        searchTerm
       );
     } catch (e) {
       console.error("Delete error:", e?.response || e);
@@ -403,8 +427,7 @@ const Posts = () => {
             pagination.current,
             pagination.pageSize,
             filterStatus,
-            searchTerm,
-            sortOrder
+            searchTerm
           );
         } catch (e) {
           console.error("Bulk approve error:", e?.response || e);
@@ -444,8 +467,7 @@ const Posts = () => {
             pagination.current,
             pagination.pageSize,
             filterStatus,
-            searchTerm,
-            sortOrder
+            searchTerm
           );
         } catch (e) {
           console.error("Bulk reject error:", e?.response || e);
@@ -480,8 +502,7 @@ const Posts = () => {
             pagination.current,
             pagination.pageSize,
             filterStatus,
-            searchTerm,
-            sortOrder
+            searchTerm
           );
         } catch (e) {
           notification.error({
@@ -537,29 +558,21 @@ const Posts = () => {
       title: "Mã bài đăng",
       dataIndex: "id",
       key: "id",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
     },
     {
       title: "Tiêu đề",
       dataIndex: "title",
       key: "title",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
     },
     {
       title: "Tỉnh/Thành phố",
       dataIndex: "provinceCity",
       key: "provinceCity",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
     },
     {
       title: "Loại bài",
       dataIndex: "postType",
       key: "postType",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
       render: (text) =>
         text ? text.charAt(0).toUpperCase() + text.slice(1) : "—",
     },
@@ -567,23 +580,17 @@ const Posts = () => {
       title: "Ngày tạo",
       dataIndex: "createdAt",
       key: "createdAt",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
       render: (text) => formatDisplayDate(text),
     },
     {
       title: "Mã thành viên",
       dataIndex: "memberId",
       key: "memberId",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
     },
     {
       title: "Giá",
       dataIndex: "price",
       key: "price",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
       render: (text) =>
         Number(text || 0).toLocaleString("vi-VN", {
           style: "currency",
@@ -594,8 +601,6 @@ const Posts = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      sorter: true,
-      sortDirections: ["ascend", "descend"],
       render: (status) => getStatusTag(status),
     },
     {
@@ -639,7 +644,13 @@ const Posts = () => {
               title="Duyệt"
             />
           )}
-          <Button icon={<EyeOutlined />} title="Chi tiết" />
+          <Button
+            icon={<EyeOutlined />}
+            title="Xem chi tiết / Chỉnh sửa"
+            onClick={() => handleOpenDetailPage(record.id)}
+          >
+            Xem chi tiết
+          </Button>
           <Popconfirm
             title="Xóa bài đăng?"
             description={`Mã bài đăng: ${record.id}`}
@@ -749,6 +760,148 @@ const Posts = () => {
         onChange={handleTableChange}
         scroll={{ x: "max-content" }}
       />
+
+      <Modal
+        open={detailVisible}
+        title={
+          detailArticle
+            ? `Chi tiết bài đăng #${
+                detailArticle.articleId || detailArticle.id || ""
+              }`
+            : "Chi tiết bài đăng"
+        }
+        footer={null}
+        onCancel={() => {
+          setDetailVisible(false);
+          setDetailArticle(null);
+        }}
+        width={800}
+      >
+        {detailLoading ? (
+          <div style={{ textAlign: "center", padding: 24 }}>
+            <Spin />
+          </div>
+        ) : detailArticle ? (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Mã bài đăng">
+              {detailArticle.articleId || detailArticle.id}
+            </Descriptions.Item>
+            <Descriptions.Item label="Tiêu đề">
+              {detailArticle.title}
+            </Descriptions.Item>
+            <Descriptions.Item label="Nội dung">
+              {detailArticle.content}
+            </Descriptions.Item>
+            <Descriptions.Item label="Tỉnh/Thành phố">
+              {detailArticle.provinceCity || detailArticle.location}
+            </Descriptions.Item>
+            <Descriptions.Item label="Loại bài">
+              {detailArticle.articleType}
+            </Descriptions.Item>
+            <Descriptions.Item label="Thành viên">
+              {detailArticle.memberName} (ID: {detailArticle.memberId})
+            </Descriptions.Item>
+            {detailArticle.contactPhone && (
+              <Descriptions.Item label="Số điện thoại liên hệ">
+                {detailArticle.contactPhone}
+              </Descriptions.Item>
+            )}
+            <Descriptions.Item label="Giá">
+              {Number(detailArticle.price || 0).toLocaleString("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              })}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ngày tạo">
+              {formatDisplayDate(
+                detailArticle.createdAt ||
+                  detailArticle.createAt ||
+                  detailArticle.publicDate ||
+                  detailArticle.postedDate
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              {getStatusTag(
+                (() => {
+                  const raw = (
+                    detailArticle.status ||
+                    detailArticle.articleStatus ||
+                    "PENDING_APPROVAL"
+                  )
+                    .toString()
+                    .trim()
+                    .toUpperCase();
+                  switch (raw) {
+                    case "PENDING_APPROVAL":
+                      return "pending";
+                    case "APPROVED":
+                      return "approved";
+                    case "REJECTED":
+                      return "rejected";
+                    case "DELETED":
+                      return "deleted";
+                    case "ARCHIVED":
+                      return "archived";
+                    default:
+                      return "pending";
+                  }
+                })()
+              )}
+            </Descriptions.Item>
+            {detailArticle.brand && (
+              <Descriptions.Item label="Hãng xe">
+                {detailArticle.brand}
+              </Descriptions.Item>
+            )}
+            {detailArticle.year && (
+              <Descriptions.Item label="Năm sản xuất">
+                {detailArticle.year}
+              </Descriptions.Item>
+            )}
+            {detailArticle.vehicleCapacity && (
+              <Descriptions.Item label="Dung tích (cc)">
+                {detailArticle.vehicleCapacity}
+              </Descriptions.Item>
+            )}
+            {detailArticle.licensesPlate && (
+              <Descriptions.Item label="Biển số xe">
+                {detailArticle.licensesPlate}
+              </Descriptions.Item>
+            )}
+            {detailArticle.origin && (
+              <Descriptions.Item label="Xuất xứ">
+                {detailArticle.origin}
+              </Descriptions.Item>
+            )}
+            {detailArticle.milesTraveled && (
+              <Descriptions.Item label="Số km đã đi">
+                {detailArticle.milesTraveled}
+              </Descriptions.Item>
+            )}
+            {detailArticle.warrantyMonths && (
+              <Descriptions.Item label="Bảo hành (tháng)">
+                {detailArticle.warrantyMonths}
+              </Descriptions.Item>
+            )}
+            {detailArticle.mainImageUrl && (
+              <Descriptions.Item label="Ảnh chính">
+                <Image
+                  src={detailArticle.mainImageUrl}
+                  alt={detailArticle.title}
+                  width={200}
+                />
+              </Descriptions.Item>
+            )}
+            {detailArticle.description && (
+              <Descriptions.Item label="Mô tả">
+                {detailArticle.description}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+        ) : (
+          <Text>Không có dữ liệu bài đăng.</Text>
+        )}
+      </Modal>
 
       {selectedRowKeys.length > 0 && (
         <div

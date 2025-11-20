@@ -175,35 +175,83 @@ function PostDetailPage() {
   const handleEdit = () => {
     if (!post) return;
 
-    const locationValue =
-      typeof post.location === "string"
-        ? post.location
-        : post.location?.address || "";
+    const rawType = post.articleType || post.category || "";
+    let category = "CAR_ARTICLE";
+    if (rawType === "BATTERY_ARTICLE" || rawType === "battery") {
+      category = "BATTERY_ARTICLE";
+    } else if (
+      rawType === "MOTOR_ARTICLE" ||
+      rawType === "electric" ||
+      rawType === "motor"
+    ) {
+      category = "MOTOR_ARTICLE";
+    }
 
-    setEditForm({
-      title: post.title || "",
+    const locationObj =
+      typeof post.location === "object" && post.location !== null
+        ? {
+            city: "",
+            district: "",
+            ward: "",
+            address: post.location.address || "",
+          }
+        : {
+            city: "",
+            district: "",
+            ward: "",
+            address: "",
+          };
+
+    const editingPost = {
+      id: post.articleId || post.id,
+      articleId: post.articleId || post.id,
+      articleType: category,
+      category,
+      title: post.title || post.content || "",
+      description: post.description || post.content || "",
       price:
         post.price !== undefined && post.price !== null
           ? String(post.price)
           : "",
-      location: locationValue,
-      description: post.description || post.content || "",
+      condition: post.condition || "",
       brand: post.brand || "",
-      year: post.year || "",
+      year: post.year ? String(post.year) : "",
       origin: post.origin || "",
+      region:
+        typeof post.location === "string"
+          ? post.location
+          : post.location?.city || post.region || "",
       mileage: post.mileage || post.milesTraveled || "",
-      seats: post.seats || post.numberOfSeat || "",
+      batteryInfo: post.batteryInfo || "",
       model: post.model || "",
+      seats: post.seats || post.numberOfSeat || "",
       licensesPlate: post.licensesPlate || "",
       registrationDeadline: post.registrationDeadline || "",
-      vehicleCapacity: post.vehicleCapacity || "",
-      volt: post.volt || "",
+      milesTraveled: post.milesTraveled || "",
+      warrantyPeriodMonths:
+        post.warrantyPeriodMonths || post.warrantyMonths || "",
+      batteryType: post.batteryType || "",
       capacity: post.capacity || "",
+      volt: post.volt || "",
       size: post.size || "",
       weight: post.weight || "",
-      warrantyMonths: post.warrantyMonths || post.warrantyPeriodMonths || "",
-    });
-    setShowEditModal(true);
+      location: locationObj,
+      contactName: post.contactName || post.sellerName || post.memberName || "",
+      contactPhone:
+        post.contactPhone ||
+        post.sellerPhone ||
+        post.phone ||
+        post.phoneNumber ||
+        post.memberPhone ||
+        "",
+      images: Array.isArray(post.images) ? post.images : [],
+      status: post.status || "",
+      memberId: post.memberId || "",
+      publicDate: post.publicDate || post.postedDate || "",
+    };
+
+    sessionStorage.setItem("editingPost", JSON.stringify(editingPost));
+    navigate(`/post?mode=edit&id=${post.articleId || post.id || ""}`);
   };
 
   const handleEditFormChange = (field, value) => {
@@ -245,6 +293,8 @@ function PostDetailPage() {
           regDate = data.registrationDeadline;
         }
 
+        const originValue = (editForm.origin || data.origin || "").trim();
+
         payload = {
           title: editForm.title || data.title || "",
           content: editForm.description || data.content || "",
@@ -260,7 +310,7 @@ function PostDetailPage() {
           year: editForm.year
             ? parseInt(editForm.year)
             : data.year || new Date().getFullYear(),
-          origin: editForm.origin || data.origin || "",
+          origin: originValue,
           type: editForm.model || data.type || "",
           numberOfSeat: editForm.seats
             ? parseInt(editForm.seats)
@@ -276,6 +326,7 @@ function PostDetailPage() {
         };
       } else if (type === "battery" || type === "BATTERY_ARTICLE") {
         endpoint = `/article/battery/${id}`;
+        const originValue = (editForm.origin || data.origin || "").trim();
 
         payload = {
           title: editForm.title || data.title || "",
@@ -296,7 +347,7 @@ function PostDetailPage() {
             ? parseFloat(editForm.weight)
             : data.weight || 0,
           brand: editForm.brand || data.brand || "",
-          origin: editForm.origin || data.origin || "",
+          origin: originValue,
           warrantyMonths: editForm.warrantyMonths
             ? parseInt(editForm.warrantyMonths)
             : data.warrantyMonths || 1,
@@ -304,6 +355,7 @@ function PostDetailPage() {
       } else {
         // Mặc định: MOTOR_ARTICLE
         endpoint = `/article/motor/${id}`;
+        const originValue = (editForm.origin || data.origin || "").trim();
 
         payload = {
           title: editForm.title || data.title || "",
@@ -324,7 +376,7 @@ function PostDetailPage() {
             : data.vehicleCapacity || 1,
           licensesPlate:
             editForm.licensesPlate || data.licensesPlate || "string",
-          origin: editForm.origin || data.origin || "",
+          origin: originValue,
           milesTraveled: editForm.mileage
             ? parseFloat(editForm.mileage)
             : data.milesTraveled || 0,

@@ -209,52 +209,79 @@ function SellBikePage() {
             post.status === "APPROVED"
         );
 
-        const formattedBikes = bikesPosts.map((post) => ({
-          id: post.articleId || post.id,
-          title: post.title || post.content || "",
-          year: post.year,
-          type: "Điện",
-          condition: post.condition,
-          price: new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
-          location:
-            post.location?.district && post.location?.city
-              ? `${post.location.district}, ${post.location.city}`
-              : post.location || post.region || "",
-          seller: post.contactName || post.memberName || "",
-          // Lấy số điện thoại từ nhiều field khác nhau để đảm bảo hiển thị được
-          phone: post.contactPhone || "",
-          verified: post.status === "APPROVED",
-          images: Array.isArray(post.images)
-            ? post.images.length
-            : Array.isArray(post.imageUrls)
-            ? post.imageUrls.length
-            : 0,
-          featured: false,
-          vip: false,
-          discount: post.negotiable ? "Có thể thương lượng" : "",
-          mileage: post.mileage ? `${post.mileage} km` : "0 km",
-          engine: "Điện",
-          fuelType: "Điện",
-          color: post.color,
-          brand: post.brand,
-          description: post.content || "",
-          batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
-          origin: post.origin || "Chưa cập nhật",
-          originalPost: post,
-          image:
-            post.mainImageUrl ||
-            (Array.isArray(post.images) && post.images.length > 0
-              ? post.images[0].url || post.images[0]
-              : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
-              ? post.imageUrls[0]
-              : "/api/placeholder/400/300"),
-          specs: {
-            "Hãng xe": post.brand || "N/A",
-            "Năm sản xuất": post.year || "N/A",
-            "Xuất xứ": post.origin || "Chưa cập nhật",
-            Pin: post.batteryInfo ? `${post.batteryInfo}%` : "Chưa cập nhật",
-          },
-        }));
+        const formattedBikes = bikesPosts.map((post) => {
+          const rawMiles =
+            post.mileage !== undefined && post.mileage !== null
+              ? post.mileage
+              : post.milesTraveled !== undefined && post.milesTraveled !== null
+              ? post.milesTraveled
+              : 0;
+
+          const locationText =
+            post.location && typeof post.location === "object"
+              ? post.location.district && post.location.city
+                ? `${post.location.district}, ${post.location.city}`
+                : post.location.city || post.location.district || ""
+              : post.location || post.region || "";
+
+          return {
+            id: post.articleId || post.id,
+            title: post.title || post.content || "",
+            year: post.year,
+            type: "Điện",
+            condition: post.condition,
+            price:
+              new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
+            location: locationText,
+            seller: post.contactName || post.memberName || "",
+            phone: post.contactPhone || "",
+            verified: post.status === "APPROVED",
+            images: Array.isArray(post.images)
+              ? post.images.length
+              : Array.isArray(post.imageUrls)
+              ? post.imageUrls.length
+              : 0,
+            featured: false,
+            vip: false,
+            discount: post.negotiable ? "Có thể thương lượng" : "",
+            mileage: `${rawMiles} km`,
+            engine: "Điện",
+            fuelType: "Điện",
+            color: post.color,
+            brand: post.brand,
+            description: post.content || "",
+            batteryInfo: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+            origin: post.origin || "Chưa cập nhật",
+            vehicleCapacity: post.vehicleCapacity,
+            licensesPlate: post.licensesPlate,
+            warrantyMonths: post.warrantyMonths ?? null,
+            originalPost: post,
+            image:
+              post.mainImageUrl ||
+              (Array.isArray(post.images) && post.images.length > 0
+                ? post.images[0].url || post.images[0]
+                : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+                ? post.imageUrls[0]
+                : "/api/placeholder/400/300"),
+            specs: {
+              "Hãng xe": post.brand || "N/A",
+              "Năm sản xuất": post.year || "N/A",
+              "Xuất xứ": post.origin || "Chưa cập nhật",
+              "Dung tích xe (kW)":
+                post.vehicleCapacity !== undefined &&
+                post.vehicleCapacity !== null
+                  ? post.vehicleCapacity
+                  : "Chưa cập nhật",
+              "Biển số": post.licensesPlate || "Chưa cập nhật",
+              "Số km đã đi": rawMiles ? `${rawMiles} km` : "0 km",
+              "Bảo hành (tháng)":
+                post.warrantyMonths !== undefined &&
+                post.warrantyMonths !== null
+                  ? post.warrantyMonths
+                  : "Chưa cập nhật",
+            },
+          };
+        });
 
         setBikesFromStorage(formattedBikes);
         console.log("Loaded bikes from API:", formattedBikes);

@@ -4,7 +4,7 @@ import { useSaved } from "../../contexts/AppContext";
 import localStorageService from "../../services/localStorageService";
 import "./index.scss";
 import { useSelector } from "react-redux";
-import api from '../../config/api'
+import api from "../../config/api";
 
 // Icon SVG components
 const LocationIcon = () => (
@@ -63,16 +63,17 @@ const VerifiedIcon = () => (
 function HomePage() {
   const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [articles, setArticles] = useState([])
-  const [articlesLoading, setArticlesLoading] = useState(false)
-  const [articlesError, setArticlesError] = useState(null)
+  const [articles, setArticles] = useState([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [articlesError, setArticlesError] = useState(null);
   const { toggleSaved, isSaved } = useSaved();
   const navigate = useNavigate();
 
   const member = useSelector((store) => store.member);
   const isAuthenticated = !!member;
   const user = member;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const categories = [
     { icon: "electric-car", label: "Ô tô", color: "#4ECDC4", page: "oto" },
@@ -159,27 +160,32 @@ function HomePage() {
 
   // Fetch articles once for the homepage from backend GET /article
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     const fetchArticles = async () => {
       try {
-        setArticlesLoading(true)
-        setArticlesError(null)
-        const res = await api.get('/article')
+        setArticlesLoading(true);
+        setArticlesError(null);
+        const res = await api.get("/article");
         if (!cancelled) {
           // Accept array shape or { data: [] }
-          const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
-          setArticles(data)
+          const data = Array.isArray(res.data)
+            ? res.data
+            : res.data?.data || [];
+          setArticles(data);
         }
       } catch (err) {
-        if (!cancelled) setArticlesError('Không thể tải bài viết. Vui lòng thử lại sau.')
-        console.error('GET /article failed:', err)
+        if (!cancelled)
+          setArticlesError("Không thể tải bài viết. Vui lòng thử lại sau.");
+        console.error("GET /article failed:", err);
       } finally {
-        if (!cancelled) setArticlesLoading(false)
+        if (!cancelled) setArticlesLoading(false);
       }
-    }
-    fetchArticles()
-    return () => { cancelled = true }
-  }, [])
+    };
+    fetchArticles();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getCategoryIcon = (type) => {
     const icons = {
@@ -229,7 +235,9 @@ function HomePage() {
       timePosted: timeAgo(),
       badge: diffInMinutes < 60 ? "Mới đăng" : null,
       category: getCategoryName(post.category),
-      image: post.images?.[0] || "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
+      image:
+        post.images?.[0] ||
+        "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
     };
   };
 
@@ -647,19 +655,27 @@ function HomePage() {
             <h2 className="section-title">Bài viết mới</h2>
           </div>
           {articlesLoading ? (
-            <div className="loading-state"><p>Đang tải bài viết...</p></div>
+            <div className="loading-state">
+              <p>Đang tải bài viết...</p>
+            </div>
           ) : articlesError ? (
-            <div className="empty-state"><p>{articlesError}</p></div>
+            <div className="empty-state">
+              <p>{articlesError}</p>
+            </div>
           ) : (
             <div className="articles-grid">
               {articles.slice(0, 6).map((a) => (
                 <div key={a.id || a.articleId} className="article-card">
-                  <h3 className="article-title">{a.title || a.name || 'Bài viết'}</h3>
+                  <h3 className="article-title">
+                    {a.title || a.name || "Bài viết"}
+                  </h3>
                   {a.summary && <p className="article-summary">{a.summary}</p>}
                 </div>
               ))}
               {articles.length === 0 && (
-                <div className="empty-state"><p>Chưa có bài viết.</p></div>
+                <div className="empty-state">
+                  <p>Chưa có bài viết.</p>
+                </div>
               )}
             </div>
           )}

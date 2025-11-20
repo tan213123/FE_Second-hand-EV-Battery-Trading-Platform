@@ -67,51 +67,92 @@ function SellBatteryPage() {
             post.status === "APPROVED"
         );
 
-        const formattedBatteries = batteryPosts.map((post) => ({
-          id: post.articleId || post.id,
-          title: post.title || post.content || "",
-          year: post.year,
-          type: post.batteryType || "Lithium-ion",
-          condition: post.condition,
-          price: new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
-          location:
-            post.location?.district && post.location?.city
-              ? `${post.location.district}, ${post.location.city}`
-              : post.location || post.region || "",
-          seller: post.contactName || post.memberName || "",
-          // cố gắng lấy số điện thoại từ nhiều field khác nhau trong article
-          phone:
-            post.contactPhone ||
-            post.memberPhone ||
-            post.phone ||
-            post.phoneNumber ||
-            "",
-          verified: post.status === "APPROVED",
-          images: Array.isArray(post.images)
-            ? post.images.length
-            : Array.isArray(post.imageUrls)
-            ? post.imageUrls.length
-            : 0,
-          featured: false,
-          vip: false,
-          discount: post.negotiable ? "Có thể thương lượng" : "",
-          capacity:
+        const formattedBatteries = batteryPosts.map((post) => {
+          const capacityValue =
             post.capacity !== undefined && post.capacity !== null
               ? post.capacity
-              : "N/A",
-          health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
-          brand: post.brand,
-          description: post.content || "",
-          origin: post.origin || "Chưa cập nhật",
-          originalPost: post,
-          image:
-            post.mainImageUrl ||
-            (Array.isArray(post.images) && post.images.length > 0
-              ? post.images[0].url || post.images[0]
-              : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
-              ? post.imageUrls[0]
-              : "/api/placeholder/400/300"),
-        }));
+              : null;
+
+          const locationText =
+            post.location && typeof post.location === "object"
+              ? post.location.district && post.location.city
+                ? `${post.location.district}, ${post.location.city}`
+                : post.location.city || post.location.district || ""
+              : post.location || post.region || "";
+
+          return {
+            id: post.articleId || post.id,
+            title: post.title || post.content || "",
+            year: post.year,
+            type: post.batteryType || "Lithium-ion",
+            condition: post.condition,
+            price:
+              new Intl.NumberFormat("vi-VN").format(post.price || 0) + " đ",
+            location: locationText,
+            seller: post.contactName || post.memberName || "",
+            phone:
+              post.contactPhone ||
+              post.memberPhone ||
+              post.phone ||
+              post.phoneNumber ||
+              "",
+            verified: post.status === "APPROVED",
+            images: Array.isArray(post.images)
+              ? post.images.length
+              : Array.isArray(post.imageUrls)
+              ? post.imageUrls.length
+              : 0,
+            featured: false,
+            vip: false,
+            discount: post.negotiable ? "Có thể thương lượng" : "",
+            capacity: capacityValue !== null ? capacityValue : "N/A",
+            volt:
+              post.volt !== undefined && post.volt !== null ? post.volt : null,
+            size:
+              post.size !== undefined && post.size !== null ? post.size : null,
+            weight:
+              post.weight !== undefined && post.weight !== null
+                ? post.weight
+                : null,
+            health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+            brand: post.brand,
+            description: post.content || "",
+            origin: post.origin || "Chưa cập nhật",
+            warrantyMonths:
+              post.warrantyMonths !== undefined && post.warrantyMonths !== null
+                ? post.warrantyMonths
+                : null,
+            originalPost: post,
+            image:
+              post.mainImageUrl ||
+              (Array.isArray(post.images) && post.images.length > 0
+                ? post.images[0].url || post.images[0]
+                : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+                ? post.imageUrls[0]
+                : "/api/placeholder/400/300"),
+            specs: {
+              "Điện áp (Volt)":
+                post.volt !== undefined && post.volt !== null
+                  ? post.volt
+                  : "Chưa cập nhật",
+              "Công suất (Ah/kWh)":
+                capacityValue !== null ? capacityValue : "Chưa cập nhật",
+              "Kích thước":
+                post.size !== undefined && post.size !== null
+                  ? post.size
+                  : "Chưa cập nhật",
+              "Trọng lượng":
+                post.weight !== undefined && post.weight !== null
+                  ? post.weight
+                  : "Chưa cập nhật",
+              "Bảo hành (tháng)":
+                post.warrantyMonths !== undefined &&
+                post.warrantyMonths !== null
+                  ? post.warrantyMonths
+                  : "Chưa cập nhật",
+            },
+          };
+        });
 
         setBatteriesFromStorage(formattedBatteries);
       } catch (error) {

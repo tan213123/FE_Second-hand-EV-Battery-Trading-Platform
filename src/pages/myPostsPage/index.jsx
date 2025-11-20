@@ -103,15 +103,6 @@ function MyPostsPage() {
   const [selectedCities, setSelectedCities] = useState([]);
 
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  // Thêm state cho modal và form chỉnh sửa
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editPost, setEditPost] = useState(null);
-  const [editForm, setEditForm] = useState({
-    title: "",
-    price: "",
-    location: "",
-    description: "",
-  });
 
   // Load posts từ API khi component mount và khi member thay đổi
   useEffect(() => {
@@ -288,99 +279,7 @@ function MyPostsPage() {
     }
   };
 
-  // Khi ấn nút Sửa, chỉ mở modal và set dữ liệu form
-  const handleEditPost = (post) => {
-    setEditPost(post);
-    setEditForm({
-      title: post.title || "",
-      price: post.price || "",
-      location: post.location || "",
-      description: post.description || post.content || "",
-    });
-    setShowEditModal(true);
-  };
-
-  // Khi ấn nút cập nhật trong modal mới gọi API PUT
-  const handleUpdatePost = async () => {
-    if (!editPost) return;
-    try {
-      let endpoint = "";
-      const data = editPost.originalData || editPost;
-      const id = data.articleId || data.id;
-      const type = data.category || data.articleType;
-      if (type === "car" || type === "CAR_ARTICLE") {
-        endpoint = `/article/car/${id}`;
-      } else if (type === "battery" || type === "BATTERY_ARTICLE") {
-        endpoint = `/article/battery/${id}`;
-      } else {
-        endpoint = `/article/motor/${id}`;
-      }
-      const user = JSON.parse(localStorage.getItem("user"));
-      const updatedData = {
-        title: editForm.title,
-        price: Number(editForm.price),
-        location: editForm.location,
-        content: editForm.description,
-        memberId: data.memberId || (user ? user.memberId : ""),
-      };
-      await api.put(endpoint, updatedData);
-      // Reload lại danh sách bài đăng của user
-      let memberId = member?.memberId ?? member?.id;
-      if (!memberId) {
-        try {
-          const auth = JSON.parse(localStorage.getItem("user"));
-          if (auth) memberId = auth.memberId ?? auth.id;
-        } catch (e) {
-          console.warn("Failed to parse user from localStorage", e);
-        }
-      }
-      const response = memberId
-        ? await api.get(`/article/member/${memberId}`)
-        : await api.get("/article");
-      let articlesData = response.data;
-      if (articlesData && !Array.isArray(articlesData))
-        articlesData = [articlesData];
-      if (!Array.isArray(articlesData)) articlesData = [];
-      const myPosts = memberId
-        ? articlesData.filter((p) => String(p.memberId) === String(memberId))
-        : articlesData;
-      setPosts(
-        myPosts.map((p) => ({
-          id: p.articleId,
-          title: p.title || p.content || "",
-          price: p.price ? p.price : 0,
-          location: p.location || p.region || "N/A",
-          status: p.status || "active",
-          views: p.views || 0,
-          likes: p.saves || 0,
-          postedDate: p.publicDate
-            ? formatDate(p.publicDate)
-            : p.createAt
-            ? formatDate(p.createAt)
-            : "",
-          updatedAt: p.updateAt
-            ? formatDate(p.updateAt)
-            : p.createAt
-            ? formatDate(p.createAt)
-            : "",
-          images: Array.isArray(p.images) ? p.images.length : p.images ? 1 : 0,
-          category: getCategoryName(p.articleType),
-          imageUrl:
-            p.mainImageUrl ||
-            (Array.isArray(p.images) && p.images.length > 0
-              ? p.images[0].url
-              : null),
-          description: p.content || "",
-          originalData: p,
-        }))
-      );
-      setShowEditModal(false);
-      setEditPost(null);
-      alert("Cập nhật bài đăng thành công!");
-    } catch (e) {
-      alert("Có lỗi xảy ra khi cập nhật bài đăng!");
-    }
-  };
+  // Chỉnh sửa bài đăng: sử dụng trang PostDetailPage
 
   const handleViewDetail = (post) => {
     // Lưu dữ liệu bài đăng vào sessionStorage để sử dụng trong trang detail
