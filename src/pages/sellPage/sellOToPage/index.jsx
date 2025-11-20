@@ -271,18 +271,19 @@ function SellOtoPage() {
                   ? post.imageUrls[0]
                   : "/api/placeholder/400/300"),
               specs: {
-                "Hãng xe": post.brand || "N/A",
-                "Model/Loại xe": post.model || post.type || "N/A",
-                "Số chỗ ngồi":
+                year: post.year || "N/A",
+                brand: post.brand || "N/A",
+                bodyType: post.bodyType || post.model || "Chưa cập nhật",
+                seats:
                   post.numberOfSeat !== undefined && post.numberOfSeat !== null
                     ? post.numberOfSeat
-                    : post.seats ?? "N/A",
-                "Năm sản xuất": post.year || "N/A",
-                "Số km đã đi": rawMiles ? `${rawMiles} km` : "0 km",
-                "Biển số": post.licensesPlate || "Chưa cập nhật",
-                "Hạn đăng kiểm": post.registrationDeadline || "Chưa cập nhật",
-                "Xuất xứ": post.origin || "Chưa cập nhật",
-                "Bảo hành (tháng)":
+                    : post.seats ?? "Chưa cập nhật",
+                origin: post.origin || "Chưa cập nhật",
+                mileage: rawMiles ? `${rawMiles} km` : "0 km",
+                licensesPlate: post.licensesPlate || "Chưa cập nhật",
+                registrationDeadline:
+                  post.registrationDeadline || "Chưa cập nhật",
+                warrantyPeriodMonths:
                   post.warrantyPeriodMonths ??
                   post.warrantyMonths ??
                   "Chưa cập nhật",
@@ -334,13 +335,14 @@ function SellOtoPage() {
       specs: {
         year: car.year || "-",
         brand: car.brand || "-",
-        condition: car.condition || "-",
         bodyType: car.bodyType || "-",
         seats: car.seats || "-",
-        color: car.color || "-",
         origin: car.origin || "-",
         mileage: car.mileage || "-",
-        battery: car.batteryInfo || "-",
+        licensesPlate: car.originalPost?.licensesPlate || "-",
+        registrationDeadline: car.originalPost?.registrationDeadline || "-",
+        warrantyPeriodMonths:
+          car.originalPost?.warrantyPeriodMonths ?? car.warrantyMonths ?? "-",
       },
     };
     addToCompare(compareCar);

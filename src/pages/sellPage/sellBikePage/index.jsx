@@ -264,21 +264,13 @@ function SellBikePage() {
                 ? post.imageUrls[0]
                 : "/api/placeholder/400/300"),
             specs: {
-              "Hãng xe": post.brand || "N/A",
-              "Năm sản xuất": post.year || "N/A",
-              "Xuất xứ": post.origin || "Chưa cập nhật",
-              "Dung tích xe (kW)":
-                post.vehicleCapacity !== undefined &&
-                post.vehicleCapacity !== null
-                  ? post.vehicleCapacity
-                  : "Chưa cập nhật",
-              "Biển số": post.licensesPlate || "Chưa cập nhật",
-              "Số km đã đi": rawMiles ? `${rawMiles} km` : "0 km",
-              "Bảo hành (tháng)":
-                post.warrantyMonths !== undefined &&
-                post.warrantyMonths !== null
-                  ? post.warrantyMonths
-                  : "Chưa cập nhật",
+              year: post.year || "N/A",
+              brand: post.brand || "N/A",
+              condition: post.condition || "Chưa cập nhật",
+              color: post.color || "Chưa cập nhật",
+              origin: post.origin || "Chưa cập nhật",
+              mileage: rawMiles ? `${rawMiles} km` : "0 km",
+              battery: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
             },
           };
         });

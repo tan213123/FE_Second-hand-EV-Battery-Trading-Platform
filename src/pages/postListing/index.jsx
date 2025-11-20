@@ -1,12 +1,12 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ImageUpload from "../../components/ImageUpload";
 import api from "../../config/api";
 import "./index.scss";
 
-// Dữ liệu địa chỉ Việt Nam
-const vietnamAddressData = {
+// Dữ liệu địa chỉ Việt Nam (hiện tại chưa dùng trực tiếp, giữ lại để dùng sau)
+const VIETNAM_ADDRESS_DATA = {
   hanoi: {
     name: "Hà Nội",
     districts: {
@@ -642,6 +642,8 @@ const PostListing = () => {
       ward: "",
       address: "",
     },
+    // Địa chỉ hiển thị và gửi lên BE (một dòng)
+    locationText: "",
     contactName: "",
     contactPhone: "",
     images: [],
@@ -778,19 +780,8 @@ const PostListing = () => {
         case "contactPhone":
           isComplete = value && /^[0-9]{10}$/.test(value);
           break;
-        case "location.city":
-          isComplete = formData.location.city && formData.location.city !== "";
-          break;
-        case "location.district":
-          isComplete =
-            formData.location.district && formData.location.district !== "";
-          break;
-        case "location.ward":
-          isComplete = formData.location.ward && formData.location.ward !== "";
-          break;
-        case "location.address":
-          isComplete =
-            formData.location.address && formData.location.address.length >= 10;
+        case "locationText":
+          isComplete = value && value.trim().length > 0;
           break;
         default:
           isComplete = false;
@@ -827,10 +818,7 @@ const PostListing = () => {
     checkFieldCompletion("capacity", formData.capacity);
     checkFieldCompletion("contactName", formData.contactName);
     checkFieldCompletion("contactPhone", formData.contactPhone);
-    checkFieldCompletion("location.city", formData.location.city);
-    checkFieldCompletion("location.district", formData.location.district);
-    checkFieldCompletion("location.ward", formData.location.ward);
-    checkFieldCompletion("location.address", formData.location.address);
+    checkFieldCompletion("locationText", formData.locationText);
   }, [formData, checkFieldCompletion]);
 
   const categories = [
@@ -888,14 +876,6 @@ const PostListing = () => {
   ];
   const seatOptions = ["2 chỗ", "4 chỗ", "5 chỗ", "7 chỗ", "9 chỗ", "16 chỗ"];
   const origins = ["Nhập khẩu", "Lắp ráp trong nước", "Sản xuất trong nước"];
-  const regions = [
-    "Hà Nội",
-    "TP. Hồ Chí Minh",
-    "Đà Nẵng",
-    "Hải Phòng",
-    "Cần Thơ",
-    "Khác",
-  ];
 
   // Effect để load dữ liệu khi ở chế độ edit
   useEffect(() => {
@@ -917,26 +897,6 @@ const PostListing = () => {
     }
   }, [searchParams, navigate]);
 
-  // Lấy danh sách quận/huyện theo tỉnh/thành phố được chọn
-  const availableDistricts = useMemo(() => {
-    if (!formData.location.city) return [];
-    const cityData = vietnamAddressData[formData.location.city];
-    return cityData
-      ? Object.entries(cityData.districts).map(([key, value]) => ({
-          id: key,
-          name: value.name,
-        }))
-      : [];
-  }, [formData.location.city]);
-
-  // Lấy danh sách phường/xã theo quận/huyện được chọn
-  const availableWards = useMemo(() => {
-    if (!formData.location.city || !formData.location.district) return [];
-    const cityData = vietnamAddressData[formData.location.city];
-    const districtData = cityData?.districts[formData.location.district];
-    return districtData ? districtData.wards : [];
-  }, [formData.location.city, formData.location.district]);
-
   const handleInputChange = (field, value) => {
     if (field === "images") {
       console.log("Images updated:", value);
@@ -945,28 +905,6 @@ const PostListing = () => {
       ...prev,
       [field]: value,
     }));
-  };
-
-  const handleLocationChange = (field, value) => {
-    setFormData((prev) => {
-      const newLocation = { ...prev.location, [field]: value };
-
-      // Reset district và ward khi thay đổi city
-      if (field === "city") {
-        newLocation.district = "";
-        newLocation.ward = "";
-      }
-
-      // Reset ward khi thay đổi district
-      if (field === "district") {
-        newLocation.ward = "";
-      }
-
-      return {
-        ...prev,
-        location: newLocation,
-      };
-    });
   };
 
   // Handler khi ImageUpload component thay đổi danh sách ảnh
@@ -1007,11 +945,6 @@ const PostListing = () => {
       alert("Vui lòng chọn xuất xứ");
       return false;
     }
-    if (!formData.region) {
-      alert("Vui lòng chọn khu vực");
-      return false;
-    }
-
     // Category specific validation
     if (formData.category === "CAR_ARTICLE") {
       if (!formData.model) {
@@ -1047,12 +980,8 @@ const PostListing = () => {
   };
 
   const validateStep4 = () => {
-    if (
-      !formData.location.city ||
-      !formData.location.district ||
-      !formData.location.address
-    ) {
-      alert("Vui lòng điền đầy đủ địa chỉ");
+    if (!formData.locationText || !formData.locationText.trim()) {
+      alert("Vui lòng nhập địa chỉ liên hệ");
       return false;
     }
     if (!formData.contactName) {
@@ -1121,7 +1050,7 @@ const PostListing = () => {
           payload = {
             title: data.title || "",
             content: data.description || data.content || "",
-            location: data.region || "",
+            location: data.locationText || data.location || data.region || "",
             articleType: "BATTERY_ARTICLE",
             publicDate: pubDate,
             memberId: data.memberId || memberId,
@@ -1238,11 +1167,12 @@ const PostListing = () => {
         pubDate = now.toISOString().slice(0, 10);
 
         if (formData.category === "BATTERY_ARTICLE") {
-          // Format location chỉ lấy thành phố
+          const locationText = (formData.locationText || "").trim();
+          // Format location chỉ lấy một dòng địa chỉ
           const payload = {
             title: formData.title || "",
             content: formData.description || "",
-            location: formData.region || "",
+            location: locationText,
             articleType: "BATTERY_ARTICLE",
             publicDate: pubDate,
             contactPhone: formData.contactPhone || "",
@@ -1268,11 +1198,11 @@ const PostListing = () => {
           result = { data: response.data, error: null };
           console.log("API Response:", result);
         } else if (formData.category === "MOTOR_ARTICLE") {
-          // ...existing code for MOTOR_ARTICLE...
+          const locationText = (formData.locationText || "").trim();
           const payload = {
             title: formData.title || "",
             content: formData.description || "",
-            location: formData.region || "",
+            location: locationText,
             articleType: "MOTOR_ARTICLE",
             publicDate: pubDate,
             contactPhone: formData.contactPhone || "",
@@ -1302,7 +1232,7 @@ const PostListing = () => {
           result = { data: response.data, error: null };
           console.log("API Response:", result);
         } else {
-          // ...existing code for CAR_ARTICLE and other types...
+          const locationText = (formData.locationText || "").trim();
           let regDate = "";
           if (typeof formData.registrationDeadline === "string") {
             const ddmmyyyy = formData.registrationDeadline.match(
@@ -1323,7 +1253,7 @@ const PostListing = () => {
           const payload = {
             title: formData.title || "",
             content: formData.description || "",
-            location: formData.region || "",
+            location: locationText,
             articleType: "CAR_ARTICLE",
             publicDate: pubDate,
             contactPhone: formData.contactPhone || "",
@@ -1397,6 +1327,7 @@ const PostListing = () => {
           ward: "",
           address: "",
         },
+        locationText: "",
         contactName: "",
         contactPhone: "",
         images: [],
@@ -1452,7 +1383,10 @@ const PostListing = () => {
                 </button>
               ) : (
                 <>
-                  <button className="primary" onClick={() => navigate("/packages")}>
+                  <button
+                    className="primary"
+                    onClick={() => navigate("/packages")}
+                  >
                     Mua gói đăng tin
                   </button>
                   <button
@@ -1500,7 +1434,8 @@ const PostListing = () => {
         <div className="form-wrapper">
           {!isEditMode && postingAccess.allowed && (
             <div className="quota-banner">
-              <strong>Bạn còn {postingAccess.remaining}</strong> lượt đăng tin trong gói hiện tại.
+              <strong>Bạn còn {postingAccess.remaining}</strong> lượt đăng tin
+              trong gói hiện tại.
             </div>
           )}
           {/* Step 1: Category Selection */}
@@ -1614,25 +1549,6 @@ const PostListing = () => {
               </div>
 
               <div className="form-row">
-                <div
-                  className={`form-group ${formData.region ? "completed" : ""}`}
-                >
-                  <label>Khu vực *</label>
-                  <select
-                    value={formData.region}
-                    onChange={(e) =>
-                      handleInputChange("region", e.target.value)
-                    }
-                  >
-                    <option value="">Chọn khu vực</option>
-                    {regions.map((region) => (
-                      <option key={region} value={region}>
-                        {region}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* Các trường đặc thù cho MOTOR_ARTICLE */}
                 {formData.category === "MOTOR_ARTICLE" && (
                   <>
@@ -1663,7 +1579,7 @@ const PostListing = () => {
                     </div>
                     <div className="form-row">
                       <div className="form-group">
-                        <label>Dung tích xe (cc) *</label>
+                        <label>Dung tích xe (kW) *</label>
                         <input
                           type="number"
                           min="0"
@@ -1879,9 +1795,9 @@ const PostListing = () => {
                       type="number"
                       min="0"
                       placeholder="VD: 15000"
-                      value={formData.milesTraveled || ""}
+                      value={formData.mileage || ""}
                       onChange={(e) =>
-                        handleInputChange("milesTraveled", e.target.value)
+                        handleInputChange("mileage", e.target.value)
                       }
                     />
                   </div>
@@ -1987,26 +1903,8 @@ const PostListing = () => {
                   Có thể thương lượng
                 </label>
               </div>
-              {/* Khu vực, tình trạng */}
+              {/* Tình trạng */}
               <div className="form-row">
-                <div
-                  className={`form-group ${formData.region ? "completed" : ""}`}
-                >
-                  <label>Khu vực *</label>
-                  <select
-                    value={formData.region}
-                    onChange={(e) =>
-                      handleInputChange("region", e.target.value)
-                    }
-                  >
-                    <option value="">Chọn khu vực</option>
-                    {regions.map((region) => (
-                      <option key={region} value={region}>
-                        {region}
-                      </option>
-                    ))}
-                  </select>
-                </div>
                 <div
                   className={`form-group ${
                     fieldStatus.condition ? "completed" : ""
@@ -2215,67 +2113,17 @@ const PostListing = () => {
 
               <div
                 className={`form-group ${
-                  fieldStatus["location.city"] &&
-                  fieldStatus["location.district"] &&
-                  fieldStatus["location.address"]
-                    ? "completed"
-                    : ""
+                  fieldStatus.locationText ? "completed" : ""
                 }`}
               >
                 <label>Địa chỉ *</label>
-                <div className="location-selects">
-                  <select
-                    value={formData.location.city}
-                    onChange={(e) =>
-                      handleLocationChange("city", e.target.value)
-                    }
-                  >
-                    <option value="">Tỉnh/Thành phố</option>
-                    {Object.entries(vietnamAddressData).map(([key, city]) => (
-                      <option key={key} value={key}>
-                        {city.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={formData.location.district}
-                    onChange={(e) =>
-                      handleLocationChange("district", e.target.value)
-                    }
-                    disabled={!formData.location.city}
-                  >
-                    <option value="">Quận/Huyện</option>
-                    {availableDistricts.map((district) => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={formData.location.ward}
-                    onChange={(e) =>
-                      handleLocationChange("ward", e.target.value)
-                    }
-                    disabled={!formData.location.district}
-                  >
-                    <option value="">Phường/Xã</option>
-                    {availableWards.map((ward) => (
-                      <option key={ward} value={ward}>
-                        {ward}
-                      </option>
-                    ))}
-                  </select>
-                </div>
                 <input
                   type="text"
-                  placeholder="Số nhà, tên đường..."
-                  value={formData.location.address}
+                  placeholder="Nhập địa chỉ (VD: Quận 1, TP. Hồ Chí Minh)"
+                  value={formData.locationText}
                   onChange={(e) =>
-                    handleLocationChange("address", e.target.value)
+                    handleInputChange("locationText", e.target.value)
                   }
-                  style={{ marginTop: "10px" }}
                 />
               </div>
 
@@ -2457,8 +2305,10 @@ const PostListing = () => {
                       <span>⚡ {formData.capacity}</span>
                     )}
                   </div>
-                  {formData.region && (
-                    <div className="preview-location">📍 {formData.region}</div>
+                  {formData.locationText && (
+                    <div className="preview-location">
+                      📍 {formData.locationText}
+                    </div>
                   )}
                 </>
               )}

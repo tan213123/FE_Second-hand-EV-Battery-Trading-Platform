@@ -83,7 +83,7 @@ const SignUpPage = () => {
         ...values,
         yearOfBirth: values?.yearOfBirth
           ? (() => {
-              const parts = String(values.yearOfBirth).split('-');
+              const parts = String(values.yearOfBirth).split("-");
               if (parts.length === 3) {
                 const [y, m, d] = parts;
                 return `${d}/${m}/${y}`;
@@ -131,7 +131,10 @@ const SignUpPage = () => {
       else navigate("/");
     } catch (err) {
       console.error("Google sign-in error:", err);
-      const msg = err?.response?.data?.message || err?.message || "Đăng nhập Google thất bại";
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Đăng nhập Google thất bại";
       toast.error(msg);
     }
   }, [dispatch, navigate]);

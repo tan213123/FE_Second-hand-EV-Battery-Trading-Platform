@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import api from "../../config/api";
 import { logout as logoutAction } from "../../redux/memberSlice";
 import "./index.scss";
 
@@ -121,6 +122,39 @@ function Header() {
     // Chuyển về trang home sau khi đăng xuất - sử dụng replace để không lưu history
     navigate("/", { replace: true });
     console.log("✅ Đăng xuất thành công, đã chuyển về trang home");
+  };
+
+  const handlePostClick = async () => {
+    await handleAuthRequired(async () => {
+      try {
+        const memberId = member?.memberId;
+        if (!memberId) {
+          navigate("/packages");
+          return;
+        }
+
+        const response = await api.get(`/subscription/member/${memberId}`);
+        const subscriptions = Array.isArray(response.data) ? response.data : [];
+
+        const hasAvailablePosts = subscriptions.some(
+          (sub) => sub.status === "ACTIVE" && sub.remainingPosts > 0
+        );
+
+        if (hasAvailablePosts) {
+          navigate("/post");
+        } else {
+          const goToPackages = window.confirm(
+            "Bạn chưa có gói đăng tin hoạt động hoặc đã hết lượt đăng. Mua gói đăng tin ngay?"
+          );
+          if (goToPackages) {
+            navigate("/packages");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check subscription before posting", error);
+        alert("Không thể kiểm tra gói đăng tin. Vui lòng thử lại sau.");
+      }
+    });
   };
 
   // Close dropdowns when clicking outside
@@ -504,7 +538,7 @@ function Header() {
 
             <button
               className={`btn-secondary ${!isAuthenticated ? "disabled" : ""}`}
-              onClick={() => handleAuthRequired(() => navigate("/post"))}
+              onClick={handlePostClick}
             >
               {!isAuthenticated && <span className="lock-icon">🔒 </span>}
               Đăng tin

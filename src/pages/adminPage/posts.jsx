@@ -282,22 +282,6 @@ const Posts = () => {
     }
   };
 
-  const handleOpenDetailPage = async (id) => {
-    try {
-      // Lấy đầy đủ dữ liệu bài đăng rồi chuyển sang PostDetailPage để chỉnh sửa
-      const res = await api.get(`/article/${id}`);
-      sessionStorage.setItem("viewingPost", JSON.stringify(res.data));
-      navigate(`/post-detail/${id}`);
-    } catch (e) {
-      console.error("Open detail page error:", e?.response || e);
-      notification.error({
-        message: "Không thể mở trang chi tiết bài đăng",
-        description:
-          e?.response?.data?.message || "Đã xảy ra lỗi khi mở trang chi tiết.",
-      });
-    }
-  };
-
   const handleTableChange = (newPagination) => {
     // Only update pagination state here. useEffect will react to these changes.
     setPagination(newPagination);
@@ -647,7 +631,7 @@ const Posts = () => {
           <Button
             icon={<EyeOutlined />}
             title="Xem chi tiết / Chỉnh sửa"
-            onClick={() => handleOpenDetailPage(record.id)}
+            onClick={() => handleViewDetail(record.id)}
           >
             Xem chi tiết
           </Button>

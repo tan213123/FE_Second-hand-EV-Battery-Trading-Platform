@@ -131,25 +131,29 @@ function SellBatteryPage() {
                 ? post.imageUrls[0]
                 : "/api/placeholder/400/300"),
             specs: {
-              "Điện áp (Volt)":
+              brand: post.brand || "N/A",
+              volt:
                 post.volt !== undefined && post.volt !== null
                   ? post.volt
                   : "Chưa cập nhật",
-              "Công suất (Ah/kWh)":
+              capacity:
                 capacityValue !== null ? capacityValue : "Chưa cập nhật",
-              "Kích thước":
+              size:
                 post.size !== undefined && post.size !== null
                   ? post.size
                   : "Chưa cập nhật",
-              "Trọng lượng":
+              weight:
                 post.weight !== undefined && post.weight !== null
                   ? post.weight
                   : "Chưa cập nhật",
-              "Bảo hành (tháng)":
+              warrantyMonths:
                 post.warrantyMonths !== undefined &&
                 post.warrantyMonths !== null
                   ? post.warrantyMonths
                   : "Chưa cập nhật",
+              condition: post.condition || "Chưa cập nhật",
+              health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+              origin: post.origin || "Chưa cập nhật",
             },
           };
         });
