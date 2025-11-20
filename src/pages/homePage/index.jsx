@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSaved } from "../../contexts/AppContext";
-import localStorageService from "../../services/localStorageService";
 import "./index.scss";
 import { useSelector } from "react-redux";
 import api from "../../config/api";
@@ -87,32 +86,21 @@ function HomePage() {
   ];
 
   const handleCategoryClick = (page) => {
-    if (!isAuthenticated) {
-      // Nếu chưa đăng nhập, chuyển đến trang login
-      navigate("/login");
-      return;
-    }
-
     if (page === "oto") navigate("/oto");
     else if (page === "bike") navigate("/bike");
     else if (page === "battery") navigate("/battery");
   };
 
   const handleProductClick = (listing) => {
-    if (!isAuthenticated) {
-      // Nếu chưa đăng nhập, chuyển đến trang login
-      navigate("/login");
-      return;
-    }
     // Logic xem chi tiết sản phẩm sẽ thêm sau
     console.log("Xem chi tiết:", listing.title);
     // TODO: Navigate to product detail page
     // navigate(`/product/${listing.id}`)
   };
 
-  // Load dữ liệu từ localStorage
+  // Load dữ liệu bài đăng trực tiếp từ API (không dùng localStorage)
   useEffect(() => {
-    console.log("HomePage loaded - Loading data from localStorage");
+    console.log("HomePage loaded - Loading data from /article API");
     console.log("User authenticated:", isAuthenticated);
     if (user) {
       console.log("👤 User info:", {
@@ -127,35 +115,83 @@ function HomePage() {
       console.log("🔑 User token:", token);
     }
 
-    const loadAllPosts = () => {
+    const loadAllPostsFromApi = async () => {
       setLoading(true);
       try {
-        // Lấy tất cả bài đăng từ localStorage
-        const posts = localStorageService.getAllPosts();
-        console.log("Loaded posts from localStorage:", posts);
-        setAllPosts(posts);
+        const res = await api.get("/article");
+        let data = res.data;
+        if (data && !Array.isArray(data)) {
+          data = [data];
+        }
+        if (!Array.isArray(data)) {
+          data = [];
+        }
+
+        // Lọc các bài đăng đã được duyệt
+        const approved = data.filter((post) => post.status === "APPROVED");
+
+        // Chuẩn hoá dữ liệu về dạng HomePage đang dùng
+        const normalized = approved.map((post) => {
+          // Map articleType -> category key dùng cho getCategoryName
+          let categoryKey = "other";
+          const t = post.articleType || post.category;
+          if (t === "CAR_ARTICLE" || t === "car") categoryKey = "car";
+          else if (t === "MOTOR_ARTICLE" || t === "electric")
+            categoryKey = "electric";
+          else if (t === "BATTERY_ARTICLE" || t === "battery")
+            categoryKey = "battery";
+
+          // Chuẩn hoá location về object { district, city }
+          let location = { district: "", city: "" };
+          if (post.location && typeof post.location === "object") {
+            location = {
+              district: post.location.district || "",
+              city: post.location.city || "",
+            };
+          } else {
+            const cityText = post.location || post.region || "";
+            location = { district: "", city: cityText };
+          }
+
+          // Chuẩn hoá images về mảng URL (để frontpage hiển thị ảnh đúng)
+          let images = [];
+          if (Array.isArray(post.images)) {
+            images = post.images.map((img) =>
+              typeof img === "string" ? img : img?.url || img?.imageUrl || ""
+            );
+          } else if (Array.isArray(post.imageUrls)) {
+            images = post.imageUrls.map((u) => String(u));
+          } else if (post.mainImageUrl) {
+            images = [post.mainImageUrl];
+          }
+
+          images = images.filter(Boolean);
+
+          return {
+            id: post.articleId || post.id,
+            title: post.title || "",
+            year: post.year,
+            category: categoryKey,
+            condition: post.condition,
+            price: post.price || 0,
+            location,
+            images,
+            createdAt:
+              post.createdAt || post.updatedAt || new Date().toISOString(),
+          };
+        });
+
+        console.log("Loaded posts from API:", normalized);
+        setAllPosts(normalized);
       } catch (error) {
-        console.error("Error loading posts:", error);
+        console.error("Error loading posts from API:", error);
         setAllPosts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadAllPosts();
-
-    // Listen for storage changes to update when new posts are added
-    const handleStorageChange = () => loadAllPosts();
-    window.addEventListener("storage", handleStorageChange);
-
-    // Also listen for custom events from same window (since storage event doesn't fire for same window)
-    const handleCustomPostUpdate = () => loadAllPosts();
-    window.addEventListener("postUpdated", handleCustomPostUpdate);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("postUpdated", handleCustomPostUpdate);
-    };
+    loadAllPostsFromApi();
   }, [isAuthenticated, user, token]);
 
   // Fetch articles once for the homepage from backend GET /article
@@ -477,24 +513,6 @@ function HomePage() {
       <div className="categories-section">
         <div className="container">
           <h2 className="section-title">Danh mục phổ biến</h2>
-          {!isAuthenticated && (
-            <div className="auth-notice">
-              <p>
-                🔒 Vui lòng{" "}
-                <span
-                  onClick={() => navigate("/login")}
-                  style={{
-                    color: "#007bff",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
-                >
-                  đăng nhập
-                </span>{" "}
-                để sử dụng các chức năng
-              </p>
-            </div>
-          )}
           {isAuthenticated && user && (
             <div className="user-welcome">
               <p>
@@ -507,12 +525,9 @@ function HomePage() {
             {categories.map((category, index) => (
               <div
                 key={index}
-                className={`category-item ${
-                  !isAuthenticated ? "disabled" : ""
-                }`}
+                className="category-item"
                 style={{ "--category-color": category.color }}
                 onClick={() => handleCategoryClick(category.page)}
-                title={!isAuthenticated ? "Vui lòng đăng nhập để sử dụng" : ""}
               >
                 <div className="category-icon">
                   <span className="icon-emoji">
@@ -520,7 +535,6 @@ function HomePage() {
                   </span>
                 </div>
                 <div className="category-label">{category.label}</div>
-                {!isAuthenticated && <div className="lock-overlay">🔒</div>}
               </div>
             ))}
           </div>
@@ -557,11 +571,9 @@ function HomePage() {
               latestListings.map((listing) => (
                 <div
                   key={listing.id}
-                  className={`listing-card ${
-                    !isAuthenticated ? "disabled" : ""
-                  }`}
+                  className="listing-card"
                   onClick={() => handleProductClick(listing)}
-                  style={{ cursor: isAuthenticated ? "pointer" : "default" }}
+                  style={{ cursor: "pointer" }}
                 >
                   <div className="listing-image">
                     <div className="image-placeholder">
@@ -586,9 +598,6 @@ function HomePage() {
                     >
                       <HeartIcon />
                     </button>
-                    {!isAuthenticated && (
-                      <div className="lock-overlay-card">🔒</div>
-                    )}
                     {listing.badge && (
                       <div className="badge">{listing.badge}</div>
                     )}

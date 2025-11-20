@@ -376,66 +376,39 @@ function Header() {
           </div>
 
           <nav className="header-nav">
-            {isAuthenticated ? (
-              <>
-                <Link to="/bike" className="nav-link">
-                  Xe điện
-                </Link>
-                <Link to="/oto" className="nav-link">
-                  Xe cộ
-                </Link>
-                <Link to="/battery" className="nav-link">
-                  Pin
-                </Link>
-
-                  <span
-                      className="nav-link"
-                      style={{ color: "#4ECDC4", fontWeight: 600, cursor: "pointer" }}
-                      onClick={() => {
-                          if (isAuthenticated) {
-                              navigate("/my-subscriptions");
-                          } else {
-                              navigate("/login");
-                          }
-                      }}
-                  >
-    Subscription
-  </span>
-              </>
-            ) : (
-              <>
-                <div
-                  className="nav-link disabled"
-                  onClick={() => handleAuthRequired(() => navigate("/bike"))}
-                >
-                  🔒 Xe điện
-                </div>
-                <div
-                  className="nav-link disabled"
-                  onClick={() => handleAuthRequired(() => navigate("/oto"))}
-                >
-                  🔒 Xe cộ
-                </div>
-                <div
-                  className="nav-link disabled"
-                  onClick={() => handleAuthRequired(() => navigate("/battery"))}
-                >
-                  🔒 Pin
-                </div>
-
-
-              </>
-
-            )}
+            <Link to="/bike" className="nav-link">
+              Xe điện
+            </Link>
+            <Link to="/oto" className="nav-link">
+              Xe cộ
+            </Link>
+            <Link to="/battery" className="nav-link">
+              Pin
+            </Link>
+            <span
+              className="nav-link"
+              style={{
+                color: "#4ECDC4",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                if (isAuthenticated) {
+                  navigate("/my-subscriptions");
+                } else {
+                  navigate("/login");
+                }
+              }}
+            >
+              Subscription
+            </span>
           </nav>
 
           <div className="header-right">
             <button
-              className={`icon-btn ${!isAuthenticated ? "disabled" : ""}`}
-              onClick={() => handleAuthRequired(() => navigate("/compare"))}
-              title={
-                isAuthenticated ? "So sánh sản phẩm" : "Vui lòng đăng nhập"
-              }
+              className="icon-btn"
+              onClick={() => navigate("/compare")}
+              title="So sánh sản phẩm"
             >
               <svg
                 width="24"
@@ -447,7 +420,6 @@ function Header() {
               >
                 <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
               </svg>
-              {!isAuthenticated && <span className="lock-badge">🔒</span>}
             </button>
             <button
               className={`icon-btn ${!isAuthenticated ? "disabled" : ""}`}
