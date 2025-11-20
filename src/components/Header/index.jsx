@@ -366,10 +366,6 @@ function Header() {
                     <div className="item-icon">📋</div>
                     <span>Gói đăng tin</span>
                   </Link>
-                  <Link to="/packages" className="dropdown-item">
-                    <div className="item-icon pro-badge">PRO</div>
-                    <span>Gói đăng tin Pro</span>
-                  </Link>
                 </div>
               )}
             </div>

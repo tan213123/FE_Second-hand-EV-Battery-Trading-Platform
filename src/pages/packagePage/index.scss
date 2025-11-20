@@ -165,6 +165,12 @@
       }
     }
 
+    .package-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
     .btn-select-package {
       width: 100%;
       padding: 14px;
@@ -177,10 +183,27 @@
       cursor: pointer;
       transition: all 0.3s ease;
 
+      &.upgrade {
+        background: #2563eb;
+      }
+
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
       }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
+    .upgrade-note {
+      font-size: 13px;
+      color: #475569;
+      text-align: center;
     }
   }
 

@@ -601,6 +601,12 @@ const PostListing = () => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [postingAccess, setPostingAccess] = useState({
+    loading: true,
+    allowed: false,
+    remaining: 0,
+    message: "",
+  });
   const [agreeTerm, setAgreeTerm] = useState(false);
   const [formData, setFormData] = useState({
     category: "",
@@ -646,6 +652,83 @@ const PostListing = () => {
 
   // Redux: current logged-in member
   const member = useSelector((store) => store.member);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (isEditMode) {
+      setPostingAccess({
+        loading: false,
+        allowed: true,
+        remaining: 0,
+        message: "",
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!member?.memberId) {
+      setPostingAccess({
+        loading: false,
+        allowed: false,
+        remaining: 0,
+        message: "Bạn cần đăng nhập và mua gói đăng tin để tiếp tục.",
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setPostingAccess((prev) => ({
+      ...prev,
+      loading: true,
+    }));
+
+    api
+      .get(`/subscription/member/${member.memberId}`)
+      .then((res) => {
+        if (cancelled) return;
+        const subs = res.data || [];
+        const now = new Date();
+        const activeSub = subs.find(
+          (sub) =>
+            sub.status === "ACTIVE" &&
+            (!sub.endDate || new Date(sub.endDate) > now)
+        );
+        const remaining = activeSub?.remainingPosts ?? 0;
+        if (activeSub && remaining > 0) {
+          setPostingAccess({
+            loading: false,
+            allowed: true,
+            remaining,
+            message: "",
+          });
+        } else {
+          setPostingAccess({
+            loading: false,
+            allowed: false,
+            remaining: 0,
+            message: activeSub
+              ? "Bạn đã hết lượt đăng tin. Vui lòng mua gói để tiếp tục."
+              : "Bạn chưa có gói đăng tin. Vui lòng mua gói để bắt đầu đăng tin.",
+          });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPostingAccess({
+          loading: false,
+          allowed: false,
+          remaining: 0,
+          message: "Không thể kiểm tra quyền đăng tin. Vui lòng thử lại.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [member?.memberId, isEditMode]);
 
   // Function để kiểm tra field đã được điền đầy đủ chưa
   const checkFieldCompletion = useCallback(
@@ -1277,6 +1360,13 @@ const PostListing = () => {
       alert(
         isEditMode ? "Cập nhật tin đăng thành công!" : "Đăng tin thành công!"
       );
+
+      if (!isEditMode) {
+        setPostingAccess((prev) => ({
+          ...prev,
+          remaining: Math.max((prev.remaining || 1) - 1, 0),
+        }));
+      }
       if (isEditMode) {
         sessionStorage.removeItem("editingPost");
       }
@@ -1333,6 +1423,53 @@ const PostListing = () => {
     }
   };
 
+  if (!isEditMode && postingAccess.loading) {
+    return (
+      <div className="post-listing-page">
+        <div className="post-access-guard">
+          <div className="guard-card">
+            <div className="guard-spinner" />
+            <h2>Đang kiểm tra quyền đăng tin</h2>
+            <p>Vui lòng chờ trong giây lát.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isEditMode && !postingAccess.allowed) {
+    return (
+      <div className="post-listing-page">
+        <div className="post-access-guard">
+          <div className="guard-card">
+            <div className="guard-icon">⚠️</div>
+            <h2>Không thể đăng tin</h2>
+            <p>{postingAccess.message}</p>
+            <div className="guard-actions">
+              {!member?.memberId ? (
+                <button className="primary" onClick={() => navigate("/login")}>
+                  Đăng nhập
+                </button>
+              ) : (
+                <>
+                  <button className="primary" onClick={() => navigate("/packages")}>
+                    Mua gói đăng tin
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => navigate("/my-subscriptions")}
+                  >
+                    Xem gói của tôi
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="post-listing-page">
       {/* Progress Steps */}
@@ -1361,6 +1498,11 @@ const PostListing = () => {
 
       <div className="container">
         <div className="form-wrapper">
+          {!isEditMode && postingAccess.allowed && (
+            <div className="quota-banner">
+              <strong>Bạn còn {postingAccess.remaining}</strong> lượt đăng tin trong gói hiện tại.
+            </div>
+          )}
           {/* Step 1: Category Selection */}
           {step === 1 && (
             <div className="form-step">

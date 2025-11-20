@@ -264,15 +264,15 @@ const PaymentPage = () => {
                   <div className="bank-details">
                     <div className="bank-row">
                       <span className="bank-label">Ngân hàng:</span>
-                      <span className="bank-value">Vietcombank</span>
+                      <span className="bank-value">NCB</span>
                     </div>
                     <div className="bank-row">
                       <span className="bank-label">Số tài khoản:</span>
-                      <span className="bank-value">1234567890</span>
+                      <span className="bank-value">9704198526191432198</span>
                     </div>
                     <div className="bank-row">
                       <span className="bank-label">Chủ tài khoản:</span>
-                      <span className="bank-value">CONG TY ECOXE</span>
+                      <span className="bank-value">NGUYEN VAN A</span>
                     </div>
                     <div className="bank-row">
                       <span className="bank-label">Nội dung chuyển khoản:</span>

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchActivePackages, clearError } from '../../redux/packageSlice'
 import { createOrder } from '../../redux/orderSlice'
 import { createVnpayPaymentUrl, clearVnpayUrl } from '../../redux/paymentSlice'
 import './index.scss'
+import api from "../../config/api";
 
 // Icons
 const CheckIcon = () => (
@@ -36,16 +37,50 @@ function PackagePage() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [selectedPackage, setSelectedPackage] = useState(null)
+  const [selectedAction, setSelectedAction] = useState('purchase')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-
+  const [subscriptions, setSubscriptions] = useState([])
+  const [loadingSubscriptionAction, setLoadingSubscriptionAction] = useState(false)
+    const member = useSelector((state) => state.member)
+    const memberId = member?.memberId
   // Redux state
   const { activePackages = [], loading: packagesLoading = false, error: packagesError = null } = 
     useSelector((state) => state.package) || {}
   const { loading: orderLoading = false } = useSelector((state) => state.order) || {}
   const { vnpayUrl = null, loading: paymentLoading = false } = useSelector((state) => state.payment) || {}
-  const member = useSelector((state) => state.member)
+  const fetchMemberSubscriptions = useCallback(async () => {
+    if (!memberId) {
+      setSubscriptions([])
+      return
+    }
+    try {
+      const res = await api.get(`/subscription/member/${memberId}`)
+      setSubscriptions(res.data || [])
+    } catch (error) {
+      console.error('Không thể tải danh sách subscription:', error)
+      setSubscriptions([])
+    }
+  }, [memberId])
 
-  // Fetch packages từ backend
+  useEffect(() => {
+    fetchMemberSubscriptions()
+  }, [fetchMemberSubscriptions])
+
+  const activeSubscription = subscriptions.find(
+    (s) =>
+      s.status === 'ACTIVE' &&
+      (!s.endDate || new Date(s.endDate) > new Date())
+  )
+
+  const hasActiveSubscription = Boolean(activeSubscription)
+
+  const isPackageActive = (pkgId) => {
+    if (!activeSubscription) return false
+    return activeSubscription.packageId === pkgId
+  }
+
+
+    // Fetch packages từ backend
   useEffect(() => {
     dispatch(fetchActivePackages())
   }, [dispatch])
@@ -79,7 +114,7 @@ function PackagePage() {
       'Gói Pro': '#f59e0b',
       'Gói Đấu giá': '#8b5cf6',
     }
-    
+
     return {
       id: pkg.packageId,
       packageId: pkg.packageId, // Giữ để dùng khi tạo order
@@ -93,7 +128,7 @@ function PackagePage() {
       description: pkg.description,
       // Features có thể lấy từ description hoặc hardcode theo name
       features: generateFeatures(pkg),
-      popular: pkg.name.includes('Pro') || pkg.name.includes('Pro'),
+      popular: pkg.name?.includes('Đấu giá'),
     }
   })
 
@@ -125,12 +160,48 @@ function PackagePage() {
     ]
   }
 
-  const handleSelectPackage = (pkg) => {
+  const handleSelectPackage = (pkg, action = 'purchase') => {
+    if (action === 'purchase' && hasActiveSubscription) {
+      alert('Bạn đã có gói hiện tại. Vui lòng nâng cấp hoặc hủy gói trước khi mua gói mới.')
+      return
+    }
+
     setSelectedPackage(pkg)
+    setSelectedAction(action)
     setShowPaymentModal(true)
   }
 
-  const handleVnpayPayment = async (pkg) => {
+  const handleUpgradeClick = async (pkg) => {
+    if (!memberId) {
+      alert('Vui lòng đăng nhập để nâng cấp gói.')
+      navigate('/login')
+      return
+    }
+
+    if (!activeSubscription) {
+      handleSelectPackage(pkg)
+      return
+    }
+
+    const confirmUpgrade = window.confirm(
+      'Bạn đang có một gói hoạt động. Tiếp tục nâng cấp sẽ hủy gói hiện tại. Bạn có chắc chắn muốn tiếp tục?'
+    )
+    if (!confirmUpgrade) return
+
+    try {
+      setLoadingSubscriptionAction(true)
+      await api.patch(`/subscription/${memberId}/${activeSubscription.packageId}/cancel`)
+      await fetchMemberSubscriptions()
+      handleSelectPackage(pkg, 'upgrade')
+    } catch (error) {
+      console.error('Upgrade failed:', error)
+      alert(error.response?.data?.message || 'Không thể hủy gói hiện tại để nâng cấp.')
+    } finally {
+      setLoadingSubscriptionAction(false)
+    }
+  }
+
+  const handleVnpayPayment = async (pkg, action = 'purchase') => {
     // Kiểm tra đăng nhập
     if (!member?.memberId) {
       alert('Vui lòng đăng nhập để tiếp tục')
@@ -145,7 +216,7 @@ function PackagePage() {
       console.log('Creating order...')
       const orderResult = await dispatch(createOrder({
         memberId: member.memberId,
-        packageId: pkg.packageId,
+        packageId: pkg.packageId
       }))
 
       console.log('Order result:', orderResult)
@@ -277,12 +348,34 @@ function PackagePage() {
                 ))}
               </div>
 
-              <button 
-                className="btn-select-package"
-                onClick={() => handleSelectPackage(pkg)}
-              >
-                {pkg.price === 0 ? 'Bắt đầu miễn phí' : 'Chọn gói này'}
-              </button>
+                <div className="package-actions">
+                  {isPackageActive(pkg.packageId) ? (
+                    <button
+                      className="btn-select-package"
+                      disabled
+                    >
+                      Đang sử dụng
+                    </button>
+                  ) : hasActiveSubscription ? (
+                    <button
+                      className="btn-select-package upgrade"
+                      onClick={() => handleUpgradeClick(pkg)}
+                      disabled={loadingSubscriptionAction}
+                    >
+                      {loadingSubscriptionAction ? 'Đang xử lý...' : 'Nâng cấp'}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-select-package"
+                      onClick={() => handleSelectPackage(pkg)}
+                    >
+                      {pkg.price === 0 ? 'Bắt đầu miễn phí' : 'Chọn gói này'}
+                    </button>
+                  )}
+                  {hasActiveSubscription && !isPackageActive(pkg.packageId) && (
+                    <p className="upgrade-note">Hệ thống sẽ hủy gói hiện tại trước khi nâng cấp.</p>
+                  )}
+                </div>
             </div>
           ))}
         </div>
@@ -321,11 +414,11 @@ function PackagePage() {
               <CloseIcon />
             </button>
 
-            <div className="modal-header">
+              <div className="modal-header">
               <div className="modal-icon" style={{ backgroundColor: selectedPackage.color }}>
                 {selectedPackage.icon}
               </div>
-              <h2>Thanh toán {selectedPackage.name}</h2>
+              <h2>{selectedAction === 'upgrade' ? 'Nâng cấp' : 'Thanh toán'} {selectedPackage.name}</h2>
             </div>
 
             <div className="payment-info">
@@ -380,7 +473,7 @@ function PackagePage() {
                   </button>
                   <button 
                     className="btn btn-secondary"
-                    onClick={() => handleVnpayPayment(selectedPackage)}
+                    onClick={() => handleVnpayPayment(selectedPackage, selectedAction)}
                     disabled={orderLoading || paymentLoading}
                   >
                     {orderLoading || paymentLoading ? 'Đang xử lý...' : '💳 Thanh toán VNPAY'}
