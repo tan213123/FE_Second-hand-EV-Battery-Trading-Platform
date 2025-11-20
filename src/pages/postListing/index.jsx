@@ -1078,7 +1078,8 @@ const PostListing = () => {
           payload = {
             title: data.title || "",
             content: data.description || data.content || "",
-            location: data.region || "",
+            // Prefer the edited one-line locationText, then fallback to existing location/region
+            location: data.locationText || data.location || data.region || "",
             articleType: "MOTOR_ARTICLE",
             publicDate: pubDate,
             memberId: data.memberId || memberId,
@@ -1127,7 +1128,8 @@ const PostListing = () => {
           payload = {
             title: data.title || "",
             content: data.description || data.content || "",
-            location: data.region || "",
+            // Prefer the edited one-line locationText, then fallback to existing location/region
+            location: data.locationText || data.location || data.region || "",
             articleType: "CAR_ARTICLE",
             publicDate: pubDate,
             memberId: data.memberId || memberId,
