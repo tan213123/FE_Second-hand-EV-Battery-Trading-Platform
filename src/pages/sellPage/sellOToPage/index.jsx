@@ -367,20 +367,7 @@ function SellOtoPage() {
     return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
   };
 
-  // Map city codes to display names to match filter
-  const mapCityCodeToName = (cityCode) => {
-    const cityMapping = {
-      hcm: "Tp Hồ Chí Minh",
-      hanoi: "Hà Nội",
-      danang: "Đà Nẵng",
-      cantho: "Cần Thơ",
-      haiphong: "Hải Phòng",
-      binhduong: "Bình Dương",
-      dongnai: "Đồng Nai",
-      vungtau: "Vũng Tàu",
-    };
-    return cityMapping[cityCode] || cityCode;
-  };
+
 
   const handleRevealPhone = (e, carId) => {
     e.preventDefault();

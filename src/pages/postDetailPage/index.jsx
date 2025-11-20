@@ -151,15 +151,6 @@ function PostDetailPage() {
     }
   }, [id, navigate]);
 
-  const getCategoryName = (category) => {
-    const categoryNames = {
-      car: "Ô tô điện",
-      electric: "Xe máy điện",
-      battery: "Pin xe điện",
-    };
-    return categoryNames[category] || "Khác";
-  };
-
   const getConditionName = (condition) => {
     return condition || "Không xác định";
   };

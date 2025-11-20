@@ -8,7 +8,6 @@ import {
   InputNumber,
   Select,
   Checkbox,
-  Tag,
   List,
   Space,
   Divider,
@@ -21,10 +20,8 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  StarOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  ExclamationCircleOutlined,
   StarFilled,
 } from "@ant-design/icons";
 import api from "../../config/api";

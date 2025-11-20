@@ -165,6 +165,7 @@ function MyPostsPage() {
           }))
         );
       } catch (e) {
+        console.error(e);
         setPosts([]);
       }
     };
@@ -206,13 +207,6 @@ function MyPostsPage() {
     "Đồng Nai",
     "Vũng Tàu",
   ];
-
-  // Helper function để lấy thành phố từ location
-  const getCityFromLocation = (location) => {
-    if (!location) return "";
-    const parts = location.split(",");
-    return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
-  };
 
   const handleDeletePost = async (postId) => {
     if (window.confirm("Bạn có chắc muốn xóa tin đăng này?")) {
@@ -274,6 +268,7 @@ function MyPostsPage() {
         window.dispatchEvent(new CustomEvent("postUpdated"));
         alert("Xóa tin đăng thành công!");
       } catch (e) {
+        console.error(e);
         alert("Có lỗi xảy ra khi xóa tin đăng!");
       }
     }
