@@ -45,12 +45,8 @@ const PaymentResultPage = () => {
     })
   }
 
-  const handleContinue = () => {
-    if (result?.success) {
-      navigate('/my-orders')
-    } else {
-      navigate('/packages')
-    }
+  const handleViewSubscriptions = () => {
+    navigate('/my-subscriptions')
   }
 
   const handleRetry = () => {
@@ -126,10 +122,6 @@ const PaymentResultPage = () => {
                   <span className="feature-text">Tài khoản đã được kích hoạt</span>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">🎯</span>
-                  <span className="feature-text">Có thể tham gia đấu giá ngay</span>
-                </div>
-                <div className="feature-item">
                   <span className="feature-icon">📧</span>
                   <span className="feature-text">Email xác nhận đã được gửi</span>
                 </div>
@@ -194,9 +186,9 @@ const PaymentResultPage = () => {
               <>
                 <button 
                   className="btn-primary"
-                  onClick={handleContinue}
+                  onClick={handleViewSubscriptions}
                 >
-                  Xem đơn hàng của tôi
+                  Xem gói đã mua
                 </button>
                 <button 
                   className="btn-secondary"
