@@ -14,7 +14,7 @@ const PaymentResultPage = () => {
         const params = Object.fromEntries(urlParams.entries());
 
         console.log("FE truyền sang BE:", params);
-        api.get("/api/payment/vnpay/return/vnp", { params })
+        api.get("/payment/vnpay/return/vnp", { params })
             .then(res => {
                 console.log("BE trả về:", res.data);
                 setResult(res.data);
@@ -115,7 +115,7 @@ const PaymentResultPage = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Thời gian:</span>
-                    <span className="detail-value">{formatDateTime(result.payDate || formatVnpayDate (result.payDate))}</span>
+                    <span className="detail-value">{new Date().toLocaleString('vi-VN')}</span>
                   </div>
                 </div>
               </div>
