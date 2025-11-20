@@ -2116,10 +2116,10 @@ const PostListing = () => {
                   fieldStatus.locationText ? "completed" : ""
                 }`}
               >
-                <label>Địa chỉ *</label>
+                <label>Địa chỉ(Ghi hoa chữ cái đầu của từng chữ) *</label>
                 <input
                   type="text"
-                  placeholder="Nhập địa chỉ (VD: Quận 1, TP. Hồ Chí Minh)"
+                  placeholder="Nhập địa chỉ (VD: Quận 1, TP Hồ Chí Minh)"
                   value={formData.locationText}
                   onChange={(e) =>
                     handleInputChange("locationText", e.target.value)

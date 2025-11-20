@@ -281,7 +281,10 @@ function HomePage() {
   const latestListings = loading
     ? []
     : allPosts.length > 0
-    ? allPosts.slice(0, 12).map(formatPostForDisplay)
+    ? [...allPosts]
+        .sort((a, b) => (b.id || 0) - (a.id || 0)) // Sort by ID in descending order
+        .slice(0, 12)
+        .map(formatPostForDisplay)
     : [
         {
           id: "home-1",

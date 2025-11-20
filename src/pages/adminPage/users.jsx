@@ -17,10 +17,7 @@ import {
   Alert,
   message,
 } from "antd";
-import {
-  SearchOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+import { SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -33,7 +30,6 @@ const Users = () => {
   const [error, setError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,9 +45,6 @@ const Users = () => {
           page: currentPage,
           size: itemsPerPage,
           search: searchTerm || undefined,
-          sort: sortConfig.key
-            ? `${sortConfig.key},${sortConfig.direction}`
-            : undefined,
         };
 
         console.log("📊 Users API Debug:", {
@@ -61,6 +54,7 @@ const Users = () => {
         const action = await dispatch(fetchUsersThunk(params));
         if (fetchUsersThunk.fulfilled.match(action)) {
           const data = action.payload;
+          console.log("User data from API:", data); // Debug log to check API response
           const list = Array.isArray(data?.items)
             ? data.items
             : Array.isArray(data)
@@ -73,6 +67,7 @@ const Users = () => {
               address: u.address,
               dateOfBirth: u.dateOfBirth,
               phoneNumber: u.phoneNumber || u.phone,
+              role: u.role,
               email: u.email,
               gender: u.gender || u.sex,
               dateSignup: u.dateSignup || u.createdAt,
@@ -112,7 +107,7 @@ const Users = () => {
     };
     fetchUsers();
     return () => controller.abort();
-  }, [currentPage, itemsPerPage, searchTerm, sortConfig]);
+  }, [currentPage, itemsPerPage, searchTerm]);
 
   // Filter users based on search term only
   const filteredUsers = users.filter((user) => {
@@ -214,21 +209,18 @@ const Users = () => {
       title: "Mã người dùng",
       dataIndex: "nameId",
       key: "nameId",
-      sorter: true,
       width: 120,
     },
     {
       title: "Họ và tên",
       dataIndex: "fullName",
       key: "fullName",
-      sorter: true,
       width: 150,
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
-      sorter: true,
       width: 200,
     },
     {
@@ -238,37 +230,36 @@ const Users = () => {
       width: 130,
     },
     {
-      title: "Ngày đăng ký",
-      dataIndex: "dateSignup",
-      key: "dateSignup",
-      sorter: true,
-      width: 120,
-      render: (date) => formatDate(date),
-    },
-    {
-      title: "Số bài đăng",
-      dataIndex: "postsCount",
-      key: "postsCount",
+      title: "Giới tính",
+      dataIndex: "gender",
+      key: "gender",
       width: 100,
-      align: "center",
+      render: (gender) => {
+        const genderMap = {
+          MALE: "Nam",
+          FEMALE: "Nữ",
+          OTHER: "Khác",
+        };
+        return genderMap[gender] || gender || "Chưa xác định";
+      },
     },
     {
-      title: "Vi phạm",
-      dataIndex: "violationsCount",
-      key: "violationsCount",
-      width: 80,
-      align: "center",
-      render: (count) => (
-        <span style={{ color: count > 0 ? "#ff4d4f" : "inherit" }}>
-          {count}
-        </span>
-      ),
+      title: "Vai trò",
+      dataIndex: "role",
+      key: "role",
+      width: 120,
+      render: (role) => {
+        const roleMap = {
+          ADMIN: "Quản trị viên",
+          MEMBER: "Thành viên",
+        };
+        return roleMap[role] || role || "Chưa xác định";
+      },
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      sorter: true,
       width: 120,
       render: (status) => getStatusTag(status),
     },
@@ -299,20 +290,14 @@ const Users = () => {
     },
   ];
 
-  // Handle table change (pagination, sorting, filtering)
-  const handleTableChange = (paginationInfo, filters, sorter) => {
+  // Handle table change (pagination only)
+  const handleTableChange = (paginationInfo) => {
     if (paginationInfo.current !== currentPage) {
       setCurrentPage(paginationInfo.current);
     }
     if (paginationInfo.pageSize !== itemsPerPage) {
       setItemsPerPage(paginationInfo.pageSize);
       setCurrentPage(1);
-    }
-    if (sorter.field) {
-      setSortConfig({
-        key: sorter.field,
-        direction: sorter.order === "ascend" ? "asc" : "desc",
-      });
     }
   };
 

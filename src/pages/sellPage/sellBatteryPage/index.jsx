@@ -150,8 +150,6 @@ function SellBatteryPage() {
                 post.warrantyMonths !== null
                   ? post.warrantyMonths
                   : "Chưa cập nhật",
-              condition: post.condition || "Chưa cập nhật",
-              health: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
               origin: post.origin || "Chưa cập nhật",
             },
           };

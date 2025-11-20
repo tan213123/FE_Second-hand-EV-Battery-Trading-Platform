@@ -113,7 +113,7 @@ const Posts = () => {
             page: page,
             size: pageSize,
             search: search || undefined,
-            sort: "articleId,desc",
+            // Remove server-side sorting
           };
           res = await api.get("/article", { params: actualParams });
         } else {
@@ -123,7 +123,7 @@ const Posts = () => {
             page: page,
             size: pageSize,
             search: search || undefined,
-            sort: "articleId,desc",
+            // Remove server-side sorting
           };
           res = await api.get("/article/status", { params: actualParams });
         }
@@ -179,8 +179,15 @@ const Posts = () => {
           ? response.content
           : [];
 
+        // Sort by ID in descending order on the client side
+        const sortedData = [...data].sort((a, b) => {
+          const idA = a.articleId || a.id || a.postId || 0;
+          const idB = b.articleId || b.id || b.postId || 0;
+          return idB - idA; // Sort in descending order
+        });
+
         setPosts(
-          data.map((p) => ({
+          sortedData.map((p) => ({
             key: p.articleId || p.id || p.postId,
             id: p.articleId || p.id || p.postId,
             title: p.title,

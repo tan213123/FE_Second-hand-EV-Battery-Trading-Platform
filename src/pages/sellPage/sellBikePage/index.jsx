@@ -266,11 +266,14 @@ function SellBikePage() {
             specs: {
               year: post.year || "N/A",
               brand: post.brand || "N/A",
-              condition: post.condition || "Chưa cập nhật",
-              color: post.color || "Chưa cập nhật",
+              license_plate: post.licensesPlate || "Chưa cập nhật",
+              vehicle_capacity: post.vehicleCapacity || "Chưa cập nhật",
               origin: post.origin || "Chưa cập nhật",
               mileage: rawMiles ? `${rawMiles} km` : "0 km",
-              battery: post.batteryInfo ? `${post.batteryInfo}%` : "N/A",
+              warranty_months:
+                post.warrantyPeriodMonths ||
+                post.warrantyMonths ||
+                "Chưa cập nhật",
             },
           };
         });
