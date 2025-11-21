@@ -195,14 +195,41 @@ function SellBatteryPage() {
       category: "Pin xe điện",
       image: battery.image || "/api/placeholder/400/300",
       specs: {
-        brand: battery.seller || "-",
-        capacity: battery.capacity || "-",
-        type: battery.type || "-",
-        condition: battery.condition || "-",
-        health: battery.health || "-",
-        battery: battery.batteryInfo || "-",
-        color: "-",
-        origin: battery.origin || "-",
+        brand:
+          battery.brand ||
+          battery.specs?.brand ||
+          battery.originalPost?.brand ||
+          "-",
+        volt:
+          battery.volt ??
+          battery.specs?.volt ??
+          battery.originalPost?.volt ??
+          "Chưa cập nhật",
+        capacity:
+          battery.capacity ??
+          battery.specs?.capacity ??
+          battery.originalPost?.capacity ??
+          "Chưa cập nhật",
+        size:
+          battery.size ??
+          battery.specs?.size ??
+          battery.originalPost?.size ??
+          "Chưa cập nhật",
+        weight:
+          battery.weight ??
+          battery.specs?.weight ??
+          battery.originalPost?.weight ??
+          "Chưa cập nhật",
+        warrantyMonths:
+          battery.warrantyMonths ??
+          battery.specs?.warrantyMonths ??
+          battery.originalPost?.warrantyMonths ??
+          "Chưa cập nhật",
+        origin:
+          battery.origin ||
+          battery.specs?.origin ||
+          battery.originalPost?.origin ||
+          "Chưa cập nhật",
       },
     };
     addToCompare(compareBattery);

@@ -219,13 +219,13 @@ const Compare = () => {
   };
 
   const bikeSpecLabels = {
-    year: "Năm sản xuất",
     brand: "Hãng/Thương hiệu",
-    condition: "Tình trạng",
-    color: "Màu sắc",
+    year: "Năm sản xuất",
+    vehicleCapacity: "Công suất (kW)",
+    licensesPlate: "Biển số",
     origin: "Xuất xứ",
-    mileage: "Số km đã đi",
-    battery: "Pin",
+    milesTraveled: "Số km đã đi",
+    warrantyMonths: "Bảo hành (tháng)",
   };
 
   const batterySpecLabels = {
@@ -343,9 +343,21 @@ const Compare = () => {
 
               {/* Specifications Rows */}
               {Object.keys(specLabels).map((specKey) => {
-                const hasSpec = compareItems.some(
-                  (item) => item.specs?.[specKey]
-                );
+                // A row is shown if at least one item has a real value
+                // (not null/undefined/empty/placeholder) for this spec.
+                const hasSpec = compareItems.some((item) => {
+                  const value = item.specs?.[specKey];
+                  if (value === null || value === undefined) return false;
+                  if (
+                    value === "" ||
+                    value === "-" ||
+                    value === "Chưa cập nhật"
+                  ) {
+                    return false;
+                  }
+                  return true;
+                });
+
                 if (!hasSpec) return null;
 
                 return (
@@ -353,7 +365,7 @@ const Compare = () => {
                     <div className="compare-label">{specLabels[specKey]}</div>
                     {compareItems.map((item) => (
                       <div key={item.id} className="compare-cell">
-                        {item.specs?.[specKey] || "-"}
+                        {item.specs?.[specKey] ?? "-"}
                       </div>
                     ))}
                   </div>

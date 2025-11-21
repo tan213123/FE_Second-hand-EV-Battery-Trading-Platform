@@ -313,19 +313,39 @@ function SellBikePage() {
   const handleAddToCompare = (e, bike) => {
     e.preventDefault();
     e.stopPropagation();
+    const rawMiles =
+      typeof bike.milesTraveled === "number"
+        ? bike.milesTraveled
+        : typeof bike.mileage === "string"
+        ? parseFloat(bike.mileage.replace(/[^\d.]/g, "")) || null
+        : bike.originalPost?.milesTraveled ?? null;
+
     const compareBike = {
       ...bike,
       id: `bike-${bike.id}`,
       category: "Xe máy điện",
       image: bike.image || "/api/placeholder/400/300",
       specs: {
-        year: bike.year || "-",
-        brand: bike.brand || "-",
-        condition: bike.condition || "-",
-        color: bike.color || "-",
-        origin: bike.origin || "-",
-        mileage: bike.mileage || "-",
-        battery: bike.batteryInfo || "-",
+        brand: bike.brand || bike.originalPost?.brand || "-",
+        year: bike.year || bike.originalPost?.year || "-",
+        vehicleCapacity:
+          bike.vehicleCapacity ??
+          bike.originalPost?.vehicleCapacity ??
+          "Chưa cập nhật",
+        licensesPlate:
+          bike.licensesPlate ||
+          bike.originalPost?.licensesPlate ||
+          "Chưa cập nhật",
+        origin: bike.origin || bike.originalPost?.origin || "Chưa cập nhật",
+        milesTraveled:
+          rawMiles !== null && rawMiles !== undefined
+            ? rawMiles
+            : bike.originalPost?.milesTraveled ?? "Chưa cập nhật",
+        warrantyMonths:
+          bike.warrantyMonths ??
+          bike.originalPost?.warrantyMonths ??
+          bike.originalPost?.warrantyPeriodMonths ??
+          "Chưa cập nhật",
       },
     };
     addToCompare(compareBike);
