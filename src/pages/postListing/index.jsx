@@ -1337,7 +1337,7 @@ const PostListing = () => {
       navigate("/my-posts");
     } catch (error) {
       console.error("❌ Lỗi không mong muốn:", error);
-      alert("Bài post đã được duyệt không thể cập nhật!");
+      alert("Lỗi không mong muốn! Vui lòng kiểm tra lại thông tin chi tiết");
     } finally {
       setIsSubmitting(false);
     }

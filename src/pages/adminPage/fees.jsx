@@ -555,10 +555,6 @@ const Fees = () => {
           >
             <Input.TextArea rows={3} placeholder="Mô tả chi tiết về gói" />
           </Form.Item>
-
-          <Form.Item name="popular" valuePropName="checked">
-            <Checkbox>Đánh dấu là gói phổ biến nhất</Checkbox>
-          </Form.Item>
         </Form>
       </Modal>
     </div>

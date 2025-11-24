@@ -430,11 +430,6 @@ function MyPostsPage() {
               <option value="price-high">Giá cao</option>
               <option value="price-low">Giá thấp</option>
             </select>
-
-            <button className="btn btn-outline">
-              <FilterIcon />
-              Bộ lọc khác
-            </button>
           </div>
         </div>
 

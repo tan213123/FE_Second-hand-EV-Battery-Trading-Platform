@@ -300,14 +300,6 @@ function Header() {
                           <div className="item-icon">📋</div>
                           <span>Gói Đăng tin</span>
                         </Link>
-                        <Link
-                          to="/packages"
-                          className="dropdown-item"
-                          onClick={() => setShowMenuDropdown(false)}
-                        >
-                          <div className="item-icon pro-badge">PRO</div>
-                          <span>Gói Đăng tin Pro</span>
-                        </Link>
                       </>
                     ) : (
                       <>

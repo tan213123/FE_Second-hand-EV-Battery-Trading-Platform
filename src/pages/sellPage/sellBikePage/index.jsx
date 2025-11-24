@@ -425,7 +425,7 @@ function SellBikePage() {
     { name: "DatBike", logo: "⚡", count: 1870 },
   ];
 
-  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế", "Gần tôi"];
+  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế"];
 
   const priceRanges = [
     "Giá dưới 30 triệu",

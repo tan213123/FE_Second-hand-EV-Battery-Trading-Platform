@@ -213,9 +213,6 @@ function AccountPage() {
               onChange={handleAvatarUpload}
               style={{ display: "none" }}
             />
-            <label htmlFor="avatar-upload" className="btn small secondary">
-              {saving ? "Đang tải..." : "Đổi ảnh"}
-            </label>
           </div>
           <div className="identity">
             <h1 className="name">{profile.name || "Chưa cập nhật tên"}</h1>
@@ -279,18 +276,6 @@ function AccountPage() {
               onClick={() => setActiveTab("posts")}
             >
               Tin đăng
-            </button>
-            <button
-              className={`tab-link ${activeTab === "reviews" ? "active" : ""}`}
-              onClick={() => setActiveTab("reviews")}
-            >
-              Đánh giá
-            </button>
-            <button
-              className={`tab-link ${activeTab === "about" ? "active" : ""}`}
-              onClick={() => setActiveTab("about")}
-            >
-              Mật khẩu
             </button>
           </div>
         </div>
@@ -433,7 +418,6 @@ function AccountPage() {
                           <label>Mật khẩu</label>
                           <div className="value">**********</div>
                         </div>
-                        
                       </div>
                     </div>
                   ) : (
@@ -534,7 +518,7 @@ function AccountPage() {
                           placeholder="Nhập mật khẩu mới"
                         />
                       </div>
-                      
+
                       <div className="actions">
                         <button
                           className="btn primary"

@@ -458,7 +458,7 @@ function SellBatteryPage() {
     { name: "Khác", logo: "🔋", count: 1560 },
   ];
 
-  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế", "Gần tôi"];
+  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế"];
 
   const priceRanges = [
     "Giá dưới 50 triệu",

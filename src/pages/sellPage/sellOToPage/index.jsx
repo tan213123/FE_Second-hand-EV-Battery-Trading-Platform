@@ -367,8 +367,6 @@ function SellOtoPage() {
     return parts.length > 1 ? parts[parts.length - 1].trim() : location.trim();
   };
 
-
-
   const handleRevealPhone = (e, carId) => {
     e.preventDefault();
     e.stopPropagation();
@@ -424,7 +422,7 @@ function SellOtoPage() {
     { name: "BYD", logo: "🚗", count: 1870 },
   ];
 
-  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế", "Gần tôi"];
+  const locations = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Huế"];
 
   const priceRanges = [
     "Giá dưới 200 triệu",
