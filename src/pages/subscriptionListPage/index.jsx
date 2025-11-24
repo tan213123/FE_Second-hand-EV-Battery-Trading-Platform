@@ -149,10 +149,6 @@ const SubscriptionListPage = () => {
                                             <p className="info-label">Bài đăng còn lại</p>
                                             <p className="info-value highlight">{sub.remainingPosts ?? '—'}</p>
                                         </div>
-                                        <div className="info-item">
-                                            <p className="info-label">Mã thành viên</p>
-                                            <p className="info-value">{sub.memberId}</p>
-                                        </div>
                                     </div>
                                 </div>
 

@@ -19,6 +19,7 @@ import {
   Descriptions,
   Spin,
   Image,
+  Form,
 } from "antd";
 import {
   SearchOutlined,
@@ -52,6 +53,9 @@ const Posts = () => {
   const [detailVisible, setDetailVisible] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailArticle, setDetailArticle] = useState(null);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectingArticleId, setRejectingArticleId] = useState(null);
+  const [rejectForm] = Form.useForm();
 
   const member = useSelector((state) => state.member);
   const adminMemberId = useMemo(
@@ -329,8 +333,22 @@ const Posts = () => {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = (id) => {
+    setRejectingArticleId(id);
+    setRejectModalVisible(true);
+    rejectForm.resetFields();
+  };
+
+  const handleRejectSubmit = async () => {
     try {
+      const values = await rejectForm.validateFields();
+      const id = rejectingArticleId;
+      
+      if (!id) {
+        notification.error({ message: "Không tìm thấy ID bài đăng" });
+        return;
+      }
+
       setRejectingIds((prev) => [...prev, id]);
       if (!adminMemberId) {
         notification.error({
@@ -338,15 +356,23 @@ const Posts = () => {
         });
         return;
       }
+
       const res = await api.post(
-        `/article/${id}/reject?memberId=${adminMemberId}`
+        `/article/${id}/reject?memberId=${adminMemberId}`,
+        { rejectionReason: values.rejectionReason }
       );
+      
       console.log("Reject response:", {
         status: res.status,
         data: res.data,
         id,
       });
+      
       notification.success({ message: "Từ chối bài đăng thành công" });
+      setRejectModalVisible(false);
+      setRejectingArticleId(null);
+      rejectForm.resetFields();
+      
       fetchPosts(
         pagination.current,
         pagination.pageSize,
@@ -354,6 +380,10 @@ const Posts = () => {
         searchTerm
       );
     } catch (e) {
+      if (e.errorFields) {
+        // Form validation errors
+        return;
+      }
       console.error("Reject error:", e?.response || e);
       notification.error({
         message: "Từ chối bài thất bại",
@@ -361,7 +391,9 @@ const Posts = () => {
           e?.response?.data?.message || "Có lỗi xảy ra khi từ chối bài.",
       });
     } finally {
-      setRejectingIds((prev) => prev.filter((x) => x !== id));
+      if (rejectingArticleId) {
+        setRejectingIds((prev) => prev.filter((x) => x !== rejectingArticleId));
+      }
     }
   };
 
@@ -433,27 +465,60 @@ const Posts = () => {
     });
   };
 
-  const handleBulkReject = async () => {
-    confirm({
-      title: `Bạn có chắc chắn muốn từ chối ${selectedRowKeys.length} bài đăng đã chọn?`,
+  const handleBulkReject = () => {
+    if (selectedRowKeys.length === 0) {
+      notification.warning({ message: "Vui lòng chọn ít nhất một bài đăng" });
+      return;
+    }
+    
+    Modal.confirm({
+      title: `Từ chối ${selectedRowKeys.length} bài đăng đã chọn`,
+      content: (
+        <Form form={rejectForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="rejectionReason"
+            label="Lý do từ chối"
+            rules={[
+              { required: true, message: "Vui lòng nhập lý do từ chối" },
+              { min: 10, message: "Lý do từ chối phải có ít nhất 10 ký tự" },
+            ]}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Nhập lý do từ chối bài đăng..."
+              showCount
+              maxLength={500}
+            />
+          </Form.Item>
+        </Form>
+      ),
       icon: <ExclamationCircleOutlined />,
       okText: "Từ chối",
       cancelText: "Hủy",
+      okButtonProps: { danger: true },
       onOk: async () => {
         try {
+          const values = await rejectForm.validateFields();
+          
           if (!adminMemberId) {
             notification.error({
               message: "Không tìm thấy mã quản trị để từ chối",
             });
             return;
           }
+          
           await Promise.all(
             selectedRowKeys.map((id) =>
-              api.post(`/article/${id}/reject?memberId=${adminMemberId}`)
+              api.post(`/article/${id}/reject?memberId=${adminMemberId}`, {
+                rejectionReason: values.rejectionReason,
+              })
             )
           );
+          
           notification.success({ message: "Từ chối hàng loạt thành công" });
           setSelectedRowKeys([]);
+          rejectForm.resetFields();
+          
           fetchPosts(
             pagination.current,
             pagination.pageSize,
@@ -461,6 +526,10 @@ const Posts = () => {
             searchTerm
           );
         } catch (e) {
+          if (e.errorFields) {
+            // Form validation errors
+            return Promise.reject(e);
+          }
           console.error("Bulk reject error:", e?.response || e);
           notification.error({
             message: "Từ chối hàng loạt thất bại",
@@ -888,10 +957,60 @@ const Posts = () => {
                 {detailArticle.description}
               </Descriptions.Item>
             )}
+            {detailArticle.rejectionReason && (
+              <Descriptions.Item label="Lý do từ chối">
+                <Alert
+                  message={detailArticle.rejectionReason}
+                  type="error"
+                  showIcon
+                />
+              </Descriptions.Item>
+            )}
           </Descriptions>
         ) : (
           <Text>Không có dữ liệu bài đăng.</Text>
         )}
+      </Modal>
+
+      {/* Modal nhập lý do từ chối */}
+      <Modal
+        title="Từ chối bài đăng"
+        open={rejectModalVisible}
+        onOk={handleRejectSubmit}
+        onCancel={() => {
+          setRejectModalVisible(false);
+          setRejectingArticleId(null);
+          rejectForm.resetFields();
+        }}
+        okText="Từ chối"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+        confirmLoading={rejectingArticleId && rejectingIds.includes(rejectingArticleId)}
+      >
+        <Form form={rejectForm} layout="vertical">
+          <Form.Item
+            name="rejectionReason"
+            label="Lý do từ chối"
+            rules={[
+              { required: true, message: "Vui lòng nhập lý do từ chối" },
+              { min: 10, message: "Lý do từ chối phải có ít nhất 10 ký tự" },
+            ]}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Nhập lý do từ chối bài đăng (tối thiểu 10 ký tự)..."
+              showCount
+              maxLength={500}
+            />
+          </Form.Item>
+          <Alert
+            message="Lưu ý"
+            description="Lý do từ chối sẽ được gửi qua email cho người đăng bài."
+            type="info"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        </Form>
       </Modal>
 
       {selectedRowKeys.length > 0 && (

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ImageUpload from "../../components/ImageUpload";
+import PostingRulesModal from "../../components/PostingRulesModal";
 import api from "../../config/api";
 import "./index.scss";
 
@@ -608,6 +609,7 @@ const PostListing = () => {
     message: "",
   });
   const [agreeTerm, setAgreeTerm] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [formData, setFormData] = useState({
     category: "",
     title: "",
@@ -1853,7 +1855,7 @@ const PostListing = () => {
                   onChange={(e) => handleInputChange("title", e.target.value)}
                 />
                 <small>
-                  Tối thiểu 30 ký tự, tối đa 100 ký tự ({formData.title.length}
+                  Tối thiểu 10 ký tự, tối đa 100 ký tự ({formData.title.length}
                   /100)
                 </small>
               </div>
@@ -1872,7 +1874,7 @@ const PostListing = () => {
                   }
                 />
                 <small>
-                  Tối thiểu 100 ký tự ({formData.description.length}/100)
+                    Tối thiểu 10 ký tự, tối đa 100 ký tự  ({formData.description.length}/100)
                 </small>
               </div>
               {/* Giá tiền, thương lượng */}
@@ -2173,8 +2175,18 @@ const PostListing = () => {
                     onChange={(e) => setAgreeTerm(e.target.checked)}
                     required
                   />
-                  Tôi đã đọc và đồng ý với <a href="#">Quy định đăng tin</a> của
-                  EcoXe
+                  Tôi đã đọc và đồng ý với{" "}
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowRulesModal(true);
+                    }}
+                    style={{ color: "#4caf50", textDecoration: "underline", cursor: "pointer" }}
+                  >
+                    Quy định đăng tin
+                  </a>{" "}
+                  của EcoXe
                 </label>
               </div>
 
@@ -2318,6 +2330,12 @@ const PostListing = () => {
           </div>
         </div>
       </div>
+
+      {/* Posting Rules Modal */}
+      <PostingRulesModal
+        isOpen={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
+      />
     </div>
   );
 };

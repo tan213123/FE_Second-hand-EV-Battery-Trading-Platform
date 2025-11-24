@@ -9,6 +9,7 @@ import SellBikePage from "./pages/sellPage/sellBikePage";
 import LoginPage from "./pages/loginPage/login";
 import RegisterPage from "./pages/loginPage/signup";
 import ForgotPasswordPage from "./pages/loginPage/forgot";
+import ResetPasswordPage from "./pages/loginPage/reset";
 import PostListing from "./pages/postListing";
 import Compare from "./pages/compare";
 import SettingsPage from "./pages/settingsPage";
@@ -40,6 +41,7 @@ function App() {
         { path: "/login", element: <LoginPage /> },
         { path: "/signup", element: <RegisterPage /> },
         { path: "/forgot", element: <ForgotPasswordPage /> },
+        { path: "/reset-password", element: <ResetPasswordPage /> },
         { path: "/post", element: <PostListing /> },
         { path: "/compare", element: <Compare /> },
         { path: "/account", element: <AccountPage /> },
