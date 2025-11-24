@@ -1498,7 +1498,7 @@ const PostListing = () => {
                   onChange={(e) => handleInputChange("title", e.target.value)}
                 />
                 <small>
-                  Tối thiểu 10 ký tự, tối đa 10 ký tự ({formData.title.length}
+                  Tối thiểu 10 ký tự, tối đa 100 ký tự ({formData.title.length}
                   /10)
                 </small>
               </div>

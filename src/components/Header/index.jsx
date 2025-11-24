@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout as logoutAction } from "../../redux/memberSlice";
+import { Modal, Button } from "antd";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
+import api from "../../config/api";
 import "./index.scss";
 
 // Icon Components
@@ -82,6 +85,9 @@ function Header() {
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [showSellerDropdown, setShowSellerDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState("");
+  const [checkingSubscription, setCheckingSubscription] = useState(false);
 
   // Hàm xử lý click cho các tính năng yêu cầu đăng nhập
   const handleAuthRequired = (action) => {
@@ -121,6 +127,47 @@ function Header() {
     // Chuyển về trang home sau khi đăng xuất - sử dụng replace để không lưu history
     navigate("/", { replace: true });
     console.log("✅ Đăng xuất thành công, đã chuyển về trang home");
+  };
+
+  // Hàm kiểm tra subscription trước khi đăng tin
+  const checkSubscriptionBeforePost = async () => {
+    if (!isAuthenticated || !member?.memberId) {
+      handleAuthRequired(() => {});
+      return;
+    }
+
+    setCheckingSubscription(true);
+    try {
+      const res = await api.get(`/subscription/member/${member.memberId}`);
+      const subs = res.data || [];
+      const now = new Date();
+      const activeSub = subs.find(
+        (sub) =>
+          sub.status === "ACTIVE" &&
+          (!sub.endDate || new Date(sub.endDate) > now)
+      );
+      const remaining = activeSub?.remainingPosts ?? 0;
+
+      if (activeSub && remaining > 0) {
+        // Có subscription hợp lệ, cho phép đăng tin
+        navigate("/post");
+      } else {
+        // Không có subscription hoặc hết lượt, hiển thị popup
+        const message = activeSub
+          ? "Bạn đã hết lượt đăng tin. Vui lòng mua gói để tiếp tục."
+          : "Bạn chưa có gói đăng tin. Vui lòng mua gói để bắt đầu đăng tin.";
+        setSubscriptionMessage(message);
+        setSubscriptionModalVisible(true);
+      }
+    } catch (error) {
+      console.error("Error checking subscription:", error);
+      setSubscriptionMessage(
+        "Không thể kiểm tra quyền đăng tin. Vui lòng thử lại."
+      );
+      setSubscriptionModalVisible(true);
+    } finally {
+      setCheckingSubscription(false);
+    }
   };
 
   // Close dropdowns when clicking outside
@@ -250,14 +297,17 @@ function Header() {
                     <div className="menu-section-title">Dành cho người bán</div>
                     {isAuthenticated ? (
                       <>
-                        <Link
-                          to="/post"
+                        <div
                           className="dropdown-item highlight"
-                          onClick={() => setShowMenuDropdown(false)}
+                          onClick={() => {
+                            setShowMenuDropdown(false);
+                            checkSubscriptionBeforePost();
+                          }}
+                          style={{ cursor: "pointer" }}
                         >
                           <div className="item-icon">➕</div>
                           <span>Đăng tin</span>
-                        </Link>
+                        </div>
                         <Link
                           to="/packages"
                           className="dropdown-item"
@@ -524,14 +574,73 @@ function Header() {
 
             <button
               className={`btn-secondary ${!isAuthenticated ? "disabled" : ""}`}
-              onClick={() => handleAuthRequired(() => navigate("/post"))}
+              onClick={checkSubscriptionBeforePost}
+              disabled={checkingSubscription}
             >
               {!isAuthenticated && <span className="lock-icon">🔒 </span>}
-              Đăng tin
+              {checkingSubscription ? "Đang kiểm tra..." : "Đăng tin"}
             </button>
           </div>
         </div>
       </header>
+
+      {/* Modal thông báo subscription */}
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ExclamationCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
+            <span>Không thể đăng tin</span>
+          </div>
+        }
+        open={subscriptionModalVisible}
+        onCancel={() => setSubscriptionModalVisible(false)}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => setSubscriptionModalVisible(false)}
+          >
+            Đóng
+          </Button>,
+          <Button
+            key="packages"
+            type="primary"
+            onClick={() => {
+              setSubscriptionModalVisible(false);
+              navigate("/packages");
+            }}
+          >
+            Mua gói đăng tin
+          </Button>,
+          <Button
+            key="subscriptions"
+            onClick={() => {
+              setSubscriptionModalVisible(false);
+              navigate("/my-subscriptions");
+            }}
+          >
+            Xem gói của tôi
+          </Button>,
+        ]}
+        width={500}
+      >
+        <div style={{ padding: "16px 0" }}>
+          <p style={{ marginBottom: 16, fontSize: 15, lineHeight: 1.6 }}>
+            {subscriptionMessage}
+          </p>
+          <div
+            style={{
+              background: "#f6f8fa",
+              padding: 12,
+              borderRadius: 6,
+              fontSize: 14,
+              color: "#586069",
+            }}
+          >
+            💡 <strong>Lưu ý:</strong> Bạn cần có gói đăng tin hợp lệ và còn
+            lượt đăng tin để sử dụng tính năng này.
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
