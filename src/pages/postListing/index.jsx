@@ -1338,8 +1338,25 @@ const PostListing = () => {
       });
       navigate("/my-posts");
     } catch (error) {
-      console.error("❌ Lỗi không mong muốn:", error);
-      alert("Lỗi không mong muốn! Vui lòng kiểm tra lại thông tin chi tiết");
+      console.error("❌ Lỗi khi gửi tin đăng:", error);
+
+      const backendData = error?.response?.data;
+      let message = "";
+
+      if (typeof backendData === "string") {
+        message = backendData;
+      } else if (backendData && typeof backendData.message === "string") {
+        message = backendData.message;
+      }
+
+      // Map thông điệp BE sang tiếng Việt thân thiện
+      if (message.includes("Licenses plate already exists")) {
+        alert("Biển số xe này đã tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc dùng biển số khác.");
+      } else if (message) {
+        alert(message);
+      } else {
+        alert("Có lỗi xảy ra khi đăng tin. Vui lòng kiểm tra lại thông tin hoặc thử lại sau.");
+      }
     } finally {
       setIsSubmitting(false);
     }

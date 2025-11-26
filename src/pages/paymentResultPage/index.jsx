@@ -99,7 +99,8 @@ const PaymentResultPage = () => {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="detail-label">Mã đơn hàng:</span>
-                    <span className="detail-value">{result.orderId || '—'}</span>
+                    {/* Ưu tiên hiển thị mã giao dịch nội bộ (vnp_TxnRef) đã random, fallback về orderId nếu thiếu */}
+                    <span className="detail-value">{result.transactionRef || result.orderId || '—'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Số tiền:</span>
@@ -107,7 +108,8 @@ const PaymentResultPage = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Mã giao dịch:</span>
-                    <span className="detail-value">{result.transactionNo || '—'}</span>
+                    {/* Mã giao dịch của VNPay (vnp_TransactionNo) để đối chiếu với ngân hàng */}
+                    <span className="detail-value">{result.transactionNo || result.transactionRef || '—'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Thời gian:</span>

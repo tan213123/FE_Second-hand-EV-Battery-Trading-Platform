@@ -184,21 +184,13 @@ function PackagePage() {
     }
 
     const confirmUpgrade = window.confirm(
-      'Bạn đang có một gói hoạt động. Tiếp tục nâng cấp sẽ hủy gói hiện tại. Bạn có chắc chắn muốn tiếp tục?'
+      'Bạn đang có một gói hoạt động. Sau khi thanh toán nâng cấp thành công, hệ thống sẽ hủy gói hiện tại. Bạn có chắc chắn muốn tiếp tục?'
     )
     if (!confirmUpgrade) return
 
-    try {
-      setLoadingSubscriptionAction(true)
-      await api.patch(`/subscription/${memberId}/${activeSubscription.packageId}/cancel`)
-      await fetchMemberSubscriptions()
-      handleSelectPackage(pkg, 'upgrade')
-    } catch (error) {
-      console.error('Upgrade failed:', error)
-      alert(error.response?.data?.message || 'Không thể hủy gói hiện tại để nâng cấp.')
-    } finally {
-      setLoadingSubscriptionAction(false)
-    }
+    // Logic mới: KHÔNG hủy gói ngay. Chỉ mở modal thanh toán nâng cấp.
+    // Gói cũ sẽ chỉ bị hủy sau khi thanh toán VNPAY thành công (xử lý ở backend).
+    handleSelectPackage(pkg, 'upgrade')
   }
 
   const handleVnpayPayment = async (pkg, action = 'purchase') => {
@@ -373,7 +365,9 @@ function PackagePage() {
                     </button>
                   )}
                   {hasActiveSubscription && !isPackageActive(pkg.packageId) && (
-                    <p className="upgrade-note">Hệ thống sẽ hủy gói hiện tại trước khi nâng cấp.</p>
+                    <p className="upgrade-note">
+                      Hệ thống chỉ hủy gói hiện tại sau khi bạn thanh toán nâng cấp thành công.
+                    </p>
                   )}
                 </div>
             </div>
