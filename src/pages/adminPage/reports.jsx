@@ -462,7 +462,7 @@ const Reports = () => {
         <Col xs={24} sm={8}>
           <Card>
             <Statistic
-              title="Tổng người dùng đăng ký gói"
+              title="Tổng người dùng đã đăng ký gói"
               value={dashboardStats?.totalSubs ?? 0}
               prefix={<UserOutlined />}
               valueStyle={{ color: "#3f8600" }}
@@ -492,7 +492,7 @@ const Reports = () => {
         <Col xs={24} sm={8}>
           <Card>
             <Statistic
-              title="Tổng số lượng bài đăng"
+              title="Tổng số lượng bài đăng hiện tại"
               value={
                 dashboardStats?.totalArticles ??
                 dashboardStats?.articleCount ??
