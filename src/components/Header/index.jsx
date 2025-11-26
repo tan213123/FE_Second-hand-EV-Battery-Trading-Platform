@@ -85,7 +85,8 @@ function Header() {
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [showSellerDropdown, setShowSellerDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
+  const [subscriptionModalVisible, setSubscriptionModalVisible] =
+    useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState("");
   const [checkingSubscription, setCheckingSubscription] = useState(false);
 
@@ -426,44 +427,36 @@ function Header() {
                   Pin
                 </Link>
 
-                  <span
-                      className="nav-link"
-                      style={{ color: "#4ECDC4", fontWeight: 600, cursor: "pointer" }}
-                      onClick={() => {
-                          if (isAuthenticated) {
-                              navigate("/my-subscriptions");
-                          } else {
-                              navigate("/login");
-                          }
-                      }}
-                  >
-    Subscription
-  </span>
+                <span
+                  className="nav-link"
+                  style={{
+                    color: "#4ECDC4",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    if (isAuthenticated) {
+                      navigate("/my-subscriptions");
+                    } else {
+                      navigate("/login");
+                    }
+                  }}
+                >
+                  Subscription
+                </span>
               </>
             ) : (
               <>
-                <div
-                  className="nav-link disabled"
-                  onClick={() => handleAuthRequired(() => navigate("/bike"))}
-                >
-                  🔒 Xe điện
+                <div className="nav-link" onClick={() => navigate("/bike")}>
+                  Xe điện
                 </div>
-                <div
-                  className="nav-link disabled"
-                  onClick={() => handleAuthRequired(() => navigate("/oto"))}
-                >
-                  🔒 Xe cộ
+                <div className="nav-link" onClick={() => navigate("/oto")}>
+                  Xe cộ
                 </div>
-                <div
-                  className="nav-link disabled"
-                  onClick={() => handleAuthRequired(() => navigate("/battery"))}
-                >
-                  🔒 Pin
+                <div className="nav-link" onClick={() => navigate("/battery")}>
+                  Pin
                 </div>
-
-
               </>
-
             )}
           </nav>
 
@@ -588,7 +581,9 @@ function Header() {
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <ExclamationCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
+            <ExclamationCircleOutlined
+              style={{ color: "#faad14", fontSize: 20 }}
+            />
             <span>Không thể đăng tin</span>
           </div>
         }
