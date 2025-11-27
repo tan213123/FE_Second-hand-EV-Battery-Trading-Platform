@@ -343,7 +343,7 @@ const Posts = () => {
     try {
       const values = await rejectForm.validateFields();
       const id = rejectingArticleId;
-      
+
       if (!id) {
         notification.error({ message: "Không tìm thấy ID bài đăng" });
         return;
@@ -361,18 +361,18 @@ const Posts = () => {
         `/article/${id}/reject?memberId=${adminMemberId}`,
         { rejectionReason: values.rejectionReason }
       );
-      
+
       console.log("Reject response:", {
         status: res.status,
         data: res.data,
         id,
       });
-      
+
       notification.success({ message: "Từ chối bài đăng thành công" });
       setRejectModalVisible(false);
       setRejectingArticleId(null);
       rejectForm.resetFields();
-      
+
       fetchPosts(
         pagination.current,
         pagination.pageSize,
@@ -470,7 +470,7 @@ const Posts = () => {
       notification.warning({ message: "Vui lòng chọn ít nhất một bài đăng" });
       return;
     }
-    
+
     Modal.confirm({
       title: `Từ chối ${selectedRowKeys.length} bài đăng đã chọn`,
       content: (
@@ -499,14 +499,14 @@ const Posts = () => {
       onOk: async () => {
         try {
           const values = await rejectForm.validateFields();
-          
+
           if (!adminMemberId) {
             notification.error({
               message: "Không tìm thấy mã quản trị để từ chối",
             });
             return;
           }
-          
+
           await Promise.all(
             selectedRowKeys.map((id) =>
               api.post(`/article/${id}/reject?memberId=${adminMemberId}`, {
@@ -514,11 +514,11 @@ const Posts = () => {
               })
             )
           );
-          
+
           notification.success({ message: "Từ chối hàng loạt thành công" });
           setSelectedRowKeys([]);
           rejectForm.resetFields();
-          
+
           fetchPosts(
             pagination.current,
             pagination.pageSize,
@@ -543,6 +543,24 @@ const Posts = () => {
   };
 
   const handleBulkDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      notification.warning({ message: "Vui lòng chọn ít nhất một bài đăng" });
+      return;
+    }
+
+    const hasApproved = selectedRowKeys.some((id) => {
+      const post = posts.find((p) => p.id === id);
+      return post && post.status === "approved";
+    });
+
+    if (hasApproved) {
+      notification.warning({
+        message: "Không thể xóa bài đăng đã duyệt",
+        description: "Vui lòng bỏ chọn các bài đăng đã duyệt trước khi xóa.",
+      });
+      return;
+    }
+
     confirm({
       title: `Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} bài đăng đã chọn?`,
       icon: <ExclamationCircleOutlined />,
@@ -711,22 +729,24 @@ const Posts = () => {
           >
             Xem chi tiết
           </Button>
-          <Popconfirm
-            title="Xóa bài đăng?"
-            description={`Mã bài đăng: ${record.id}`}
-            okText="Xóa"
-            okType="danger"
-            cancelText="Hủy"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deletingIds.includes(record.id)}
-              title="Xóa"
-            />
-          </Popconfirm>
+          {record.status !== "approved" && (
+            <Popconfirm
+              title="Xóa bài đăng?"
+              description={`Mã bài đăng: ${record.id}`}
+              okText="Xóa"
+              okType="danger"
+              cancelText="Hủy"
+              onConfirm={() => handleDelete(record.id)}
+            >
+              <Button
+                type="link"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deletingIds.includes(record.id)}
+                title="Xóa"
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -985,7 +1005,9 @@ const Posts = () => {
         okText="Từ chối"
         cancelText="Hủy"
         okButtonProps={{ danger: true }}
-        confirmLoading={rejectingArticleId && rejectingIds.includes(rejectingArticleId)}
+        confirmLoading={
+          rejectingArticleId && rejectingIds.includes(rejectingArticleId)
+        }
       >
         <Form form={rejectForm} layout="vertical">
           <Form.Item
