@@ -1351,11 +1351,15 @@ const PostListing = () => {
 
       // Map thông điệp BE sang tiếng Việt thân thiện
       if (message.includes("Licenses plate already exists")) {
-        alert("Biển số xe này đã tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc dùng biển số khác.");
+        alert(
+          "Biển số xe này đã tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc dùng biển số khác."
+        );
       } else if (message) {
         alert(message);
       } else {
-        alert("Có lỗi xảy ra khi đăng tin. Vui lòng kiểm tra lại thông tin hoặc thử lại sau.");
+        alert(
+          "Có lỗi xảy ra khi đăng tin. Vui lòng kiểm tra lại thông tin hoặc thử lại sau."
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -1535,7 +1539,8 @@ const PostListing = () => {
                   }
                 />
                 <small>
-                  Tối thiểu 100 ký tự ({formData.description.length}/100)
+                  Tối thiểu 10 ký tự, tối đa 100 ký tự (
+                  {formData.description.length}/100)
                 </small>
               </div>
 
@@ -1891,7 +1896,8 @@ const PostListing = () => {
                   }
                 />
                 <small>
-                    Tối thiểu 10 ký tự, tối đa 100 ký tự  ({formData.description.length}/100)
+                  Tối thiểu 10 ký tự, tối đa 100 ký tự (
+                  {formData.description.length}/100)
                 </small>
               </div>
               {/* Giá tiền, thương lượng */}
@@ -2199,7 +2205,11 @@ const PostListing = () => {
                       e.preventDefault();
                       setShowRulesModal(true);
                     }}
-                    style={{ color: "#4caf50", textDecoration: "underline", cursor: "pointer" }}
+                    style={{
+                      color: "#4caf50",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
                   >
                     Quy định đăng tin
                   </a>{" "}
