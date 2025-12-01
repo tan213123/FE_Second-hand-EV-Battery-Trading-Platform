@@ -2,7 +2,7 @@
 
 <img width="1860" height="908" alt="image" src="https://github.com/user-attachments/assets/02461d07-6e53-402e-b23d-f68b8dc262b0" />
 
-*Nền tảng thương mại điện tử chuyên biệt cho Xe điện cũ và Pin tái chế.*
+*Nền tảng thương mại điện tử chuyên biệt cho Xe điện cũ và Pin đã qua sử dụng.*
 
 ##  Giới thiệu 
 Dự án được xây dựng nhằm giải quyết bài toán kết nối mua bán **xe điện và pin** đã qua sử dụng chất lượng cao. Đây là sản phẩm demo thể hiện kỹ năng lập trình **Frontend**, tư duy thiết kế giao diện (UI/UX) và tổ chức source code hiện đại.
